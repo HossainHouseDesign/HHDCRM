@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -14,6 +15,7 @@ export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
   // Identity Section
   { id: '1', label: 'Full Name', db_key: 'client_name', type: 'text', section: 'Identity', required: true, visible: true, placeholder: 'e.g. Sarah Khan' },
   { id: '2', label: 'Phone Number', db_key: 'phone', type: 'text', section: 'Identity', required: true, visible: true, placeholder: '01XXXXXXXXX' },
+  { id: 'email_idx', label: 'Email Address', db_key: 'email', type: 'text', section: 'Identity', required: false, visible: true, placeholder: 'client@example.com' },
   { id: '11', label: 'Current Location (Country)', db_key: 'current_location', type: 'text', section: 'Identity', required: false, visible: true, placeholder: 'e.g. Bangladesh' },
   
   // Architecture Section
@@ -31,11 +33,11 @@ export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
   { id: 'ps_idx', label: 'Police Station', db_key: 'police_station', type: 'text', section: 'Logistics', required: false, visible: true, placeholder: 'Enter PS name...' },
   { id: 'village_idx', label: 'Village / Area', db_key: 'village_name', type: 'text', section: 'Logistics', required: false, visible: true, placeholder: 'e.g. Master Para' },
   { id: 'social_idx', label: 'Source (Social Media)', db_key: 'social_media', type: 'text', section: 'Logistics', required: false, visible: true, placeholder: 'e.g. Facebook' },
-  { id: 'call_date', label: 'Next Calling Date', db_key: 'date', section: 'Logistics', required: false, visible: true, type: 'date' },
+  { id: 'call_date', label: 'Next Calling Date', db_key: 'next_calling_date', section: 'Logistics', required: false, visible: true, type: 'date' },
   
   // Financials Section
   { id: 'pkg_idx', label: 'Design Package', db_key: 'package', type: 'select', section: 'Financials', required: false, visible: true, options: ['Basic Drafting', 'Standard Architectural', 'Premium Engineering', 'Luxury Full-Service'] },
-  { id: 'fee_idx', label: 'Asking Fee (BDT)', db_key: 'asking_fee', type: 'number', section: 'Financials', required: false, visible: true, placeholder: '0' },
+  { id: 'fee_idx', label: 'Design Charge (BDT)', db_key: 'asking_fee', type: 'number', section: 'Financials', required: false, visible: true, placeholder: '0' },
   { id: 'budget_idx', label: 'Client Budget Range', db_key: 'budget', type: 'text', section: 'Financials', required: false, visible: true, placeholder: 'e.g. 50-70 Lakh' },
   
   // Notes Section
@@ -273,7 +275,6 @@ const Settings = () => {
                       </div>
                     </div>
 
-                    {/* Dropdown Options Management restored here */}
                     {f.type === 'select' && (
                       <div className="pt-6 border-t border-slate-50 space-y-6 animate-in slide-in-from-top-2 duration-300">
                         <div className="flex items-center gap-3">

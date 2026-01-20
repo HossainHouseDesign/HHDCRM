@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -7,8 +8,9 @@ import { DEFAULT_FORM_CONFIG } from './Settings';
 import { COUNTRIES, BD_DISTRICTS, BD_UPAZILA_MAP } from '../constants';
 import { useNotification } from '../App';
 
+// EXHAUSTIVE COLUMN LIST FOR BI-DIRECTIONAL SYNC
 const STANDARD_COLUMNS = [
-  'client_name', 'phone', 'current_location', 'land_area', 'address', 'upazila', 
+  'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
   'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
   'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
   'bathroom_count', 'stair_details', 'status', 'is_client'
@@ -161,8 +163,11 @@ const LeadForm = () => {
       }
       formConfig.forEach(f => {
         const val = formData[f.id];
-        if (STANDARD_COLUMNS.includes(f.db_key)) payload[f.db_key] = val;
-        else payload.metadata[f.db_key] = val;
+        if (STANDARD_COLUMNS.includes(f.db_key)) {
+          payload[f.db_key] = val;
+        } else {
+          payload.metadata[f.db_key] = val;
+        }
       });
       
       if (isEditing) {
@@ -201,7 +206,7 @@ const LeadForm = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] animate-in fade-in duration-700">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 pb-24 sm:pb-32 pt-8 sm:pt-12">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-8 mb-12 sm:mb-16">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-8 mb-12 sm:mb-16">
           <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={() => navigate(-1)} className="p-3.5 sm:p-4 bg-white border border-slate-100 rounded-2xl shadow-lg hover:bg-slate-50 transition-all active:scale-95">
               <ArrowLeft className="w-5 h-5 text-slate-500" />

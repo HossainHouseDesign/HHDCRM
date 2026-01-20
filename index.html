@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Donezo - Architectural Workspace</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
@@ -24,6 +26,44 @@
         /* Custom gauge rotation and look */
         .recharts-pie-sector:first-child {
             filter: drop-shadow(0 10px 15px rgba(6, 78, 59, 0.1));
+        }
+
+        /* --- Professional Print Logic --- */
+        @media print {
+            aside, nav, header, button, .no-print {
+                display: none !important;
+            }
+
+            body, html {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            #root {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            main > div > div:not(.print-container) {
+                display: none !important;
+            }
+
+            .print-container {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 40px !important;
+                background: white !important;
+            }
+
+            @page {
+                size: A4;
+                margin: 0;
+            }
         }
     </style>
 <script type="importmap">

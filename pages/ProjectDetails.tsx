@@ -5,87 +5,74 @@ import {
   ArrowLeft, Briefcase, MapPin, Ruler, Users, Calendar, 
   CheckCircle2, Clock, Grid, Bed, Bath, ListTree, Banknote,
   PhoneCall, RefreshCw, Compass, ShieldCheck, Mail,
-  Edit3, Trash2, Hash, Map, Layers, X, Save, Activity
+  Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { Project, Lead, Profile, ProjectStatus } from '../types';
+import { Project, Lead, Profile, ProjectStatus, FormFieldConfig } from '../types';
+import { DEFAULT_FORM_CONFIG } from './Settings';
 
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+  const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Modal & Edit State
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [editFormData, setEditFormData] = useState({
-    name: '',
-    status: 'Upcoming' as ProjectStatus,
-    budget: 0,
-    start_date: '',
-    description: '',
-    assigned_team: [] as string[],
-    // Architectural Overrides (Synced to Master Lead record)
-    foundation: '',
-    unit_count: '',
-    bedroom_count: '',
-    bathroom_count: '',
-    stair_details: '',
-    land_area: '',
-    package: '',
-    asking_fee: 0
-  });
+  const [editFormData, setEditFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    fetchProject();
-    fetchTeam();
+    fetchData();
   }, [id]);
 
-  const fetchProject = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*, client:leads(*), assignments:project_assignments(profile:profiles(*))')
-        .eq('id', id)
-        .single();
+      const [projRes, teamRes, configRes] = await Promise.all([
+        supabase.from('projects').select('*, client:leads(*), assignments:project_assignments(profile:profiles(*))').eq('id', id).single(),
+        supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active'),
+        supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
+      ]);
       
-      if (error) throw error;
-      setProject(data);
+      if (projRes.error) throw projRes.error;
       
-      const client = data.client as Lead;
+      const currentProject = projRes.data;
+      const currentClient = currentProject.client as Lead;
+      const currentConfig = configRes.data?.value || DEFAULT_FORM_CONFIG;
+
+      setProject(currentProject);
+      setTeamMembers(teamRes.data || []);
+      setFormConfig(currentConfig);
       
-      // Prep edit form with synced specs
-      setEditFormData({
-        name: data.name,
-        status: data.status,
-        budget: data.budget,
-        start_date: data.start_date,
-        description: data.description || '',
-        assigned_team: data.assignments?.map((a: any) => a.profile.id) || [],
-        foundation: client?.foundation || '',
-        unit_count: client?.unit_count || '',
-        bedroom_count: client?.bedroom_count || '',
-        bathroom_count: client?.bathroom_count || '',
-        stair_details: client?.stair_details || '',
-        land_area: client?.land_area || '',
-        package: client?.package || '',
-        asking_fee: client?.asking_fee || 0
+      // Initialize Edit Form with project and client data
+      const initialForm: any = {
+        name: currentProject.name,
+        status: currentProject.status,
+        budget: currentProject.budget,
+        start_date: currentProject.start_date,
+        description: currentProject.description || '',
+        assigned_team: currentProject.assignments?.map((a: any) => a.profile.id) || []
+      };
+
+      // Add architectural fields from client
+      currentConfig.forEach((f: FormFieldConfig) => {
+        initialForm[f.db_key] = currentClient[f.db_key as keyof Lead] !== undefined 
+          ? currentClient[f.db_key as keyof Lead] 
+          : currentClient.metadata?.[f.db_key];
       });
+
+      setEditFormData(initialForm);
+
     } catch (err) {
       console.error(err);
       navigate('/projects');
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchTeam = async () => {
-    const { data } = await supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active');
-    setTeamMembers(data || []);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -103,34 +90,58 @@ const ProjectDetails = () => {
         updated_at: new Date().toISOString()
       }).eq('id', id);
       
-      // 2. Sync Technical Overrides back to Client record (Leads Table)
-      await supabase.from('leads').update({
-        foundation: editFormData.foundation,
-        unit_count: editFormData.unit_count,
-        bedroom_count: editFormData.bedroom_count,
-        bathroom_count: editFormData.bathroom_count,
-        stair_details: editFormData.stair_details,
-        land_area: editFormData.land_area,
-        package: editFormData.package,
-        asking_fee: editFormData.asking_fee,
-        updated_at: new Date().toISOString()
-      }).eq('id', project.client_id);
+      // 2. Prepare architectural sync payload
+      const standardCols = ['foundation', 'unit_count', 'bedroom_count', 'bathroom_count', 'stair_details', 'land_area', 'package', 'asking_fee', 'address', 'upazila', 'social_media', 'email', 'phone'];
+      const clientUpdate: any = { updated_at: new Date().toISOString(), metadata: project.client?.metadata || {} };
+      
+      formConfig.forEach(f => {
+        const val = editFormData[f.db_key];
+        if (standardCols.includes(f.db_key)) {
+          clientUpdate[f.db_key] = val;
+        } else {
+          clientUpdate.metadata[f.db_key] = val;
+        }
+      });
+
+      await supabase.from('leads').update(clientUpdate).eq('id', project.client_id);
 
       // 3. Update Team
       await supabase.from('project_assignments').delete().eq('project_id', id);
-      if (editFormData.assigned_team.length > 0) {
+      if (editFormData.assigned_team?.length > 0) {
         await supabase.from('project_assignments').insert(
-          editFormData.assigned_team.map(profileId => ({ project_id: id, profile_id: profileId }))
+          editFormData.assigned_team.map((profileId: string) => ({ project_id: id, profile_id: profileId }))
         );
       }
 
       setShowEditModal(false);
-      await fetchProject();
+      await fetchData();
     } catch (err: any) {
       alert("Synchronization failed: " + err.message);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getClientValue = (dbKey: string) => {
+    const client = project?.client as Lead;
+    if (!client) return 'N/A';
+    const val = client[dbKey as keyof Lead] !== undefined ? client[dbKey as keyof Lead] : client.metadata?.[dbKey];
+    return (val === null || val === undefined || val === '') ? 'N/A' : val;
+  };
+
+  const getIconForField = (dbKey: string) => {
+    const key = dbKey.toLowerCase();
+    if (key.includes('foundation')) return <Layers className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('unit')) return <Grid className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('bed')) return <Bed className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('bath')) return <Bath className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('stair')) return <ListTree className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('area') || key.includes('land')) return <Ruler className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('budget') || key.includes('fee')) return <Banknote className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('package')) return <Briefcase className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('visit') || key.includes('date')) return <Calendar className="w-5 h-5 text-emerald-500 opacity-30" />;
+    if (key.includes('location')) return <Globe className="w-5 h-5 text-emerald-500 opacity-30" />;
+    return <Info className="w-5 h-5 text-emerald-500 opacity-30" />;
   };
 
   if (loading || !project) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /></div>;
@@ -141,6 +152,9 @@ const ProjectDetails = () => {
     'Running': { style: 'bg-slate-900 text-white border-transparent', icon: Activity },
     'Complete': { style: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 }
   }[project.status];
+
+  // Group dynamic architectural fields
+  const architecturalFields = formConfig.filter(f => (f.section === 'Architecture' || f.section === 'Financials') && f.visible);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
@@ -159,19 +173,34 @@ const ProjectDetails = () => {
 
             <form onSubmit={handleEditSubmit} className="space-y-12">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Internal Title</label><input required className="w-full h-16 px-8 bg-slate-50 border-transparent rounded-[24px] text-[14px] font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={editFormData.name} onChange={e => setEditFormData({...editFormData, name: e.target.value})} /></div>
-                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Project Phase</label><select className="w-full h-16 px-8 bg-slate-50 rounded-[24px] text-[14px] font-bold text-slate-700 outline-none focus:bg-white transition-all" value={editFormData.status} onChange={e => setEditFormData({...editFormData, status: e.target.value as ProjectStatus})}>{['Upcoming', 'Running', 'Complete'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Project Phase</label>
+                   <select className="w-full h-16 px-8 bg-slate-50 rounded-[24px] text-[14px] font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={editFormData.status} onChange={e => setEditFormData({...editFormData, status: e.target.value as ProjectStatus})}>
+                      {['Upcoming', 'Running', 'Complete'].map(s => <option key={s} value={s}>{s}</option>)}
+                   </select>
+                </div>
+                <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Execution Budget (BDT)</label>
+                   <input type="number" className="w-full h-16 px-8 bg-slate-50 rounded-[24px] text-[14px] font-bold text-emerald-700 outline-none focus:bg-white transition-all shadow-inner" value={editFormData.budget} onChange={e => setEditFormData({...editFormData, budget: Number(e.target.value)})} />
+                </div>
               </div>
 
               <div className="bg-slate-50/50 p-10 rounded-[48px] border border-slate-100 space-y-10">
-                 <h4 className="text-[11px] font-black text-[#064e3b] uppercase tracking-[0.3em] flex items-center gap-3"><Layers className="w-4 h-4" /> Technical Parameters (Synced to Master Client Record)</h4>
+                 <h4 className="text-[11px] font-black text-[#064e3b] uppercase tracking-[0.3em] flex items-center gap-3"><Layout className="w-4 h-4" /> Technical Overrides (Synced to Master Client Record)</h4>
                  <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Foundation</label><select className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.foundation} onChange={e => setEditFormData({...editFormData, foundation: e.target.value})}>{['1 Store','2 Store','3 Store','4 Store','5 Store','6 Store','7 Store','8 Store','9 Store','10 Store'].map(o => <option key={o} value={o}>{o}</option>)}</select></div>
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Units</label><select className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.unit_count} onChange={e => setEditFormData({...editFormData, unit_count: e.target.value})}>{['1 Unit','2 Units','3 Units','4 Units'].map(o => <option key={o} value={o}>{o}</option>)}</select></div>
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Design Package</label><select className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.package} onChange={e => setEditFormData({...editFormData, package: e.target.value})}>{['Basic Drafting', 'Standard Architectural', 'Premium Engineering', 'Luxury Full-Service'].map(o => <option key={o} value={o}>{o}</option>)}</select></div>
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Beds</label><input type="number" className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.bedroom_count} onChange={e => setEditFormData({...editFormData, bedroom_count: e.target.value})} /></div>
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Baths</label><input type="number" className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.bathroom_count} onChange={e => setEditFormData({...editFormData, bathroom_count: e.target.value})} /></div>
-                    <div className="space-y-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Land Area</label><input className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl" value={editFormData.land_area} onChange={e => setEditFormData({...editFormData, land_area: e.target.value})} /></div>
+                    {architecturalFields.map(f => (
+                       <div key={f.id} className="space-y-2">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">{f.label}</label>
+                          {f.type === 'select' ? (
+                             <select className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl font-bold text-slate-700" value={editFormData[f.db_key] || ''} onChange={e => setEditFormData({...editFormData, [f.db_key]: e.target.value})}>
+                                <option value="">Select Option</option>
+                                {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                             </select>
+                          ) : (
+                             <input type={f.type === 'number' ? 'number' : 'text'} className="w-full h-14 px-6 bg-white border border-slate-100 rounded-2xl font-bold text-slate-700" value={editFormData[f.db_key] || ''} onChange={e => setEditFormData({...editFormData, [f.db_key]: e.target.value})} />
+                          )}
+                       </div>
+                    ))}
                  </div>
               </div>
 
@@ -186,7 +215,7 @@ const ProjectDetails = () => {
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 pt-12 space-y-12">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
           <div className="flex items-center gap-8 min-w-0">
-            <button onClick={() => navigate('/projects')} className="w-14 h-14 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all shrink-0"><ArrowLeft className="w-6 h-6 text-slate-500" /></button>
+            <button onClick={() => navigate(-1)} className="w-14 h-14 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all shrink-0"><ArrowLeft className="w-6 h-6 text-slate-500" /></button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-4">
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight truncate">{project.name}</h1>
@@ -204,26 +233,31 @@ const ProjectDetails = () => {
                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
                <div className="flex items-center gap-5 pb-10 border-b border-slate-50 mb-12">
                   <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-[22px] flex items-center justify-center shadow-sm"><Compass className="w-7 h-7" /></div>
-                  <div><h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em]">Architectural Master Blueprint</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Synced Site Parameters</p></div>
+                  <div><h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em]">Architectural Master Blueprint</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Synced Dynamic Site Parameters</p></div>
                </div>
                
                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-16 gap-x-12">
-                  {[
-                    { label: 'Foundation Type', value: client?.foundation || 'N/A', icon: Layers },
-                    { label: 'Units Per Floor', value: client?.unit_count || 'N/A', icon: Grid },
-                    { label: 'Bedrooms', value: client?.bedroom_count || 'N/A', icon: Bed },
-                    { label: 'Bathrooms', value: client?.bathroom_count || 'N/A', icon: Bath },
-                    { label: 'Stair Case', value: client?.stair_details || 'N/A', icon: ListTree },
-                    { label: 'Design Package', value: client?.package || 'N/A', icon: Briefcase },
-                    { label: 'Project Budget', value: `Tk. ${project.budget.toLocaleString()}`, icon: Banknote, color: 'text-emerald-600' },
-                    { label: 'Verified Land Area', value: client?.land_area || 'N/A', icon: Ruler },
-                    { label: 'Assigned Team', value: `${project.assignments?.length || 0} Members`, icon: Users },
-                  ].map((item, i) => (
-                    <div key={i} className="space-y-3 group">
-                       <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{item.label}</p>
-                       <div className={`flex items-center gap-3.5 font-black text-lg ${item.color || 'text-slate-900'}`}><item.icon className="w-5 h-5 text-emerald-500 opacity-30" />{item.value}</div>
+                  {architecturalFields.map((f, i) => (
+                    <div key={f.id} className="space-y-3 group">
+                       <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{f.label}</p>
+                       <div className="flex items-center gap-3.5 font-black text-lg text-slate-900">
+                          {getIconForField(f.db_key)}
+                          {getClientValue(f.db_key)}
+                       </div>
                     </div>
                   ))}
+                  <div className="space-y-3 group">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Execution Budget</p>
+                     <div className="flex items-center gap-3.5 font-black text-lg text-emerald-600">
+                        <Banknote className="w-5 h-5 opacity-30" /> Tk. {project.budget.toLocaleString()}
+                     </div>
+                  </div>
+                  <div className="space-y-3 group">
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Team Assigned</p>
+                     <div className="flex items-center gap-3.5 font-black text-lg text-slate-900">
+                        <Users className="w-5 h-5 text-emerald-500 opacity-30" /> {project.assignments?.length || 0} Members
+                     </div>
+                  </div>
                </div>
             </div>
           </div>
@@ -240,7 +274,6 @@ const ProjectDetails = () => {
                    <div className="space-y-4">
                       <a href={`tel:${client?.phone}`} className="flex items-center justify-between p-7 bg-emerald-600 text-white rounded-[32px] shadow-xl hover:bg-emerald-500 transition-all group/call"><div className="flex items-center gap-5"><PhoneCall className="w-6 h-6 group-hover/call:rotate-12 transition-transform" /><span className="text-base font-black tracking-tight">{client?.phone}</span></div><ArrowLeft className="w-5 h-5 rotate-[135deg] opacity-50" /></a>
                    </div>
-                   <div className="pt-8 border-t border-white/10 flex items-center gap-4"><ShieldCheck className="w-5 h-5 text-emerald-500" /><p className="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Validated Architectural Record</p></div>
                 </div>
              </div>
              

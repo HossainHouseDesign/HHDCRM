@@ -14,6 +14,8 @@ import RecycleBin from './pages/RecycleBin';
 import Construction from './pages/Construction';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
+import QuotationList from './pages/QuotationList';
+import QuotationDetails from './pages/QuotationDetails';
 import { Menu, X, CheckCircle2, AlertCircle, Info, XCircle, ShieldAlert } from 'lucide-react';
 
 // --- Notification System ---
@@ -157,6 +159,8 @@ const AppContent = () => {
             <Route path="/leads/new" element={<LeadForm />} />
             <Route path="/leads/edit/:id" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
+            <Route path="/quotations" element={<QuotationList />} />
+            <Route path="/quotations/:id" element={<QuotationDetails />} />
             <Route path="/clients" element={<ClientsList />} />
             <Route path="/construction" element={<Construction />} />
             <Route path="/projects" element={<Projects />} />
