@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead, LeadStatus, FormFieldConfig } from '../types';
 import { 
@@ -9,47 +10,45 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 
+/**
+ * ROBUST INTEREST RESOLVER
+ * Ensures filters match data regardless of storage (Boolean or String 'Yes'/'No')
+ */
 export const resolveInterest = (l: Lead, dbKey: string): boolean => {
   if (!dbKey) return false;
   const check = (val: any) => {
     if (val === true || val === 'true' || val === 1 || val === '1') return true;
-    if (typeof val === 'string' && val.toLowerCase() === 'yes') return true;
+    if (typeof val === 'string' && (val.toLowerCase() === 'yes' || val.toLowerCase() === 'y')) return true;
     return false;
   };
+  
+  // Check primary column
   if (l[dbKey as keyof Lead] !== undefined) {
     if (check(l[dbKey as keyof Lead])) return true;
   }
+  
+  // Check metadata fallback
   if (l.metadata && l.metadata[dbKey] !== undefined) {
     if (check(l.metadata[dbKey])) return true;
   }
+  
   return false;
 };
 
 const LeadsList = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeStatus, setActiveStatus] = useState<LeadStatus | 'All'>('All');
+  
+  // Interest Filters
   const [filterConst, setFilterConst] = useState(false);
   const [filterInt, setFilterInt] = useState(false);
 
   const [activeStatusDropdown, setActiveStatusDropdown] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const statusMenuRef = useRef<HTMLDivElement>(null);
-
-  const detectedKeys = useMemo(() => {
-    const config = formConfig.length > 0 ? formConfig : DEFAULT_FORM_CONFIG;
-    const findKey = (term: string) => config.find(f => 
-      f.db_key.toLowerCase().includes(term) || 
-      f.label.toUpperCase().includes(term.toUpperCase())
-    )?.db_key;
-    return {
-      construction: findKey('construction') || 'interest_construction',
-      interior: findKey('interior') || 'interest_interior'
-    };
-  }, [formConfig]);
 
   useEffect(() => {
     fetchInitialData();
@@ -77,12 +76,13 @@ const LeadsList = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [leadsRes, configRes] = await Promise.all([
-        supabase.from('leads').select('*').eq('is_client', false).is('deleted_at', null).order('created_at', { ascending: false }),
-        supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
-      ]);
-      setLeads(leadsRes.data || []);
-      if (configRes.data) setFormConfig(configRes.data.value);
+      const { data } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('is_client', false)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+      setLeads(data || []);
     } finally {
       setLoading(false);
     }
@@ -113,10 +113,20 @@ const LeadsList = () => {
   const filtered = leads.filter(l => {
     const matchesSearch = (l.client_name.toLowerCase().includes(search.toLowerCase()) || l.phone.includes(search));
     const matchesStatus = (activeStatus === 'All' || l.status === activeStatus);
-    const matchesConst = !filterConst || resolveInterest(l, detectedKeys.construction);
-    const matchesInt = !filterInt || resolveInterest(l, detectedKeys.interior);
+    
+    // Explicit matching with Database Schema columns 'interest_construction' and 'interest_interior'
+    const matchesConst = !filterConst || resolveInterest(l, 'interest_construction');
+    const matchesInt = !filterInt || resolveInterest(l, 'interest_interior');
+    
     return matchesSearch && matchesStatus && matchesConst && matchesInt;
   });
+
+  const resetFilters = () => {
+    setActiveStatus('All');
+    setFilterConst(false);
+    setFilterInt(false);
+    setSearch('');
+  };
 
   const statusMap: Record<LeadStatus, { label: string; color: string }> = {
     'Discovery': { label: 'Discovery', color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -165,8 +175,30 @@ const LeadsList = () => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
              </div>
-             <button onClick={() => setFilterConst(!filterConst)} className={`px-6 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-widest border transition-all ${filterConst ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-400'}`}>Construction: Yes</button>
-             <button onClick={() => setFilterInt(!filterInt)} className={`px-6 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-widest border transition-all ${filterInt ? 'bg-blue-600 text-white border-transparent' : 'bg-white text-slate-400'}`}>Interior: Yes</button>
+             
+             {/* CONSTRUCTION INTEREST FILTER */}
+             <button 
+               onClick={() => setFilterConst(!filterConst)} 
+               className={`flex items-center gap-3 px-8 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 shadow-sm ${filterConst ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-400 hover:border-emerald-200'}`}
+             >
+               <Hammer className={`w-4 h-4 ${filterConst ? 'text-emerald-200' : 'text-slate-300'}`} />
+               Construction Interest
+             </button>
+
+             {/* INTERIOR INTEREST FILTER */}
+             <button 
+               onClick={() => setFilterInt(!filterInt)} 
+               className={`flex items-center gap-3 px-8 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 shadow-sm ${filterInt ? 'bg-blue-600 text-white border-transparent' : 'bg-white text-slate-400 hover:border-blue-200'}`}
+             >
+               <Paintbrush className={`w-4 h-4 ${filterInt ? 'text-blue-200' : 'text-slate-300'}`} />
+               Interior Interest
+             </button>
+
+             {(activeStatus !== 'All' || filterConst || filterInt || search) && (
+               <button onClick={resetFilters} className="flex items-center gap-2 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-[24px] transition-all">
+                  <FilterX className="w-4 h-4" /> Reset Filters
+               </button>
+             )}
           </div>
         </div>
       </div>
@@ -178,7 +210,7 @@ const LeadsList = () => {
               <thead className="sticky top-0 z-[40] bg-white">
                 <tr className="text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">ID & Client Entity</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Architecture Interest</th>
+                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Service Interests</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Inquiry Detail</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Lifecycle Stage</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
@@ -192,6 +224,11 @@ const LeadsList = () => {
                 ) : filtered.map((l) => {
                   const isDropdownActive = activeStatusDropdown === l.id;
                   const statusInfo = statusMap[l.status] || { label: 'Unknown', color: 'bg-slate-50' };
+                  
+                  // Use hardcoded DB parameters for badges
+                  const hasConst = resolveInterest(l, 'interest_construction');
+                  const hasInt = resolveInterest(l, 'interest_interior');
+
                   return (
                     <tr key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
                       <td className="px-10 py-8">
@@ -201,8 +238,22 @@ const LeadsList = () => {
                       </td>
                       <td className="px-10 py-8">
                          <div className="flex flex-col gap-2">
-                            {resolveInterest(l, detectedKeys.construction) && <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase w-fit">Construction</div>}
-                            {resolveInterest(l, detectedKeys.interior) && <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase w-fit">Interior</div>}
+                            {hasConst && (
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-[9px] font-black uppercase w-fit shadow-sm">
+                                <Hammer className="w-3.5 h-3.5" /> Construction
+                              </div>
+                            )}
+                            {hasInt && (
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-[9px] font-black uppercase w-fit shadow-sm">
+                                <Paintbrush className="w-3.5 h-3.5" /> Interior Design
+                              </div>
+                            )}
+                            {!hasConst && !hasInt && (
+                              <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 w-fit">
+                                 <Layers className="w-3.5 h-3.5 text-slate-300" />
+                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">General Design</span>
+                              </div>
+                            )}
                          </div>
                       </td>
                       <td className="px-10 py-8">
@@ -215,7 +266,7 @@ const LeadsList = () => {
                         <div className="relative">
                           <button 
                             onClick={(e) => toggleDropdown(e, l.id)}
-                            className={`px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap shadow-sm flex items-center gap-3 ${statusInfo.color}`}
+                            className={`px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap shadow-sm flex items-center gap-3 transition-all active:scale-95 ${statusInfo.color}`}
                           >
                             {statusInfo.label}
                             <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform ${isDropdownActive ? 'rotate-180' : ''}`} />
@@ -224,7 +275,7 @@ const LeadsList = () => {
                           {isDropdownActive && (
                             <div 
                               ref={statusMenuRef}
-                              className="fixed min-w-[200px] bg-white border border-slate-100 rounded-[28px] shadow-2xl z-[200] overflow-hidden animate-in fade-in duration-200"
+                              className="fixed min-w-[200px] bg-white border border-slate-100 rounded-[28px] shadow-2xl z-[200] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
                               style={{ 
                                 top: dropdownPos.top, 
                                 left: dropdownPos.left 
@@ -232,7 +283,7 @@ const LeadsList = () => {
                             >
                               <div className="p-3 space-y-1">
                                 {(['Discovery', 'Follow_Up', 'Quotation', 'Completed', 'Rejected'] as LeadStatus[]).map(s => (
-                                  <button key={s} onClick={(e) => { e.stopPropagation(); handleUpdateStatus(l.id, s); }} className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between ${l.status === s ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>
+                                  <button key={s} onClick={(e) => { e.stopPropagation(); handleUpdateStatus(l.id, s); }} className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${l.status === s ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>
                                     {s.replace('_', ' ')}
                                     {l.status === s && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                                   </button>
@@ -243,7 +294,7 @@ const LeadsList = () => {
                         </div>
                       </td>
                       <td className="px-10 py-8 text-right">
-                         <div className="inline-flex p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-slate-300 group-hover:text-emerald-600 transition-all">
+                         <div className="inline-flex p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-slate-300 group-hover:text-emerald-600 transition-all group-hover:scale-110">
                             <Eye className="w-5 h-5" />
                          </div>
                       </td>

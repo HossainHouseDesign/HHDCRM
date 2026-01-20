@@ -63,7 +63,13 @@ const LeadForm = () => {
         if (leadData) {
           config.forEach(f => {
             const dbVal = leadData[f.db_key] !== undefined ? leadData[f.db_key] : leadData.metadata?.[f.db_key];
-            initial[f.id] = dbVal !== undefined ? dbVal : (f.type === 'number' ? 0 : (f.type === 'checkbox' ? false : ''));
+            
+            // Normalize boolean interests from various DB formats
+            if (f.type === 'checkbox') {
+              initial[f.id] = (dbVal === true || dbVal === 'true' || dbVal === 'Yes' || dbVal === 'yes');
+            } else {
+              initial[f.id] = dbVal !== undefined ? dbVal : (f.type === 'number' ? 0 : '');
+            }
           });
         }
       } else {
@@ -306,7 +312,7 @@ const LeadForm = () => {
                             </div>
                           )}
                           {isActive && (
-                            <div className="absolute left-0 right-0 top-[110%] bg-white border border-slate-100 rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2">
+                            <div className="absolute left-0 right-0 top-[110%] bg-white border border-slate-100 rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
                               <div className="px-5 py-3 sm:px-6 sm:py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Suggestions</span>
                                  <div className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[8px] font-black uppercase tracking-widest">{suggestions.length} Results</div>
