@@ -2,18 +2,17 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { X, CheckCircle2, RefreshCw, User, Home, Zap, ChevronDown, Compass, Globe, ArrowLeft, Database, Search, MapPin, Map, AlertCircle, Banknote, CalendarDays } from 'lucide-react';
+import { X, CheckCircle2, RefreshCw, User, Home, Zap, ChevronDown, Compass, Globe, ArrowLeft, Database, Search, MapPin, Map, AlertCircle, Banknote, CalendarDays, CheckSquare, Square, Hammer, Paintbrush } from 'lucide-react';
 import { FormFieldConfig } from '../types';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { COUNTRIES, BD_DISTRICTS, BD_UPAZILA_MAP } from '../constants';
 import { useNotification } from '../App';
 
-// EXHAUSTIVE COLUMN LIST FOR BI-DIRECTIONAL SYNC
 const STANDARD_COLUMNS = [
   'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
   'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
   'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
-  'bathroom_count', 'stair_details', 'status', 'is_client'
+  'bathroom_count', 'stair_details', 'status', 'is_client', 'interest_construction', 'interest_interior'
 ];
 
 const LeadForm = () => {
@@ -64,11 +63,11 @@ const LeadForm = () => {
         if (leadData) {
           config.forEach(f => {
             const dbVal = leadData[f.db_key] !== undefined ? leadData[f.db_key] : leadData.metadata?.[f.db_key];
-            initial[f.id] = dbVal !== undefined ? dbVal : (f.type === 'number' ? 0 : '');
+            initial[f.id] = dbVal !== undefined ? dbVal : (f.type === 'number' ? 0 : (f.type === 'checkbox' ? false : ''));
           });
         }
       } else {
-        config.forEach(f => { initial[f.id] = f.type === 'number' ? 0 : ''; });
+        config.forEach(f => { initial[f.id] = f.type === 'number' ? 0 : (f.type === 'checkbox' ? false : ''); });
       }
       setFormData(initial);
     } catch (err) {
@@ -79,7 +78,7 @@ const LeadForm = () => {
   };
 
   const performSearch = (f: FormFieldConfig, value: string) => {
-    const query = value.trim().toLowerCase();
+    const query = value?.trim()?.toLowerCase() || '';
     let sourceList: string[] = [];
     const isDistrict = f.db_key === 'address' || f.label.toLowerCase().includes('district');
     const isUpazila = f.db_key === 'upazila' || f.label.toLowerCase().includes('upazila');
@@ -110,7 +109,7 @@ const LeadForm = () => {
     setActiveSearchFieldId(f.id);
   };
 
-  const handleInputChange = (f: FormFieldConfig, value: string) => {
+  const handleInputChange = (f: FormFieldConfig, value: any) => {
     setFormData(prev => ({ ...prev, [f.id]: value }));
     const isLocation = f.db_key.toLowerCase().includes('location') || f.label.toLowerCase().includes('location');
     const isDistrict = f.db_key === 'address' || f.label.toLowerCase().includes('district');
@@ -192,6 +191,7 @@ const LeadForm = () => {
       case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
       case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
       case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
+      case 'Interests': return <CheckSquare className="w-4 h-4 text-emerald-500" />;
       default: return <Compass className="w-4 h-4 text-emerald-500" />;
     }
   };
@@ -266,6 +266,27 @@ const LeadForm = () => {
                           value={formData[f.id] || ''}
                           onChange={e => handleInputChange(f, e.target.value)}
                         />
+                      ) : f.type === 'checkbox' ? (
+                         <button 
+                           type="button"
+                           onClick={() => handleInputChange(f, !formData[f.id])}
+                           className={`w-full h-24 sm:h-32 px-8 bg-white border rounded-[32px] transition-all flex items-center justify-between group/cb shadow-md relative overflow-hidden ${formData[f.id] ? 'border-emerald-500 bg-emerald-50/40 ring-4 ring-emerald-500/10' : 'border-slate-200 hover:border-emerald-200'}`}
+                         >
+                            <div className="flex items-center gap-6 relative z-10">
+                               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${formData[f.id] ? 'bg-emerald-600 text-white shadow-xl scale-110' : 'bg-slate-100 text-slate-400'}`}>
+                                  {f.db_key.includes('construction') ? <Hammer className="w-7 h-7" /> : <Paintbrush className="w-7 h-7" />}
+                               </div>
+                               <div className="text-left">
+                                  <span className={`text-[16px] font-black block leading-none ${formData[f.id] ? 'text-emerald-900' : 'text-slate-600'}`}>{f.label}</span>
+                                  <p className={`text-[10px] font-black mt-2.5 uppercase tracking-widest ${formData[f.id] ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                    {formData[f.id] ? 'Confirmed Interest' : 'Click to Toggle'}
+                                  </p>
+                               </div>
+                            </div>
+                            <div className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-all shrink-0 ${formData[f.id] ? 'bg-emerald-500 border-emerald-200 shadow-lg' : 'bg-slate-50 border-slate-100'}`}>
+                               {formData[f.id] && <CheckCircle2 className="w-6 h-6 text-white" />}
+                            </div>
+                         </button>
                       ) : (
                         <div ref={isActive ? searchableContainerRef : null} className="relative">
                           <input 
@@ -328,7 +349,7 @@ const LeadForm = () => {
                 disabled={isSaving} 
                 className="w-full md:w-auto px-10 sm:px-16 py-6 sm:py-8 bg-[#064e3b] text-white rounded-2xl sm:rounded-[32px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[11px] sm:text-[12px] hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-4 sm:gap-6 group"
               >
-                {isSaving ? <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />}
+                {isSaving ? <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-emerald-400" /> : <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />}
                 {isSaving ? 'Processing...' : isEditing ? 'Update Records' : 'Commit Discovery'}
               </button>
           </div>

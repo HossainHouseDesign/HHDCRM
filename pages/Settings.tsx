@@ -6,10 +6,11 @@ import {
   User, Home, Zap, Compass, Database, AlertCircle, ListTree, History,
   ChevronRight, Users, UserCircle, FormInput, ArrowLeft, Save, Shield,
   Type as TypeIcon, ListFilter, AlertTriangle, Banknote, ShieldAlert,
-  ChevronDown, Tag
+  ChevronDown, Tag, CheckSquare, RotateCcw, Mail, Phone, Briefcase, Camera
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { FormFieldConfig, FieldType } from '../types';
+import { FormFieldConfig, FieldType, Profile } from '../types';
+import { useNotification } from '../App';
 
 export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
   // Identity Section
@@ -26,6 +27,10 @@ export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
   { id: 'ba_count', label: 'Bathroom Count', db_key: 'bathroom_count', type: 'number', section: 'Architecture', required: false, visible: true, placeholder: '0' },
   { id: '12', label: 'Stair Case Style', db_key: 'stair_details', type: 'select', section: 'Architecture', required: false, visible: true, options: ['Single Flight', 'Double Flight', 'Spiral', 'U-Shaped'] },
   
+  // Interests Section
+  { id: 'int_const', label: 'Interest in Construction', db_key: 'interest_construction', type: 'checkbox', section: 'Interests', required: false, visible: true },
+  { id: 'int_int', label: 'Interested in Interior', db_key: 'interest_interior', type: 'checkbox', section: 'Interests', required: false, visible: true },
+
   // Logistics Section
   { id: '3', label: 'District', db_key: 'address', type: 'text', section: 'Logistics', required: true, visible: true, placeholder: 'e.g. Pabna' },
   { id: '13', label: 'Upazila', db_key: 'upazila', type: 'text', section: 'Logistics', required: false, visible: true, placeholder: 'e.g. Ishwardi' },
@@ -46,20 +51,22 @@ export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [view, setView] = useState<'hub' | 'form' | 'profile'>('hub');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formFields, setFormFields] = useState<FormFieldConfig[]>([]);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
+  const [profile, setProfile] = useState<Partial<Profile>>({});
   
   const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchConfig();
+    fetchMyProfile();
   }, []);
 
   const fetchConfig = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase.from('settings').select('*').eq('key', 'lead_form_config').single();
       if (error && error.code !== 'PGRST116') throw error;
@@ -71,6 +78,41 @@ const Settings = () => {
     }
   };
 
+  const fetchMyProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) setProfile(data);
+    } catch (err) {
+      console.error("Profile fetch error:", err);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('profiles').update({
+        full_name: profile.full_name,
+        phone: profile.phone,
+        designation: profile.designation,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+
+      if (error) throw error;
+      showNotification("Profile credentials successfully synchronized.", "success");
+      setView('hub');
+    } catch (err: any) {
+      showNotification("Profile sync failed: " + err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveForm = async () => {
     setSaving(true);
     try {
@@ -79,12 +121,19 @@ const Settings = () => {
         value: formFields,
         updated_at: new Date().toISOString()
       });
-      alert('Workspace blueprint updated successfully.');
+      showNotification('Workspace blueprint committed.', 'success');
       setView('hub');
     } catch (err) {
-      alert('Save failed.');
+      showNotification('Blueprint sync failed.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const restoreDefaults = () => {
+    if (window.confirm("This will reset all project intake fields to the factory defaults. Custom fields will be lost. Continue?")) {
+      setFormFields(DEFAULT_FORM_CONFIG);
+      showNotification('Default blueprint loaded. Click "Commit Blueprint" to save permanently.', 'info');
     }
   };
 
@@ -134,10 +183,13 @@ const Settings = () => {
   };
 
   const groupedFields = useMemo(() => {
-    const groups: Record<string, FormFieldConfig[]> = { 'Identity': [], 'Architecture': [], 'Logistics': [], 'Financials': [] };
+    const sections = Array.from(new Set(formFields.map(f => f.section || 'Identity'))) as string[];
+    const groups: Record<string, FormFieldConfig[]> = {};
+    sections.forEach((s: string) => {
+      groups[s] = [];
+    });
     formFields.forEach(f => {
       const section = f.section || 'Identity';
-      if (!groups[section]) groups[section] = [];
       groups[section].push(f);
     });
     return groups;
@@ -200,11 +252,108 @@ const Settings = () => {
     );
   }
 
+  if (view === 'profile') {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] pb-24 sm:pb-32 px-4 sm:px-10 pt-8 sm:pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
+        <header className="mb-12 flex items-center gap-6">
+           <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all">
+             <ArrowLeft className="w-5 h-5 text-slate-500" />
+           </button>
+           <div>
+             <h1 className="text-3xl font-black text-slate-900 tracking-tight">Identity Management</h1>
+             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">VERIFIED FIRM CREDENTIALS</p>
+           </div>
+        </header>
+
+        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+          <div className="p-10 md:p-16 space-y-12">
+            <div className="flex flex-col md:flex-row items-center gap-10">
+              <div className="relative group">
+                <img 
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name || 'Donezo'}`} 
+                  className="w-32 h-32 md:w-40 md:h-40 rounded-[40px] bg-slate-50 border-4 border-white shadow-2xl"
+                  alt="Avatar"
+                />
+                <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-emerald-600 border border-slate-50 group-hover:scale-110 transition-transform">
+                   <Camera className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="text-center md:text-left space-y-2">
+                <h2 className="text-2xl font-black text-slate-900">{profile.full_name || 'System User'}</h2>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{profile.designation || 'Architectural Staff'}</p>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-4">
+                   <div className="px-5 py-2.5 bg-[#064e3b] text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/10">Access: {profile.role || 'Staff'}</div>
+                   <div className="px-5 py-2.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-100">Verified Employee</div>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpdateProfile} className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-50">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Full Legal Name</label>
+                <div className="relative">
+                  <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border-2 border-transparent focus:border-emerald-500/10 transition-all shadow-inner"
+                    value={profile.full_name || ''}
+                    onChange={e => setProfile({...profile, full_name: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Professional Designation</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border-2 border-transparent focus:border-emerald-500/10 transition-all shadow-inner"
+                    value={profile.designation || ''}
+                    onChange={e => setProfile({...profile, designation: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email Address</label>
+                <div className="relative opacity-50">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    disabled
+                    className="w-full h-14 pl-12 pr-6 bg-slate-100 rounded-2xl font-bold text-slate-400 cursor-not-allowed"
+                    value={profile.email || ''}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Contact Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input 
+                    className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border-2 border-transparent focus:border-emerald-500/10 transition-all shadow-inner"
+                    value={profile.phone || ''}
+                    onChange={e => setProfile({...profile, phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2 pt-8">
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-emerald-900/20 hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                >
+                  {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 text-emerald-400" />}
+                  Synchronize Identity
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'form') {
     return (
       <div className="min-h-screen bg-[#f8fafc] pb-24 sm:pb-32 px-4 sm:px-10 pt-8 sm:pt-12 animate-in slide-in-from-bottom-6 duration-500 max-w-6xl mx-auto">
-        
-        {/* Delete Confirmation Modal */}
         {fieldToDelete && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center">
@@ -233,9 +382,14 @@ const Settings = () => {
                <p className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">TECHNICAL DISCOVERY SCHEMA</p>
              </div>
           </div>
-          <button onClick={handleSaveForm} disabled={saving} className="w-full sm:w-auto px-10 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10 active:scale-95 transition-all">
-            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Commit Blueprint'}
-          </button>
+          <div className="flex items-center gap-4 w-full sm:w-auto">
+            <button onClick={restoreDefaults} className="flex-1 sm:flex-none px-6 py-4 bg-white border border-slate-200 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+              <RotateCcw className="w-4 h-4" /> Reset
+            </button>
+            <button onClick={handleSaveForm} disabled={saving} className="flex-1 sm:flex-none px-10 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10 active:scale-95 transition-all">
+              {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Commit Blueprint'}
+            </button>
+          </div>
         </header>
 
         <div className="space-y-10 sm:space-y-16">
@@ -264,6 +418,7 @@ const Settings = () => {
                             <option value="select">Dropdown Choice</option>
                             <option value="textarea">Extended Notes</option>
                             <option value="date">Calendar Pick</option>
+                            <option value="checkbox">Toggle Checkbox</option>
                           </select>
                           <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
                         </div>

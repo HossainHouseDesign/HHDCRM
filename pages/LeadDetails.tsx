@@ -1,17 +1,17 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Lead, LeadStatus, LeadAIAnalysis, FormFieldConfig } from '../types';
 import { analyzeLead } from '../geminiService';
 import { DEFAULT_FORM_CONFIG } from './Settings';
+import { resolveInterest } from './LeadsList'; // Import the shared resolver
 import { 
   ArrowLeft, MapPin, Ruler, Banknote, Layers, Grid, Bed, Bath, 
   ListTree, Briefcase, Calendar, Phone, RefreshCw, CheckCircle2, 
   Activity, Sparkles, Edit3, Trash2, PhoneCall, ShieldCheck, 
   Hash, X, Save, Mail, Tag, FileText, AlertTriangle, Info, Globe,
   Layout, FileSpreadsheet, Download, FileCheck, ChevronDown, ChevronRight,
-  UserCheck, ShieldAlert, User, Map, Home, Zap, Compass
+  UserCheck, ShieldAlert, User, Map, Home, Zap, Compass, Hammer, Paintbrush
 } from 'lucide-react';
 import { useNotification } from '../App';
 
@@ -19,7 +19,7 @@ const STANDARD_COLUMNS = [
   'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
   'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
   'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
-  'bathroom_count', 'stair_details', 'status', 'is_client'
+  'bathroom_count', 'stair_details', 'status', 'is_client', 'interest_construction', 'interest_interior'
 ];
 
 const LeadDetails = () => {
@@ -80,7 +80,7 @@ const LeadDetails = () => {
       const initial: Record<string, any> = {};
       config.forEach(f => {
         const val = leadData[f.db_key as keyof Lead] !== undefined ? leadData[f.db_key as keyof Lead] : leadData.metadata?.[f.db_key];
-        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : '');
+        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : (f.type === 'checkbox' ? false : ''));
       });
       setConvertFullData(initial);
 
@@ -256,8 +256,15 @@ const LeadDetails = () => {
   };
 
   const getFieldValue = (dbKey: string) => {
-    const value = quotationDraft[dbKey];
+    if (!lead) return 'N/A';
+    
+    // Explicit handle for checkbox interest fields using the shared resolver
+    if (dbKey === 'interest_construction') return resolveInterest(lead, 'interest_construction') ? 'Yes' : 'No';
+    if (dbKey === 'interest_interior') return resolveInterest(lead, 'interest_interior') ? 'Yes' : 'No';
+
+    const value = lead[dbKey as keyof Lead] !== undefined ? lead[dbKey as keyof Lead] : lead.metadata?.[dbKey];
     if (value === null || value === undefined || value === '') return 'N/A';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
     return value;
   };
 
@@ -274,16 +281,18 @@ const LeadDetails = () => {
     if (key.includes('address') || key.includes('district') || key.includes('village')) return <MapPin className="w-4 h-4 text-emerald-500" />;
     if (key.includes('package')) return <Briefcase className="w-4 h-4 text-emerald-500" />;
     if (key.includes('date')) return <Calendar className="w-4 h-4 text-emerald-500" />;
+    if (key.includes('construction')) return <Hammer className="w-4 h-4 text-emerald-500" />;
+    if (key.includes('interior')) return <Paintbrush className="w-4 h-4 text-emerald-500" />;
     return <Info className="w-4 h-4 text-emerald-500" />;
   };
 
-  // Fixed missing icon imports for Home, Zap, and Compass
   const getSectionIcon = (section: string) => {
     switch (section) {
       case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;
       case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
       case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
       case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
+      case 'Interests': return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
       default: return <Compass className="w-4 h-4 text-emerald-500" />;
     }
   };
@@ -361,6 +370,17 @@ const LeadDetails = () => {
                                   value={convertFullData[f.db_key] || ''}
                                   onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
                                />
+                            ) : f.type === 'checkbox' ? (
+                               <button 
+                                 type="button"
+                                 onClick={() => setConvertFullData({...convertFullData, [f.db_key]: !convertFullData[f.db_key]})}
+                                 className={`w-full h-12 px-4 rounded-xl transition-all flex items-center gap-3 border shadow-inner ${convertFullData[f.db_key] ? 'bg-emerald-50 border-emerald-500/30' : 'bg-slate-50 border-slate-100'}`}
+                               >
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${convertFullData[f.db_key] ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}`}>
+                                     {convertFullData[f.db_key] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                  </div>
+                                  <span className={`text-[12px] font-bold ${convertFullData[f.db_key] ? 'text-emerald-900' : 'text-slate-500'}`}>{f.label}</span>
+                               </button>
                             ) : (
                                <input 
                                   type={f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')}
@@ -414,7 +434,7 @@ const LeadDetails = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-               {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials')).map(f => (
+               {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map(f => (
                   <div key={f.id} className="space-y-2">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
                     {f.type === 'select' ? (
@@ -429,6 +449,17 @@ const LeadDetails = () => {
                         </select>
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
                       </div>
+                    ) : f.type === 'checkbox' ? (
+                        <button 
+                          type="button"
+                          onClick={() => setQuotationDraft({...quotationDraft, [f.db_key]: !quotationDraft[f.db_key]})}
+                          className={`w-full h-14 px-6 bg-slate-50 rounded-2xl transition-all flex items-center gap-4 border-2 border-transparent ${quotationDraft[f.db_key] ? 'border-emerald-500/20 bg-white' : ''}`}
+                        >
+                           <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${quotationDraft[f.db_key] ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 bg-white'}`}>
+                              {quotationDraft[f.db_key] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                           </div>
+                           <span className={`text-[13px] font-bold ${quotationDraft[f.db_key] ? 'text-emerald-900' : 'text-slate-500'}`}>{f.label}</span>
+                        </button>
                     ) : (
                       <input 
                         type={f.type === 'number' ? 'number' : 'text'}
@@ -597,10 +628,7 @@ const LeadDetails = () => {
         </div>
       </div>
       
-      {/* 
-          PROFESSIONAL PDF TEMPLATE: EXACT MATCH FOR HOSSAIN HOUSE DESIGN 
-          Sandbox rendering container with fixed width to prevent cutoff
-      */}
+      {/* PDF Template Area (hidden) */}
       <div 
         style={{ 
           position: 'absolute', 
@@ -632,10 +660,8 @@ const LeadDetails = () => {
               <p style={{ fontSize: '11pt', margin: '0.5mm 0 0 0', fontWeight: 500, color: '#333' }}>Phone: 01705323220, web: hossainhousedesign.com</p>
            </div>
 
-           {/* Decorative Blue Line */}
            <div style={{ height: '4px', width: '100%', backgroundColor: '#2b478b', marginBottom: '15mm', marginTop: '2mm' }}></div>
 
-           {/* Recipient Details */}
            <div style={{ marginBottom: '15mm', width: '100%' }}>
               <h3 style={{ fontSize: '14pt', fontWeight: 800, marginBottom: '4mm', color: '#000' }}>To</h3>
               <div style={{ fontSize: '12pt', lineHeight: '1.6', fontWeight: 600, color: '#111' }}>
@@ -646,13 +672,11 @@ const LeadDetails = () => {
               </div>
            </div>
 
-           {/* Main Project Specification Box */}
            <div style={{ border: '1px solid #000', minHeight: '420px', padding: '10mm', marginBottom: '8mm', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', width: '100%' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '15mm', rowGap: '6mm' }}>
-                 {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials')).map(f => {
-                    const val = quotationDraft[f.db_key];
-                    // Removed Design Charge and Budget from PDF as requested
-                    if (!val || val === 'N/A' || f.db_key === 'asking_fee' || f.db_key === 'budget') return null;
+                 {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map(f => {
+                    const val = getFieldValue(f.db_key);
+                    if (val === 'N/A' || val === 'No' || f.db_key === 'asking_fee' || f.db_key === 'budget') return null;
                     return (
                        <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '0.5px solid #eee', paddingBottom: '1mm', alignItems: 'baseline' }}>
                           <span style={{ fontSize: '10pt', fontWeight: 700, color: '#666', textTransform: 'uppercase', marginRight: '4mm' }}>{f.label}:</span>
@@ -661,13 +685,9 @@ const LeadDetails = () => {
                     );
                  })}
               </div>
-              
               <div style={{ flex: 1 }}></div>
-
-              {/* Total display area - EMPTY because user requested to remove Design Charge */}
            </div>
 
-           {/* Signature / Footer Section */}
            <div style={{ marginTop: '20mm', width: '100%' }}>
               <div style={{ width: '75mm' }}>
                  <p style={{ fontSize: '12pt', fontWeight: 800, margin: 0 }}>Sincerely,</p>
@@ -680,9 +700,5 @@ const LeadDetails = () => {
     </div>
   );
 };
-
-const ChevronDown = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
-);
 
 export default LeadDetails;

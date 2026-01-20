@@ -16,7 +16,9 @@ import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import QuotationList from './pages/QuotationList';
 import QuotationDetails from './pages/QuotationDetails';
-import { Menu, X, CheckCircle2, AlertCircle, Info, XCircle, ShieldAlert } from 'lucide-react';
+import Auth from './pages/Auth';
+import { supabase } from './supabaseClient';
+import { Menu, X, CheckCircle2, AlertCircle, Info, XCircle, ShieldAlert, RefreshCw } from 'lucide-react';
 
 // --- Notification System ---
 
@@ -46,8 +48,6 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const showNotification = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications(prev => [...prev, { id, message, type }]);
-    
-    // STRICT 10 SECOND AUTO-CLOSE
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 10000);
@@ -60,7 +60,6 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <NotificationContext.Provider value={{ showNotification }}>
       {children}
-      {/* Floating Top-Middle Notification Container */}
       <div className="fixed top-6 sm:top-10 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-4 max-w-[calc(100vw-2rem)] sm:max-w-xl w-full pointer-events-none items-center">
         {notifications.map(n => (
           <div 
@@ -111,14 +110,41 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 const AppContent = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setInitializing(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location.pathname]);
 
+  if (initializing) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-[#f8fafc] gap-6">
+        <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Synchronizing Session...</p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth />;
+  }
+
   return (
     <div className="flex bg-[#f8fafc] min-h-screen text-slate-900 antialiased font-['Plus_Jakarta_Sans']">
-      {/* Mobile Top Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 z-[60] px-4 flex items-center justify-between shadow-sm">
          <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-[#064e3b] rounded-xl flex items-center justify-center">

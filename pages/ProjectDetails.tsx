@@ -20,6 +20,7 @@ const ProjectDetails = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
+  // Fix: Added missing loading state
   const [loading, setLoading] = useState(true);
   
   // Modal & Action State
@@ -46,7 +47,8 @@ const ProjectDetails = () => {
       if (projRes.error) throw projRes.error;
       
       const currentProject = projRes.data;
-      const currentClient = currentProject.client as Lead;
+      // Fix: Cast fallback to Lead to ensure property access like .metadata is allowed by TypeScript
+      const currentClient = (currentProject.client as Lead) || ({} as Lead);
       const currentConfig = configRes.data?.value || DEFAULT_FORM_CONFIG;
 
       setProject(currentProject);
@@ -60,7 +62,9 @@ const ProjectDetails = () => {
         budget: currentProject.budget,
         start_date: currentProject.start_date,
         description: currentProject.description || '',
-        assigned_team: currentProject.assignments?.map((a: any) => a.profile.id) || []
+        assigned_team: (currentProject.assignments || [])
+          .filter((a: any) => a.profile)
+          .map((a: any) => a.profile.id)
       };
 
       // Add architectural fields from client
@@ -72,9 +76,9 @@ const ProjectDetails = () => {
 
       setEditFormData(initialForm);
 
-    } catch (err) {
-      console.error(err);
-      showNotification("Failed to load project records.", "error");
+    } catch (err: any) {
+      console.error("Fetch Data Error:", err);
+      showNotification(`Vault access failed: ${err.message}`, "error");
       navigate('/projects');
     } finally {
       setLoading(false);
@@ -87,7 +91,7 @@ const ProjectDetails = () => {
     setIsSaving(true);
     try {
       // 1. Update Project record
-      await supabase.from('projects').update({
+      const { error: projectError } = await supabase.from('projects').update({
         name: editFormData.name,
         status: editFormData.status,
         budget: editFormData.budget,
@@ -96,9 +100,14 @@ const ProjectDetails = () => {
         updated_at: new Date().toISOString()
       }).eq('id', id);
       
+      if (projectError) throw projectError;
+      
       // 2. Prepare architectural sync payload
       const standardCols = ['foundation', 'unit_count', 'bedroom_count', 'bathroom_count', 'stair_details', 'land_area', 'package', 'asking_fee', 'address', 'upazila', 'social_media', 'email', 'phone'];
-      const clientUpdate: any = { updated_at: new Date().toISOString(), metadata: project.client?.metadata || {} };
+      const clientUpdate: any = { 
+        updated_at: new Date().toISOString(), 
+        metadata: project.client?.metadata || {} 
+      };
       
       formConfig.forEach(f => {
         const val = editFormData[f.db_key];
@@ -109,21 +118,32 @@ const ProjectDetails = () => {
         }
       });
 
-      await supabase.from('leads').update(clientUpdate).eq('id', project.client_id);
+      if (project.client_id) {
+        const { error: clientError } = await supabase.from('leads').update(clientUpdate).eq('id', project.client_id);
+        if (clientError) throw clientError;
+      }
 
-      // 3. Update Team
-      await supabase.from('project_assignments').delete().eq('project_id', id);
+      // 3. Update Team Assignments
+      const { error: deleteAssignError } = await supabase.from('project_assignments').delete().eq('project_id', id);
+      if (deleteAssignError) throw deleteAssignError;
+
       if (editFormData.assigned_team?.length > 0) {
-        await supabase.from('project_assignments').insert(
-          editFormData.assigned_team.map((profileId: string) => ({ project_id: id, profile_id: profileId }))
-        );
+        const assignments = editFormData.assigned_team.map((profileId: string) => ({ 
+          project_id: id, 
+          profile_id: profileId,
+          created_at: new Date().toISOString()
+        }));
+        
+        const { error: insertAssignError } = await supabase.from('project_assignments').insert(assignments);
+        if (insertAssignError) throw insertAssignError;
       }
 
       showNotification("Project specifications synchronized.", "success");
       setShowEditModal(false);
       await fetchData();
     } catch (err: any) {
-      showNotification("Synchronization failed: " + err.message, "error");
+      console.error("Update Error:", err);
+      showNotification(`Synchronization failed: ${err.message}`, "error");
     } finally {
       setIsSaving(false);
     }
@@ -174,12 +194,14 @@ const ProjectDetails = () => {
 
   if (loading || !project) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /></div>;
 
-  const client = project.client as Lead;
-  const statusDisplay = {
+  // Fix: Cast fallback to Lead to avoid union type mismatch errors on property access
+  const client = (project.client as Lead) || ({} as Lead);
+  const statusConfig = {
     'Upcoming': { style: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock },
     'Running': { style: 'bg-slate-900 text-white border-transparent', icon: Activity },
     'Complete': { style: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 }
-  }[project.status];
+  };
+  const statusDisplay = statusConfig[project.status] || statusConfig['Upcoming'];
 
   // Group dynamic architectural fields
   const architecturalFields = formConfig.filter(f => (f.section === 'Architecture' || f.section === 'Financials') && f.visible);
@@ -347,19 +369,23 @@ const ProjectDetails = () => {
                   {project.assignments && project.assignments.length > 0 ? (
                     project.assignments.map((assignment: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-5 p-6 bg-slate-50/50 rounded-[32px] border border-transparent hover:border-blue-100 hover:bg-white transition-all group">
-                         <img 
-                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
-                           className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform" 
-                           alt={assignment.profile.full_name} 
-                         />
-                         <div>
-                            <p className="text-sm font-black text-slate-900 tracking-tight">{assignment.profile.full_name}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{assignment.profile.designation || 'Staff Architect'}</p>
-                            <div className="flex items-center gap-3 mt-3">
-                               <a href={`tel:${assignment.profile.phone}`} className="p-1.5 bg-white text-slate-300 hover:text-emerald-500 rounded-lg transition-colors"><PhoneCall className="w-3.5 h-3.5" /></a>
-                               <a href={`mailto:${assignment.profile.email}`} className="p-1.5 bg-white text-slate-300 hover:text-blue-500 rounded-lg transition-colors"><Mail className="w-3.5 h-3.5" /></a>
-                            </div>
-                         </div>
+                         {assignment.profile && (
+                           <>
+                             <img 
+                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
+                               className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform" 
+                               alt={assignment.profile.full_name} 
+                             />
+                             <div>
+                                <p className="text-sm font-black text-slate-900 tracking-tight">{assignment.profile.full_name}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{assignment.profile.designation || 'Staff Architect'}</p>
+                                <div className="flex items-center gap-3 mt-3">
+                                   <a href={`tel:${assignment.profile.phone}`} className="p-1.5 bg-white text-slate-300 hover:text-emerald-500 rounded-lg transition-colors"><PhoneCall className="w-3.5 h-3.5" /></a>
+                                   <a href={`mailto:${assignment.profile.email}`} className="p-1.5 bg-white text-slate-300 hover:text-blue-500 rounded-lg transition-colors"><Mail className="w-3.5 h-3.5" /></a>
+                                </div>
+                             </div>
+                           </>
+                         )}
                       </div>
                     ))
                   ) : (
@@ -374,11 +400,12 @@ const ProjectDetails = () => {
 
           <div className="lg:col-span-4 space-y-12">
              <div className="bg-[#0f172a] p-12 rounded-[64px] shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
                 <div className="relative z-10 space-y-10">
                    <div className="space-y-2"><p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Project Owner Profile</p><h3 className="text-3xl font-black text-white tracking-tight leading-tight">{client?.client_name || 'Individual Client'}</h3></div>
                    <div className="flex items-center gap-6 p-8 bg-white/5 rounded-[40px] border border-white/5">
-                      <div className="w-20 h-20 bg-emerald-500 text-white rounded-[28px] flex items-center justify-center font-black text-3xl shadow-2xl shadow-emerald-900/40">{client?.client_name.charAt(0)}</div>
+                      {/* Fix: Add optional chaining to charAt to handle potential undefined client_name */}
+                      <div className="w-20 h-20 bg-emerald-500 text-white rounded-[28px] flex items-center justify-center font-black text-3xl shadow-2xl shadow-emerald-900/40">{client?.client_name?.charAt(0) || '?'}</div>
                       <div><p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Active Client Since</p><p className="text-lg font-black text-white mt-1">{client?.converted_at ? new Date(client.converted_at).toLocaleDateString() : 'N/A'}</p></div>
                    </div>
                    <div className="space-y-4">

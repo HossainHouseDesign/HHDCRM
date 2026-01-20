@@ -15,7 +15,7 @@ export interface Profile {
   deleted_at?: string;
 }
 
-export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea';
+export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea' | 'checkbox';
 
 export interface FormFieldConfig {
   id: string;
@@ -33,7 +33,7 @@ export interface Lead {
   id: string;
   client_name: string;
   phone: string;
-  email?: string; // Added for list view
+  email?: string; 
   current_location?: string;
   land_area?: string;
   address?: string; // District
@@ -57,6 +57,8 @@ export interface Lead {
   bedroom_count?: string;
   bathroom_count?: string;
   stair_details?: string;
+  interest_construction?: boolean;
+  interest_interior?: boolean;
   metadata?: Record<string, any>; 
   deleted_at?: string;
 }

@@ -7,7 +7,7 @@ import {
   ArrowLeft, FileSpreadsheet, Download, Edit3, Trash2, 
   MapPin, Phone, Mail, Banknote, RefreshCw, X, Save, 
   CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown,
-  UserCheck, ShieldCheck, User, Map, Home, Zap, Compass
+  UserCheck, ShieldCheck, User, Map, Home, Zap, Compass, Hammer, Paintbrush
 } from 'lucide-react';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { useNotification } from '../App';
@@ -16,7 +16,7 @@ const STANDARD_COLUMNS = [
   'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
   'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
   'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
-  'bathroom_count', 'stair_details', 'status', 'is_client'
+  'bathroom_count', 'stair_details', 'status', 'is_client', 'interest_construction', 'interest_interior'
 ];
 
 const QuotationDetails = () => {
@@ -62,7 +62,7 @@ const QuotationDetails = () => {
       const initial: Record<string, any> = {};
       config.forEach(f => {
         const val = qData[f.db_key as keyof Lead] !== undefined ? qData[f.db_key as keyof Lead] : qData.metadata?.[f.db_key];
-        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : '');
+        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : (f.type === 'checkbox' ? false : ''));
       });
       setConvertFullData(initial);
       
@@ -175,8 +175,10 @@ const QuotationDetails = () => {
 
   const getFieldValue = (dbKey: string) => {
     if (!quotation) return '';
-    const val = (quotation as any)[dbKey] || quotation.metadata?.[dbKey];
-    return (val === null || val === undefined || val === '') ? '' : val;
+    const val = (quotation as any)[dbKey] !== undefined ? (quotation as any)[dbKey] : quotation.metadata?.[dbKey];
+    if (val === null || val === undefined || val === '') return '';
+    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+    return val;
   };
 
   const getSectionIcon = (section: string) => {
@@ -185,6 +187,7 @@ const QuotationDetails = () => {
       case 'Architecture': return <Home className="w-4 h-4 text-purple-500" />;
       case 'Logistics': return <Zap className="w-4 h-4 text-purple-500" />;
       case 'Financials': return <Banknote className="w-4 h-4 text-purple-500" />;
+      case 'Interests': return <CheckCircle2 className="w-4 h-4 text-purple-500" />;
       default: return <Compass className="w-4 h-4 text-purple-500" />;
     }
   };
@@ -254,6 +257,17 @@ const QuotationDetails = () => {
                                   value={convertFullData[f.db_key] || ''}
                                   onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
                                />
+                            ) : f.type === 'checkbox' ? (
+                               <button 
+                                 type="button"
+                                 onClick={() => setConvertFullData({...convertFullData, [f.db_key]: !convertFullData[f.db_key]})}
+                                 className={`w-full h-12 px-4 rounded-xl transition-all flex items-center gap-3 border shadow-inner ${convertFullData[f.db_key] ? 'bg-purple-50 border-purple-500/30' : 'bg-slate-50 border-slate-100'}`}
+                               >
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${convertFullData[f.db_key] ? 'bg-purple-500 border-purple-500' : 'bg-white border-slate-300'}`}>
+                                     {convertFullData[f.db_key] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                  </div>
+                                  <span className={`text-[12px] font-bold ${convertFullData[f.db_key] ? 'text-purple-900' : 'text-slate-500'}`}>{f.label}</span>
+                               </button>
                             ) : (
                                <input 
                                   type={f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')}
@@ -284,7 +298,7 @@ const QuotationDetails = () => {
                <button 
                   onClick={handleConvertToClient} 
                   disabled={isConverting}
-                  className="w-full flex-1 py-7 bg-purple-600 text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-3 shadow-2xl shadow-purple-900/20 active:scale-95 disabled:opacity-50"
+                  className="w-full flex-1 py-7 bg-purple-600 text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl shadow-purple-900/20 active:scale-95 disabled:opacity-50"
                >
                   {isConverting ? <RefreshCw className="w-6 h-6 animate-spin text-purple-200" /> : <UserCheck className="w-6 h-6 text-purple-200" />} 
                   COMMIT TO ACTIVE PORTFOLIO
@@ -335,20 +349,36 @@ const QuotationDetails = () => {
                <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] mb-12 flex items-center gap-4"><Layout className="w-6 h-6 text-purple-500" /> Technical Proposal Specs</h3>
                {isEditing ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials')).map(f => (
+                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map(f => (
                        <div key={f.id} className="space-y-2">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
-                          <input className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border-2 border-transparent focus:border-purple-500/20 transition-all shadow-inner" value={(editData as any)[f.db_key] || ''} onChange={e => setEditData({...editData, [f.db_key]: e.target.value})} />
+                          {f.type === 'checkbox' ? (
+                            <button 
+                              type="button"
+                              onClick={() => setEditData({...editData, [f.db_key]: !editData[f.db_key as keyof Lead]})}
+                              className={`w-full h-14 px-6 bg-slate-50 rounded-2xl transition-all flex items-center gap-4 border-2 border-transparent ${editData[f.db_key as keyof Lead] ? 'border-purple-500/20 bg-white' : ''}`}
+                            >
+                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${editData[f.db_key as keyof Lead] ? 'bg-purple-500 border-purple-500' : 'border-slate-300 bg-white'}`}>
+                                  {editData[f.db_key as keyof Lead] && <CheckCircle2 className="w-3 h-3 text-white" />}
+                               </div>
+                               <span className={`text-[13px] font-bold ${editData[f.db_key as keyof Lead] ? 'text-purple-900' : 'text-slate-500'}`}>{f.label}</span>
+                            </button>
+                          ) : (
+                            <input className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border-2 border-transparent focus:border-purple-500/20 transition-all shadow-inner" value={(editData as any)[f.db_key] || ''} onChange={e => setEditData({...editData, [f.db_key]: e.target.value})} />
+                          )}
                        </div>
                     ))}
                     <div className="md:col-span-2 pt-6"><button onClick={handleUpdate} disabled={saving} className="w-full py-6 bg-purple-600 text-white rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-purple-700 shadow-xl">{saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} Save Revisions</button></div>
                  </div>
                ) : (
                  <div className="grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8">
-                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials')).map((f) => (
+                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map((f) => (
                       <div key={f.id} className="space-y-2 group">
                          <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-purple-500 transition-colors">{f.label}</p>
-                         <div className="flex items-center gap-3 font-black text-slate-900"><Layers className="w-4 h-4 text-purple-300 group-hover:text-purple-500 transition-colors" /><span className="text-lg">{getFieldValue(f.db_key) || 'N/A'}</span></div>
+                         <div className="flex items-center gap-3 font-black text-slate-900">
+                            <Layers className="w-4 h-4 text-purple-300 group-hover:text-purple-500 transition-colors" />
+                            <span className="text-lg">{getFieldValue(f.db_key) || 'N/A'}</span>
+                         </div>
                       </div>
                     ))}
                  </div>
@@ -367,6 +397,20 @@ const QuotationDetails = () => {
                    <div className="space-y-4 pt-4 border-t border-white/5">
                       <div className="flex items-center gap-4"><Phone className="w-5 h-5 text-purple-400" /><span className="text-sm font-bold">{quotation.phone}</span></div>
                       <div className="flex items-center gap-4"><MapPin className="w-5 h-5 text-purple-400" /><span className="text-sm font-bold">{quotation.address}, {quotation.upazila}</span></div>
+                   </div>
+                   
+                   {/* Interests indicators */}
+                   <div className="flex gap-3 pt-4">
+                      {quotation.interest_construction && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                           <Hammer className="w-3 h-3" /> Construction
+                        </div>
+                      )}
+                      {quotation.interest_interior && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg text-[9px] font-black text-blue-400 uppercase tracking-widest">
+                           <Paintbrush className="w-3 h-3" /> Interior
+                        </div>
+                      )}
                    </div>
                 </div>
              </div>
@@ -425,14 +469,14 @@ const QuotationDetails = () => {
            {/* Main Project Specification Box */}
            <div style={{ border: '1px solid #000', minHeight: '420px', padding: '10mm', marginBottom: '8mm', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', width: '100%' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '15mm', rowGap: '6mm' }}>
-                 {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials')).map(f => {
-                    const val = (quotation as any)[f.db_key] || quotation.metadata?.[f.db_key];
+                 {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map(f => {
+                    const val = (quotation as any)[f.db_key] !== undefined ? (quotation as any)[f.db_key] : quotation.metadata?.[f.db_key];
                     // Removed asking fee and budget from PDF as requested
-                    if (!val || val === 'N/A' || f.db_key === 'asking_fee' || f.db_key === 'budget') return null;
+                    if (!val || val === 'N/A' || val === false || f.db_key === 'asking_fee' || f.db_key === 'budget') return null;
                     return (
                        <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '0.5px solid #eee', paddingBottom: '1mm', alignItems: 'baseline' }}>
                           <span style={{ fontSize: '10pt', fontWeight: 700, color: '#666', textTransform: 'uppercase', marginRight: '4mm' }}>{f.label}:</span>
-                          <span style={{ fontSize: '11pt', fontWeight: 800, color: '#000', textAlign: 'right' }}>{val}</span>
+                          <span style={{ fontSize: '11pt', fontWeight: 800, color: '#000', textAlign: 'right' }}>{typeof val === 'boolean' ? 'Yes' : val}</span>
                        </div>
                     );
                  })}

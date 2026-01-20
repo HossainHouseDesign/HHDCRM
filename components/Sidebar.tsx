@@ -13,7 +13,9 @@ import {
   X,
   Hammer
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { useNotification } from '../App';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -21,6 +23,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
   
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -31,8 +35,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: 'Construction', icon: Hammer, path: '/construction' },
     { name: 'Team', icon: Users2, path: '/team' },
     { name: 'Setting', icon: Settings, path: '/settings' },
-    { name: 'Log out', icon: LogOut, path: '/logout' },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      showNotification("Session terminated. You have been logged out.", "info");
+      navigate('/');
+    } catch (err) {
+      showNotification("Logout failed.", "error");
+    }
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -54,7 +67,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       </div>
 
       <div className="flex-1 px-4 py-8 space-y-1 overflow-y-auto no-scrollbar">
-        {/* Unified Serial Menu */}
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const active = isActive(item.path);
@@ -80,6 +92,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               </Link>
             );
           })}
+          
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group"
+          >
+            <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-600" />
+            <span className="text-sm font-bold tracking-tight">Log out</span>
+          </button>
         </nav>
       </div>
 
