@@ -5,23 +5,28 @@ import {
   ArrowLeft, Briefcase, MapPin, Ruler, Users, Calendar, 
   CheckCircle2, Clock, Grid, Bed, Bath, ListTree, Banknote,
   PhoneCall, RefreshCw, Compass, ShieldCheck, Mail,
-  Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe
+  Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe,
+  AlertTriangle, UserCircle
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus, FormFieldConfig } from '../types';
 import { DEFAULT_FORM_CONFIG } from './Settings';
+import { useNotification } from '../App';
 
 const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [project, setProject] = useState<Project | null>(null);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Modal & Edit State
+  // Modal & Action State
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [editFormData, setEditFormData] = useState<Record<string, any>>({});
 
@@ -69,6 +74,7 @@ const ProjectDetails = () => {
 
     } catch (err) {
       console.error(err);
+      showNotification("Failed to load project records.", "error");
       navigate('/projects');
     } finally {
       setLoading(false);
@@ -113,12 +119,34 @@ const ProjectDetails = () => {
         );
       }
 
+      showNotification("Project specifications synchronized.", "success");
       setShowEditModal(false);
       await fetchData();
     } catch (err: any) {
-      alert("Synchronization failed: " + err.message);
+      showNotification("Synchronization failed: " + err.message, "error");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', project.id);
+      
+      if (error) throw error;
+      
+      showNotification("Project moved to Archive.", "info");
+      navigate('/projects');
+    } catch (err: any) {
+      showNotification("Failed to archive project: " + err.message, "error");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -159,6 +187,31 @@ const ProjectDetails = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
       
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center">
+            <div className="w-24 h-24 bg-red-50 text-red-600 rounded-[32px] flex items-center justify-center mb-10 mx-auto shadow-sm">
+              <AlertTriangle className="w-10 h-10" />
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Archive Project?</h3>
+            <p className="text-slate-500 leading-relaxed font-medium mb-10 text-sm">
+              You are about to archive <span className="font-black text-slate-800">"{project.name}"</span>. This will move the record to the Recycle Bin and halt all active progress tracking.
+            </p>
+            <div className="flex gap-4">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-5 bg-slate-50 text-slate-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Cancel</button>
+              <button 
+                onClick={handleDeleteProject} 
+                disabled={isDeleting} 
+                className="flex-1 py-5 bg-red-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95"
+              >
+                {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Confirm Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Spec Modification Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl overflow-y-auto">
@@ -204,6 +257,21 @@ const ProjectDetails = () => {
                  </div>
               </div>
 
+              <div className="space-y-6">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Assigned Design Team</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-5 p-2 bg-slate-50/50 rounded-[40px] border border-slate-50">
+                  {teamMembers.map(tm => {
+                    const isSelected = editFormData.assigned_team?.includes(tm.id);
+                    return (
+                      <button key={tm.id} type="button" onClick={() => setEditFormData({ ...editFormData, assigned_team: isSelected ? editFormData.assigned_team.filter((id: string) => id !== tm.id) : [...(editFormData.assigned_team || []), tm.id] })} className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all ${isSelected ? 'bg-[#064e3b] border-[#064e3b] text-white shadow-xl' : 'bg-white border-white text-slate-500'}`}>
+                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5" alt={tm.full_name} />
+                         <div className="text-left"><p className="text-[12px] font-black leading-tight">{tm.full_name}</p><p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-60">{tm.designation || 'Staff'}</p></div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <button type="submit" disabled={isSaving} className="w-full py-9 bg-[#064e3b] text-white rounded-[32px] font-black uppercase tracking-[0.4em] text-[13px] shadow-2xl flex items-center justify-center gap-4 transition-all hover:bg-black active:scale-95">
                 {isSaving ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <Save className="w-6 h-6 text-emerald-400" />} Synchronize All Data Segments
               </button>
@@ -224,7 +292,10 @@ const ProjectDetails = () => {
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-3 flex items-center gap-3"><Hash className="w-3.5 h-3.5 text-emerald-500" /> PROJECT RECORD: {project.id.slice(0, 12).toUpperCase()}</p>
             </div>
           </div>
-          <button onClick={() => setShowEditModal(true)} className="px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 shadow-2xl hover:bg-black transition-all"><Edit3 className="w-4 h-4" /> Edit Technical Spec</button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button onClick={() => setShowEditModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all active:scale-95"><Edit3 className="w-4 h-4" /> Edit Technical Spec</button>
+            <button onClick={() => setShowDeleteModal(true)} className="p-5 bg-white border border-slate-100 text-slate-300 hover:text-red-500 rounded-[24px] transition-all shadow-sm active:scale-95"><Trash2 className="w-6 h-6" /></button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -253,11 +324,50 @@ const ProjectDetails = () => {
                      </div>
                   </div>
                   <div className="space-y-3 group">
-                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Team Assigned</p>
+                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Start Date</p>
                      <div className="flex items-center gap-3.5 font-black text-lg text-slate-900">
-                        <Users className="w-5 h-5 text-emerald-500 opacity-30" /> {project.assignments?.length || 0} Members
+                        <Calendar className="w-5 h-5 text-emerald-500 opacity-30" /> {new Date(project.start_date).toLocaleDateString()}
                      </div>
                   </div>
+               </div>
+            </div>
+
+            {/* Design Team Assigned Section */}
+            <div className="bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
+               <div className="flex items-center justify-between pb-10 border-b border-slate-50 mb-12">
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-[22px] flex items-center justify-center shadow-sm"><Users className="w-7 h-7" /></div>
+                    <div><h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em]">Design Team Assigned</h3><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Human Capital Allocation</p></div>
+                  </div>
+                  <button onClick={() => setShowEditModal(true)} className="px-6 py-2.5 bg-slate-50 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 transition-all">Manage Team</button>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {project.assignments && project.assignments.length > 0 ? (
+                    project.assignments.map((assignment: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-5 p-6 bg-slate-50/50 rounded-[32px] border border-transparent hover:border-blue-100 hover:bg-white transition-all group">
+                         <img 
+                           src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
+                           className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform" 
+                           alt={assignment.profile.full_name} 
+                         />
+                         <div>
+                            <p className="text-sm font-black text-slate-900 tracking-tight">{assignment.profile.full_name}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{assignment.profile.designation || 'Staff Architect'}</p>
+                            <div className="flex items-center gap-3 mt-3">
+                               <a href={`tel:${assignment.profile.phone}`} className="p-1.5 bg-white text-slate-300 hover:text-emerald-500 rounded-lg transition-colors"><PhoneCall className="w-3.5 h-3.5" /></a>
+                               <a href={`mailto:${assignment.profile.email}`} className="p-1.5 bg-white text-slate-300 hover:text-blue-500 rounded-lg transition-colors"><Mail className="w-3.5 h-3.5" /></a>
+                            </div>
+                         </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-12 text-center bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200">
+                       <UserCircle className="w-10 h-10 text-slate-200 mx-auto mb-4" />
+                       <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">No Team Members Assigned</p>
+                    </div>
+                  )}
                </div>
             </div>
           </div>

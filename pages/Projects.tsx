@@ -5,22 +5,27 @@ import {
   Briefcase, Calendar, Users, Filter, Trash2, 
   Edit3, ArrowUpRight, CheckCircle2, X, AlertTriangle,
   Clock, MapPin, User, ChevronDown, Check, UserPlus,
-  CalendarDays, FilterX, Hash, Map, Activity, FileSpreadsheet, Download
+  CalendarDays, FilterX, Hash, Map, Activity, FileSpreadsheet, 
+  Download, LayoutGrid, List
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../App';
 
 type ProjectFilterType = 'All' | 'Upcoming' | 'Running' | 'Complete';
 type TimeFilterType = 'All Time' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
+type ViewMode = 'grid' | 'list';
 
 const Projects = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Lead[]>([]);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   
   // Filtering States
   const [statusFilter, setStatusFilter] = useState<ProjectFilterType>('All');
@@ -53,6 +58,7 @@ const Projects = () => {
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const statusDropdownContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -60,7 +66,10 @@ const Projects = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsClientDropdownOpen(false);
       }
-      if (activeStatusDropdown) setActiveStatusDropdown(null);
+      // Click outside for status dropdown
+      if (activeStatusDropdown && statusDropdownContainerRef.current && !statusDropdownContainerRef.current.contains(event.target as Node)) {
+        setActiveStatusDropdown(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -88,15 +97,18 @@ const Projects = () => {
 
   const handleUpdateStatus = async (projectId: string, newStatus: ProjectStatus) => {
     try {
-      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
       const { error } = await supabase
         .from('projects')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', projectId);
+      
       if (error) throw error;
+      
+      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, status: newStatus } : p));
+      showNotification(`Project status transitioned to ${newStatus}.`, "success");
       setActiveStatusDropdown(null);
     } catch (err: any) {
-      alert("Status update failed: " + err.message);
+      showNotification("Status update failed: " + err.message, "error");
       fetchData();
     }
   };
@@ -132,7 +144,7 @@ const Projects = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.client_id) return alert("Select a Project Owner.");
+    if (!formData.client_id) return showNotification("Select a Project Owner.", "warning");
     setLoading(true);
     try {
       let projectId = isEditing?.id;
@@ -161,22 +173,25 @@ const Projects = () => {
           await supabase.from('project_assignments').insert(assignments);
         }
       }
+      showNotification(isEditing ? "Project refined successfully." : "Project committed to vault.", "success");
       setShowModal(false);
       fetchData();
     } catch (err: any) {
-      alert(err.message);
+      showNotification(err.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     if (!window.confirm('Move project to Archive?')) return;
     try {
       await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+      showNotification("Project archived successfully.", "info");
       fetchData();
     } catch (err) {
-      alert('Delete failed');
+      showNotification('Delete failed', "error");
     }
   };
 
@@ -231,7 +246,7 @@ const Projects = () => {
     });
 
     if (reportData.length === 0) {
-      alert("No projects found for the selected criteria.");
+      showNotification("No projects found for the selected criteria.", "warning");
       return;
     }
 
@@ -256,6 +271,7 @@ const Projects = () => {
     link.click();
     document.body.removeChild(link);
     setShowReportModal(false);
+    showNotification("Portfolio report generated.", "success");
   };
 
   const getStatusDisplay = (status: ProjectStatus) => {
@@ -263,21 +279,25 @@ const Projects = () => {
       case 'Upcoming': 
         return {
           style: 'bg-blue-50 text-blue-700 border-blue-200',
+          hoverStyle: 'hover:bg-blue-100',
           icon: <Clock className="w-3.5 h-3.5" />
         };
       case 'Running': 
         return {
           style: 'bg-amber-50 text-amber-700 border-amber-200',
+          hoverStyle: 'hover:bg-amber-100',
           icon: <Activity className="w-3.5 h-3.5" />
         };
       case 'Complete': 
         return {
           style: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          hoverStyle: 'hover:bg-emerald-100',
           icon: <CheckCircle2 className="w-3.5 h-3.5" />
         };
       default: 
         return {
           style: 'bg-slate-50 text-slate-400 border-slate-200',
+          hoverStyle: 'hover:bg-slate-100',
           icon: null
         };
     }
@@ -293,18 +313,32 @@ const Projects = () => {
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Project Portfolio</h1>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-2 opacity-80">CENTRALIZED ARCHITECTURAL REPOSITORY</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-sm mr-2">
+              <button 
+                onClick={() => setViewMode('list')}
+                className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-[#064e3b] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <List className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`p-2.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[#064e3b] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
+            </div>
             <button 
               onClick={() => setShowReportModal(true)}
-              className="px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-3"
+              className="px-6 sm:px-8 py-4 bg-white border border-slate-200 text-slate-600 rounded-3xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 transition-all flex items-center gap-3"
             >
-              <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Export Report
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Export
             </button>
             <button 
               onClick={() => handleOpenModal()}
-              className="px-8 py-4 bg-[#064e3b] text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-3"
+              className="flex-1 sm:flex-none px-6 sm:px-8 py-4 bg-[#064e3b] text-white rounded-3xl text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              <Plus className="w-5 h-5" /> Initiate New Project
+              <Plus className="w-5 h-5" /> New Project
             </button>
           </div>
         </header>
@@ -369,87 +403,199 @@ const Projects = () => {
           </div>
         </div>
 
-        {/* Project List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {loading ? (
-             Array(6).fill(0).map((_, i) => <div key={i} className="h-80 bg-white rounded-[56px] animate-pulse border border-slate-100" />)
-          ) : filteredProjects.map((p) => {
-            const statusInfo = getStatusDisplay(p.status);
-            return (
-              <div 
-                key={p.id} 
-                onClick={() => navigate(`/projects/${p.id}`)}
-                className="bg-white p-10 rounded-[56px] border border-slate-100 shadow-xl shadow-slate-200/20 hover:shadow-2xl transition-all group hover:translate-y-[-4px] flex flex-col justify-between relative cursor-pointer"
-              >
-                <div className="absolute top-0 right-0 p-8 flex gap-2 z-10" onClick={(e) => e.stopPropagation()}>
-                   <button onClick={() => handleOpenModal(p)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"><Edit3 className="w-4 h-4" /></button>
-                   <button onClick={() => handleDelete(p.id)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
-                </div>
-                
-                <div className="space-y-6">
-                  <div className={`flex items-center gap-2 px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border w-fit shadow-sm ${statusInfo.style}`}>
-                     {statusInfo.icon}
-                     {p.status}
+        {/* Project View (Grid or List) */}
+        {loading ? (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+             {Array(6).fill(0).map((_, i) => <div key={i} className="h-80 bg-white rounded-[56px] animate-pulse border border-slate-100" />)}
+           </div>
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {filteredProjects.map((p) => {
+              const statusInfo = getStatusDisplay(p.status);
+              return (
+                <div 
+                  key={p.id} 
+                  onClick={() => navigate(`/projects/${p.id}`)}
+                  className="bg-white p-10 rounded-[56px] border border-slate-100 shadow-xl shadow-slate-200/20 hover:shadow-2xl transition-all group hover:translate-y-[-4px] flex flex-col justify-between relative cursor-pointer"
+                >
+                  <div className="absolute top-0 right-0 p-8 flex gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+                     <button onClick={() => handleOpenModal(p)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"><Edit3 className="w-4 h-4" /></button>
+                     <button onClick={(e) => handleDelete(e, p.id)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"><Trash2 className="w-4 h-4" /></button>
                   </div>
                   
-                  <div className="space-y-2">
-                     <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-emerald-700 transition-colors">{p.name}</h3>
-                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center font-black text-xs uppercase">
-                          {p.client?.client_name.charAt(0)}
-                        </div>
-                        <p className="text-sm font-black text-slate-500">{p.client?.client_name || 'Individual Client'}</p>
-                     </div>
+                  <div className="space-y-6">
+                    <div className={`flex items-center gap-2 px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.15em] border w-fit shadow-sm ${statusInfo.style}`}>
+                       {statusInfo.icon}
+                       {p.status}
+                    </div>
+                    
+                    <div className="space-y-2">
+                       <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-emerald-700 transition-colors">{p.name}</h3>
+                       <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center font-black text-xs uppercase">
+                            {p.client?.client_name.charAt(0)}
+                          </div>
+                          <p className="text-sm font-black text-slate-500">{p.client?.client_name || 'Individual Client'}</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4">
+                       <div className="flex items-center gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
+                          <MapPin className="w-4 h-4 text-emerald-500" />
+                          <div>
+                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Site Location</p>
+                             <p className="text-[12px] font-bold text-slate-700 leading-tight">
+                                {p.client?.address}, {p.client?.upazila}
+                             </p>
+                          </div>
+                       </div>
+                       
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-slate-300" />
+                            <p className="text-[11px] font-bold text-slate-500">
+                               Created {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className="flex -space-x-3">
+                             {p.assignments?.map((a, i) => (
+                                <img 
+                                  key={i} 
+                                  title={(a.profile as Profile).full_name} 
+                                  className="w-8 h-8 rounded-full ring-4 ring-white shadow-sm bg-white" 
+                                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${(a.profile as Profile).full_name}`} 
+                                  alt={(a.profile as Profile).full_name}
+                                />
+                             ))}
+                             {(!p.assignments || p.assignments.length === 0) && (
+                                <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center"><User className="w-3.5 h-3.5 text-slate-200" /></div>
+                             )}
+                          </div>
+                       </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-4 pt-4">
-                     <div className="flex items-center gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
-                        <MapPin className="w-4 h-4 text-emerald-500" />
-                        <div>
-                           <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Site Location</p>
-                           <p className="text-[12px] font-bold text-slate-700 leading-tight">
-                              {p.client?.address}, {p.client?.upazila}
-                           </p>
-                        </div>
+                  <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
+                     <div>
+                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Architectural Budget</p>
+                        <p className="text-base font-black text-slate-900">Tk. {p.budget?.toLocaleString()}</p>
                      </div>
-                     
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-slate-300" />
-                          <p className="text-[11px] font-bold text-slate-500">
-                             Created {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                        <div className="flex -space-x-3">
-                           {p.assignments?.map((a, i) => (
+                     <div className="w-12 h-12 rounded-2xl border border-slate-100 flex items-center justify-center bg-slate-50 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
+                        <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                     </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* List View Implementation with Status Toggle */
+          <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in duration-500">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[1000px]">
+                <thead>
+                  <tr className="bg-slate-50/30 text-slate-400 text-[10px] uppercase font-black tracking-[0.25em] border-b border-slate-50">
+                    <th className="px-10 py-7">Project Design</th>
+                    <th className="px-10 py-7">Client Entity</th>
+                    <th className="px-10 py-7">Execution Site</th>
+                    <th className="px-10 py-7">Lifecycle Stage</th>
+                    <th className="px-10 py-7 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredProjects.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest">No Projects Found</td>
+                    </tr>
+                  ) : filteredProjects.map((p) => {
+                    const statusInfo = getStatusDisplay(p.status);
+                    const isDropdownActive = activeStatusDropdown === p.id;
+
+                    return (
+                      <tr 
+                        key={p.id} 
+                        onClick={() => navigate(`/projects/${p.id}`)}
+                        className="hover:bg-slate-50/80 transition-all cursor-pointer group"
+                      >
+                        <td className="px-10 py-8">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center font-black group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
+                              <Layers className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">{p.name}</p>
+                              <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-1">Ref: {p.id.slice(0, 8).toUpperCase()}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-10 py-8">
+                           <div className="flex items-center gap-3">
                               <img 
-                                key={i} 
-                                title={(a.profile as Profile).full_name} 
-                                className="w-8 h-8 rounded-full ring-4 ring-white shadow-sm bg-white" 
-                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${(a.profile as Profile).full_name}`} 
+                                className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 shadow-sm" 
+                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.client?.client_name}`} 
+                                alt={p.client?.client_name}
                               />
-                           ))}
-                           {(!p.assignments || p.assignments.length === 0) && (
-                              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center"><User className="w-3.5 h-3.5 text-slate-200" /></div>
-                           )}
-                        </div>
-                     </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
-                   <div>
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Architectural Budget</p>
-                      <p className="text-base font-black text-slate-900">Tk. {p.budget?.toLocaleString()}</p>
-                   </div>
-                   <div className="w-12 h-12 rounded-2xl border border-slate-100 flex items-center justify-center bg-slate-50 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-                      <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                              <p className="text-sm font-black text-slate-700">{p.client?.client_name || 'Individual'}</p>
+                           </div>
+                        </td>
+                        <td className="px-10 py-8">
+                           <div className="flex items-center gap-2.5">
+                              <MapPin className="w-4 h-4 text-emerald-500/50" />
+                              <div>
+                                 <p className="text-[12px] font-bold text-slate-600">{p.client?.address}</p>
+                                 <p className="text-[10px] font-bold text-slate-400">{p.client?.upazila}</p>
+                              </div>
+                           </div>
+                        </td>
+                        <td className="px-10 py-8">
+                          <div className="relative" ref={isDropdownActive ? statusDropdownContainerRef : null}>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveStatusDropdown(isDropdownActive ? null : p.id);
+                              }}
+                              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest border w-fit shadow-sm transition-all active:scale-95 ${statusInfo.style} ${statusInfo.hoverStyle}`}
+                            >
+                               {statusInfo.icon}
+                               {p.status}
+                               <ChevronDown className={`w-3 h-3 opacity-50 transition-transform ${isDropdownActive ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {isDropdownActive && (
+                              <div className="absolute top-[calc(100%+8px)] left-0 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
+                                <div className="p-2 space-y-1">
+                                  {(['Upcoming', 'Running', 'Complete'] as ProjectStatus[]).map(s => (
+                                    <button
+                                      key={s}
+                                      onClick={() => handleUpdateStatus(p.id, s)}
+                                      className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${p.status === s ? 'bg-[#064e3b] text-white' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}
+                                    >
+                                      {s}
+                                      {p.status === s && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                           <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={(e) => { e.stopPropagation(); handleOpenModal(p); }} className="p-3 bg-white border border-slate-100 text-slate-300 hover:text-blue-600 rounded-xl shadow-sm"><Edit3 className="w-4 h-4" /></button>
+                              <button onClick={(e) => handleDelete(e, p.id)} className="p-3 bg-white border border-slate-100 text-slate-300 hover:text-red-600 rounded-xl shadow-sm"><Trash2 className="w-4 h-4" /></button>
+                              <div className="p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-slate-300 group-hover:text-[#064e3b] transition-all">
+                                <Eye className="w-5 h-5" />
+                              </div>
+                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Report Export Modal */}
         {showReportModal && (
@@ -574,7 +720,7 @@ const Projects = () => {
                           const isSelected = formData.assigned_team.includes(tm.id);
                           return (
                             <button key={tm.id} type="button" onClick={() => setFormData({ ...formData, assigned_team: isSelected ? formData.assigned_team.filter(id => id !== tm.id) : [...formData.assigned_team, tm.id] })} className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all ${isSelected ? 'bg-[#064e3b] border-[#064e3b] text-white shadow-xl' : 'bg-white border-white text-slate-500'}`}>
-                               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5" />
+                               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5" alt={tm.full_name} />
                                <div className="text-left"><p className="text-[12px] font-black leading-tight">{tm.full_name}</p><p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-60">{tm.designation || 'Staff'}</p></div>
                             </button>
                           );
@@ -594,5 +740,9 @@ const Projects = () => {
     </div>
   );
 };
+
+const Eye = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
+);
 
 export default Projects;

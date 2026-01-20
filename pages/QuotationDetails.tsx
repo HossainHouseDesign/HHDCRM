@@ -6,10 +6,18 @@ import { Lead, FormFieldConfig } from '../types';
 import { 
   ArrowLeft, FileSpreadsheet, Download, Edit3, Trash2, 
   MapPin, Phone, Mail, Banknote, RefreshCw, X, Save, 
-  CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown
+  CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown,
+  UserCheck, ShieldCheck, User, Map, Home, Zap, Compass
 } from 'lucide-react';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { useNotification } from '../App';
+
+const STANDARD_COLUMNS = [
+  'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
+  'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
+  'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
+  'bathroom_count', 'stair_details', 'status', 'is_client'
+];
 
 const QuotationDetails = () => {
   const { id } = useParams();
@@ -24,6 +32,11 @@ const QuotationDetails = () => {
   const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState<Partial<Lead>>({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+
+  // State for editable conversion data (Full Form)
+  const [convertFullData, setConvertFullData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchData();
@@ -38,14 +51,60 @@ const QuotationDetails = () => {
       ]);
 
       if (leadRes.error) throw leadRes.error;
-      setQuotation(leadRes.data);
-      setEditData(leadRes.data);
-      setFormConfig(configRes.data?.value || DEFAULT_FORM_CONFIG);
+      const qData = leadRes.data as Lead;
+      const config: FormFieldConfig[] = configRes.data?.value || DEFAULT_FORM_CONFIG;
+      
+      setQuotation(qData);
+      setEditData(qData);
+      setFormConfig(config);
+      
+      // Initialize conversion data
+      const initial: Record<string, any> = {};
+      config.forEach(f => {
+        const val = qData[f.db_key as keyof Lead] !== undefined ? qData[f.db_key as keyof Lead] : qData.metadata?.[f.db_key];
+        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : '');
+      });
+      setConvertFullData(initial);
+      
     } catch (err) {
       showNotification("Failed to load quotation records.", "error");
       navigate('/quotations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConvertToClient = async () => {
+    if (!quotation || isConverting) return;
+    setIsConverting(true);
+    try {
+      const payload: Record<string, any> = {
+        is_client: true, 
+        converted_at: new Date().toISOString(),
+        status: 'Completed',
+        updated_at: new Date().toISOString(),
+        metadata: { ...(quotation.metadata || {}) }
+      };
+
+      Object.keys(convertFullData).forEach(dbKey => {
+        const val = convertFullData[dbKey];
+        if (STANDARD_COLUMNS.includes(dbKey)) {
+          payload[dbKey] = val;
+        } else {
+          payload.metadata[dbKey] = val;
+        }
+      });
+
+      const { error } = await supabase.from('leads').update(payload).eq('id', quotation.id);
+      if (error) throw error;
+      
+      showNotification(`Quotation accepted! ${convertFullData.client_name} is now an active client.`, "success");
+      navigate('/clients');
+    } catch (err: any) {
+      showNotification(`Conversion failed: ${err.message}`, "error");
+    } finally {
+      setIsConverting(false);
+      setShowConvertModal(false);
     }
   };
 
@@ -91,7 +150,7 @@ const QuotationDetails = () => {
     try {
       const { error } = await supabase.from('leads').update({ ...editData, updated_at: new Date().toISOString() }).eq('id', quotation.id);
       if (error) throw error;
-      setQuotation({ ...quotation, ...editData });
+      setQuotation({ ...quotation, ...editData } as Lead);
       setIsEditing(false);
       showNotification("Quotation record updated successfully.", "success");
     } catch (err) {
@@ -120,6 +179,16 @@ const QuotationDetails = () => {
     return (val === null || val === undefined || val === '') ? '' : val;
   };
 
+  const getSectionIcon = (section: string) => {
+    switch (section) {
+      case 'Identity': return <User className="w-4 h-4 text-purple-500" />;
+      case 'Architecture': return <Home className="w-4 h-4 text-purple-500" />;
+      case 'Logistics': return <Zap className="w-4 h-4 text-purple-500" />;
+      case 'Financials': return <Banknote className="w-4 h-4 text-purple-500" />;
+      default: return <Compass className="w-4 h-4 text-purple-500" />;
+    }
+  };
+
   if (loading || !quotation) return (
     <div className="h-[80vh] flex flex-col items-center justify-center gap-6 px-6 text-center">
       <RefreshCw className="w-12 h-12 text-purple-600 animate-spin" />
@@ -127,8 +196,104 @@ const QuotationDetails = () => {
     </div>
   );
 
+  const modalInputClass = "w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-purple-500/30 transition-all shadow-inner";
+
+  const groupedFields = formConfig.reduce((acc, field) => {
+    if (!field.visible) return acc;
+    const section = field.section || 'General';
+    if (!acc[section]) acc[section] = [];
+    acc[section].push(field);
+    return acc;
+  }, {} as Record<string, FormFieldConfig[]>);
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700 overflow-x-hidden relative">
+      
+      {/* FULL Quotation Conversion Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[48px] p-8 md:p-14 max-w-5xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
+            
+            <div className="flex justify-between items-start mb-8 relative z-10 shrink-0">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Convert Quotation to Client</h3>
+                <p className="text-[10px] font-black text-purple-600 uppercase tracking-[0.3em] mt-2">VALIDATED CONTRACTUAL REVIEW & OVERRIDE</p>
+              </div>
+              <button onClick={() => setShowConvertModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-4 no-scrollbar space-y-12 pb-10">
+               {Object.keys(groupedFields).map(section => (
+                 <div key={section} className="space-y-6">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                       <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
+                          {getSectionIcon(section)}
+                       </div>
+                       <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Specification</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                       {groupedFields[section].map(f => (
+                         <div key={f.id} className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
+                            {f.type === 'select' ? (
+                               <div className="relative">
+                                  <select 
+                                     className={modalInputClass}
+                                     value={convertFullData[f.db_key] || ''}
+                                     onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
+                                  >
+                                     <option value="">N/A</option>
+                                     {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
+                               </div>
+                            ) : f.type === 'textarea' ? (
+                               <textarea 
+                                  className={`${modalInputClass} h-24 py-3 resize-none`}
+                                  value={convertFullData[f.db_key] || ''}
+                                  onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
+                               />
+                            ) : (
+                               <input 
+                                  type={f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')}
+                                  className={`${modalInputClass} ${f.db_key === 'asking_fee' ? 'text-purple-700 font-black' : ''}`}
+                                  value={convertFullData[f.db_key] ?? ''}
+                                  onChange={e => setConvertFullData({...convertFullData, [f.db_key]: f.type === 'number' ? Number(e.target.value) : e.target.value})}
+                               />
+                            )}
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+               ))}
+
+               <div className="p-8 bg-purple-50 rounded-[32px] border border-purple-100/50 flex items-start gap-5">
+                  <ShieldCheck className="w-8 h-8 text-purple-500 shrink-0" />
+                  <div className="space-y-1">
+                     <p className="text-[12px] font-black text-purple-900 uppercase tracking-widest">Architectural Agreement</p>
+                     <p className="text-[11px] font-medium text-purple-800 leading-relaxed max-w-2xl">
+                        Promoting this quotation will finalize the proposal phase. The record will move to the <strong>Active Project Portfolio</strong> and the lifecycle will be marked as <strong>Completed</strong>.
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="pt-8 border-t border-slate-100 mt-auto flex flex-col sm:flex-row items-center gap-4 relative z-10 shrink-0">
+               <button onClick={() => setShowConvertModal(false)} className="w-full sm:w-auto px-10 py-5 text-slate-400 text-[11px] font-black uppercase tracking-widest hover:text-red-500 transition-all">Cancel Review</button>
+               <button 
+                  onClick={handleConvertToClient} 
+                  disabled={isConverting}
+                  className="w-full flex-1 py-7 bg-purple-600 text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-3 shadow-2xl shadow-purple-900/20 active:scale-95 disabled:opacity-50"
+               >
+                  {isConverting ? <RefreshCw className="w-6 h-6 animate-spin text-purple-200" /> : <UserCheck className="w-6 h-6 text-purple-200" />} 
+                  COMMIT TO ACTIVE PORTFOLIO
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1200px] mx-auto px-6 md:px-12 pt-12 space-y-12">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
           <div className="flex items-center gap-8 min-w-0">
@@ -142,6 +307,14 @@ const QuotationDetails = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+             {!quotation.is_client && (
+               <button 
+                onClick={() => setShowConvertModal(true)} 
+                className="flex-1 sm:flex-none px-8 py-4 bg-purple-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 border border-white/10"
+               >
+                 <UserCheck className="w-5 h-5" /> Convert Client
+               </button>
+             )}
              <button 
               onClick={handleDownloadPDF} 
               disabled={isGeneratingPDF}
@@ -201,7 +374,9 @@ const QuotationDetails = () => {
         </div>
       </div>
       
-      {/* PROFESSIONAL PDF TEMPLATE: EXACT MATCH FOR HOSSAIN HOUSE DESIGN */}
+      {/* 
+          PROFESSIONAL PDF TEMPLATE: EXACT MATCH FOR HOSSAIN HOUSE DESIGN 
+      */}
       <div 
         style={{ 
           position: 'absolute', 

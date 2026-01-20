@@ -10,7 +10,8 @@ import {
   ListTree, Briefcase, Calendar, Phone, RefreshCw, CheckCircle2, 
   Activity, Sparkles, Edit3, Trash2, PhoneCall, ShieldCheck, 
   Hash, X, Save, Mail, Tag, FileText, AlertTriangle, Info, Globe,
-  Layout, FileSpreadsheet, Download, FileCheck, ChevronDown
+  Layout, FileSpreadsheet, Download, FileCheck, ChevronDown, ChevronRight,
+  UserCheck, ShieldAlert, User, Map, Home, Zap, Compass
 } from 'lucide-react';
 import { useNotification } from '../App';
 
@@ -26,6 +27,7 @@ const LeadDetails = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
@@ -34,13 +36,25 @@ const LeadDetails = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
   const [quotationDraft, setQuotationDraft] = useState<Record<string, any>>({});
+  
+  // State for editable conversion data (Full Lead Form)
+  const [convertFullData, setConvertFullData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchData();
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setShowStatusDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [id]);
 
   const fetchData = async () => {
@@ -53,17 +67,89 @@ const LeadDetails = () => {
 
       if (leadRes.error) throw leadRes.error;
       const leadData = leadRes.data as Lead;
+      const config: FormFieldConfig[] = configRes.data?.value || DEFAULT_FORM_CONFIG;
+      
       setLead(leadData);
       setQuotationDraft({
         ...leadData,
         ...(leadData.metadata || {})
       });
-      setFormConfig(configRes.data?.value || DEFAULT_FORM_CONFIG);
+      setFormConfig(config);
+      
+      // Initialize full conversion data from existing lead state
+      const initial: Record<string, any> = {};
+      config.forEach(f => {
+        const val = leadData[f.db_key as keyof Lead] !== undefined ? leadData[f.db_key as keyof Lead] : leadData.metadata?.[f.db_key];
+        initial[f.db_key] = val !== undefined ? val : (f.type === 'number' ? 0 : '');
+      });
+      setConvertFullData(initial);
+
     } catch (err) {
       showNotification("Vault access failed.", "error");
       navigate('/leads');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: LeadStatus) => {
+    if (!lead || isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          status: newStatus, 
+          updated_at: new Date().toISOString(),
+          is_client: newStatus === 'Completed' ? true : lead.is_client,
+          converted_at: newStatus === 'Completed' && !lead.converted_at ? new Date().toISOString() : lead.converted_at
+        })
+        .eq('id', lead.id);
+      
+      if (error) throw error;
+      
+      setLead({ ...lead, status: newStatus });
+      showNotification(`Lifecycle status updated to ${newStatus.replace('_', ' ')}.`, "success");
+      setShowStatusDropdown(false);
+    } catch (err: any) {
+      showNotification(`Status sync failed: ${err.message}`, "error");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleConvertToClient = async () => {
+    if (!lead || isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    try {
+      const payload: Record<string, any> = {
+        is_client: true, 
+        converted_at: new Date().toISOString(),
+        status: 'Completed',
+        updated_at: new Date().toISOString(),
+        metadata: { ...(lead.metadata || {}) }
+      };
+
+      // Map all full form fields back to database structure
+      Object.keys(convertFullData).forEach(dbKey => {
+        const val = convertFullData[dbKey];
+        if (STANDARD_COLUMNS.includes(dbKey)) {
+          payload[dbKey] = val;
+        } else {
+          payload.metadata[dbKey] = val;
+        }
+      });
+
+      const { error } = await supabase.from('leads').update(payload).eq('id', lead.id);
+      if (error) throw error;
+      
+      showNotification(`${convertFullData.client_name} successfully promoted to Client Portfolio.`, "success");
+      navigate('/clients');
+    } catch (err: any) {
+      showNotification(`Conversion sync failed: ${err.message}`, "error");
+    } finally {
+      setIsUpdatingStatus(false);
+      setShowConvertModal(false);
     }
   };
 
@@ -191,6 +277,17 @@ const LeadDetails = () => {
     return <Info className="w-4 h-4 text-emerald-500" />;
   };
 
+  // Fixed missing icon imports for Home, Zap, and Compass
+  const getSectionIcon = (section: string) => {
+    switch (section) {
+      case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;
+      case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
+      case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
+      case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
+      default: return <Compass className="w-4 h-4 text-emerald-500" />;
+    }
+  };
+
   if (loading || !lead) return (
     <div className="h-[80vh] flex flex-col items-center justify-center gap-6 px-6 text-center">
       <RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" />
@@ -198,12 +295,12 @@ const LeadDetails = () => {
     </div>
   );
 
-  const statusMap: Record<LeadStatus, { label: string; color: string }> = {
-    'Discovery': { label: 'Discovery', color: 'bg-blue-50 text-blue-600 border-blue-100' },
-    'Follow_Up': { label: 'Follow Up', color: 'bg-amber-50 text-amber-600 border-amber-100' },
-    'Quotation': { label: 'Quotation', color: 'bg-purple-50 text-purple-600 border-purple-100' },
-    'Completed': { label: 'Completed', color: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-    'Rejected': { label: 'Rejected', color: 'bg-red-50 text-red-600 border-red-100' },
+  const statusMap: Record<LeadStatus, { label: string; color: string; hover: string }> = {
+    'Discovery': { label: 'Discovery', color: 'bg-blue-50 text-blue-600 border-blue-100', hover: 'hover:bg-blue-100' },
+    'Follow_Up': { label: 'Follow Up', color: 'bg-amber-50 text-amber-600 border-amber-100', hover: 'hover:bg-amber-100' },
+    'Quotation': { label: 'Quotation', color: 'bg-purple-50 text-purple-600 border-purple-100', hover: 'hover:bg-purple-100' },
+    'Completed': { label: 'Completed', color: 'bg-emerald-50 text-emerald-600 border-emerald-100', hover: 'hover:bg-emerald-100' },
+    'Rejected': { label: 'Rejected', color: 'bg-red-50 text-red-600 border-red-100', hover: 'hover:bg-red-100' },
   };
 
   const groupedFields = formConfig.reduce((acc, field) => {
@@ -214,9 +311,96 @@ const LeadDetails = () => {
     return acc;
   }, {} as Record<string, FormFieldConfig[]>);
 
+  const modalInputClass = "w-full h-12 px-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-emerald-500/30 transition-all shadow-inner";
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700 overflow-x-hidden relative">
       
+      {/* FULL Lead Conversion & Review Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[48px] p-8 md:p-14 max-w-5xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 relative overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
+            
+            <div className="flex justify-between items-start mb-8 relative z-10 shrink-0">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Convert to Client Portfolio</h3>
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-2">VALIDATED CONTRACTUAL REVIEW & OVERRIDE</p>
+              </div>
+              <button onClick={() => setShowConvertModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-4 no-scrollbar space-y-12 pb-10">
+               {Object.keys(groupedFields).map(section => (
+                 <div key={section} className="space-y-6">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                          {getSectionIcon(section)}
+                       </div>
+                       <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Specs</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                       {groupedFields[section].map(f => (
+                         <div key={f.id} className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
+                            {f.type === 'select' ? (
+                               <div className="relative">
+                                  <select 
+                                     className={modalInputClass}
+                                     value={convertFullData[f.db_key] || ''}
+                                     onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
+                                  >
+                                     <option value="">N/A</option>
+                                     {f.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                                  </select>
+                                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
+                               </div>
+                            ) : f.type === 'textarea' ? (
+                               <textarea 
+                                  className={`${modalInputClass} h-24 py-3 resize-none`}
+                                  value={convertFullData[f.db_key] || ''}
+                                  onChange={e => setConvertFullData({...convertFullData, [f.db_key]: e.target.value})}
+                               />
+                            ) : (
+                               <input 
+                                  type={f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')}
+                                  className={`${modalInputClass} ${f.db_key === 'asking_fee' ? 'text-emerald-700 font-black' : ''}`}
+                                  value={convertFullData[f.db_key] ?? ''}
+                                  onChange={e => setConvertFullData({...convertFullData, [f.db_key]: f.type === 'number' ? Number(e.target.value) : e.target.value})}
+                               />
+                            )}
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+               ))}
+
+               <div className="p-8 bg-emerald-50 rounded-[32px] border border-emerald-100/50 flex items-start gap-5">
+                  <ShieldCheck className="w-8 h-8 text-emerald-500 shrink-0" />
+                  <div className="space-y-1">
+                     <p className="text-[12px] font-black text-emerald-900 uppercase tracking-widest">Protocol Confirmation</p>
+                     <p className="text-[11px] font-medium text-emerald-800 leading-relaxed max-w-2xl">
+                        Promoting this lead will transition the lifecycle state to <strong>Completed (Sale)</strong> and establish an entry in the <strong>Active Client Portfolio</strong>. All field overrides will be synchronized to the master record.
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="pt-8 border-t border-slate-100 mt-auto flex flex-col sm:flex-row items-center gap-4 relative z-10 shrink-0">
+               <button onClick={() => setShowConvertModal(false)} className="w-full sm:w-auto px-10 py-5 text-slate-400 text-[11px] font-black uppercase tracking-widest hover:text-red-500 transition-all">Cancel Review</button>
+               <button 
+                  onClick={handleConvertToClient} 
+                  disabled={isUpdatingStatus}
+                  className="w-full flex-1 py-7 bg-[#064e3b] text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50"
+               >
+                  {isUpdatingStatus ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <UserCheck className="w-6 h-6 text-emerald-400" />} 
+                  AUTHORIZE CLIENT PROMOTION
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quotation Review & Draft Modal */}
       {showQuotationModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -309,9 +493,38 @@ const LeadDetails = () => {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-4">
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight truncate">{lead.client_name}</h1>
-                <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusMap[lead.status]?.color}`}>
-                  {statusMap[lead.status]?.label}
-                </span>
+                
+                {/* Lifecycle Status Management */}
+                <div className="relative" ref={statusDropdownRef}>
+                  <button 
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${statusMap[lead.status]?.color} ${statusMap[lead.status]?.hover} shadow-sm active:scale-95`}
+                  >
+                    {statusMap[lead.status]?.label}
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </button>
+                  
+                  {showStatusDropdown && (
+                    <div className="absolute top-[calc(100%+8px)] left-0 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1">
+                        {(['Discovery', 'Follow_Up', 'Quotation', 'Completed', 'Rejected'] as LeadStatus[]).map(s => (
+                          <button
+                            key={s}
+                            disabled={isUpdatingStatus}
+                            onClick={() => handleStatusUpdate(s)}
+                            className={`w-full text-left px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between group ${lead.status === s ? 'bg-slate-50 text-slate-900' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-1.5 h-1.5 rounded-full ${statusMap[s].color.split(' ')[1].replace('text-', 'bg-')}`} />
+                              {s.replace('_', ' ')}
+                            </div>
+                            {lead.status === s && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-3 flex items-center gap-3">
                  <Hash className="w-3.5 h-3.5 text-emerald-500" /> {lead.is_client ? 'CLIENT' : 'LEAD'} ID: {lead.id.slice(0, 12).toUpperCase()}
@@ -319,6 +532,9 @@ const LeadDetails = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+             {!lead.is_client && (
+               <button onClick={() => setShowConvertModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 border border-white/10"><UserCheck className="w-5 h-5 text-white" /> Convert Client</button>
+             )}
              <button onClick={() => setShowQuotationModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95"><FileSpreadsheet className="w-5 h-5 text-emerald-400" /> Send Quotation</button>
              <button onClick={() => navigate(`/leads/edit/${lead.id}`)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-[#064e3b] rounded-2xl transition-all shadow-sm"><Edit3 className="w-5 h-5" /></button>
              <button onClick={() => setShowDeleteModal(true)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-red-500 rounded-2xl transition-all shadow-sm"><Trash2 className="w-5 h-5" /></button>
