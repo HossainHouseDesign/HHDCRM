@@ -12,7 +12,8 @@ import {
   Compass, 
   X,
   Hammer,
-  History
+  History,
+  UserCircle
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '../App';
@@ -35,10 +36,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
     { name: 'Archive', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
-    { name: 'Setting', icon: Settings, path: '/settings', key: 'settings' },
+    { name: isAdmin ? 'Setting' : 'Account', icon: isAdmin ? Settings : UserCircle, path: '/settings', key: 'settings', forceShow: true },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
+    // Force show specified items (like Account/Settings for everyone)
+    if (item.forceShow) return true;
     // Admin only features
     if (item.adminOnly && !isAdmin) return false;
     // Admins see everything else

@@ -31,7 +31,7 @@ const Settings = () => {
   const [localProfile, setLocalProfile] = useState<Partial<Profile>>({});
 
   useEffect(() => {
-    // If user is not admin, default them to profile view immediately for better UX
+    // Force staff to only see the profile view
     if (globalProfile && !isAdmin) {
       setView('profile');
     }
@@ -54,27 +54,26 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      // Security check: only allow updating own ID
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed: Identity not found.");
 
-      const { error } = await supabase.from('profiles').update({
-        full_name: localProfile.full_name?.trim(),
-        phone: localProfile.phone?.trim(),
-        designation: localProfile.designation?.trim(),
-        login_password: localProfile.login_password,
-        updated_at: new Date().toISOString()
-      }).eq('id', userId);
+      // CRITICAL: We use the RPC here because shadow-logged staff might not have valid Supabase Auth RLS permissions
+      const { error } = await supabase.rpc('update_staff_profile', {
+        p_id: userId,
+        p_full_name: localProfile.full_name?.trim(),
+        p_designation: localProfile.designation?.trim(),
+        p_phone: localProfile.phone?.trim(),
+        p_password: localProfile.login_password
+      });
 
       if (error) throw error;
       
-      showNotification("Profile credentials successfully synchronized.", "success");
+      showNotification("Account information synchronized successfully.", "success");
       await refreshUser();
       
-      // Admin goes back to hub, staff stays on profile but shows success
       if (isAdmin) setView('hub');
     } catch (err: any) { 
-      showNotification("Update failed: " + err.message, "error"); 
+      showNotification("Synchronization failed: " + err.message, "error"); 
     } finally { 
       setSaving(false); 
     }
@@ -91,11 +90,11 @@ const Settings = () => {
   if (loading) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-6">
        <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
-       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Configuration...</p>
+       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Identity Hub...</p>
     </div>
   );
 
-  if (view === 'hub') return (
+  if (view === 'hub' && isAdmin) return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
       <header className="mb-16">
         <h1 className="text-4xl font-black text-slate-900 tracking-tight">Workspace Hub</h1>
@@ -103,34 +102,23 @@ const Settings = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {isAdmin && (
-          <>
-            <button onClick={() => setView('form')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><FormInput className="w-8 h-8" /></div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">Form Blueprint</h3>
-              <p className="text-xs text-slate-400 font-medium leading-relaxed">Define technical parameters and land specs for intake.</p>
-              <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Manage Schema <ChevronRight className="w-3 h-3" /></div>
-            </button>
+        <button onClick={() => setView('form')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><FormInput className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">Form Blueprint</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Define technical parameters and land specs for intake.</p>
+          <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Manage Schema <ChevronRight className="w-3 h-3" /></div>
+        </button>
 
-            <Link to="/settings/recycle-bin" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
-              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><History className="w-8 h-8" /></div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">Archive Vault</h3>
-              <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
-              <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
-            </Link>
-
-            <Link to="/team" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-blue-500 transition-all hover:-translate-y-1">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><Users className="w-8 h-8" /></div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">Design Team</h3>
-              <p className="text-xs text-slate-400 font-medium leading-relaxed">Manage workspace staff and define roles.</p>
-              <div className="mt-8 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-widest">Directory <ChevronRight className="w-3 h-3" /></div>
-            </Link>
-          </>
-        )}
+        <Link to="/settings/recycle-bin" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><History className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">Archive Vault</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
+          <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
+        </Link>
 
         <button onClick={() => setView('profile')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-slate-900 transition-all hover:-translate-y-1">
           <div className="w-16 h-16 bg-slate-50 text-slate-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><UserCircle className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">My Credentials</h3>
+          <h3 className="text-xl font-black text-slate-900 mb-2">Account Details</h3>
           <p className="text-xs text-slate-400 font-medium leading-relaxed">Update professional bio and security credentials.</p>
           <div className="mt-8 flex items-center gap-2 text-slate-600 text-[10px] font-black uppercase tracking-widest">Update Profile <ChevronRight className="w-3 h-3" /></div>
         </button>
@@ -138,15 +126,16 @@ const Settings = () => {
     </div>
   );
 
-  if (view === 'profile') return (
+  // Profile Edit View (For all users, especially Staff)
+  if (view === 'profile' || !isAdmin) return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
       <header className="mb-12 flex items-center gap-6">
          {isAdmin && (
            <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
          )}
          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Personal Identity</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">SECURE STAFF SELF-SERVICE</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Identity Management</h1>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">SECURE ACCOUNT SELF-SERVICE</p>
          </div>
       </header>
 
@@ -204,7 +193,7 @@ const Settings = () => {
           <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
              <ShieldCheck className="w-6 h-6 text-emerald-500 shrink-0" />
              <p className="text-[10px] text-slate-500 font-medium leading-relaxed uppercase tracking-widest">
-               Identity Guard: All credential updates are logged and synchronized with the firm's security vault. 
+               Identity Guard: All credential updates are logged and synchronized with the firm's secure vault. 
              </p>
           </div>
 
