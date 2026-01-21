@@ -142,37 +142,102 @@ const LeadDetails = () => {
   };
 
   const handleDownloadDoc = async () => {
-    if (!pdfTemplateRef.current || !lead) return;
+    if (!lead) return;
     setIsGeneratingDoc(true);
     const isQuotationFlow = showQuotationModal;
 
     setTimeout(async () => {
       try {
-        const content = pdfTemplateRef.current?.innerHTML;
-        if (!content) return;
+        const clientName = quotationDraft.client_name || lead.client_name;
+        const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
         
-        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
-              "xmlns:w='urn:schemas-microsoft-com:office:word' "+
-              "xmlns='http://www.w3.org/TR/REC-html40'>"+
-              "<head><meta charset='utf-8'><title>Architectural Quotation</title><style>"+
-              "body {font-family: Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.6;}"+
-              "h1 {font-size: 28pt; color: #000; margin-bottom: 5px;}"+
-              ".content-box { border: 1px solid #e2e8f0; border-radius: 20px; padding: 30px; margin-top: 30px; }"+
-              ".spec-item { border-bottom: 1px solid #f1f5f9; padding: 10px 0; }"+
-              ".spec-label { font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase; }"+
-              ".spec-value { font-size: 12pt; color: #1e293b; font-weight: bold; }"+
-              "</style></head><body>";
-        const footer = "</body></html>";
-        const sourceHTML = header + content + footer;
+        // Filter and chunk technical specs for 2-column table
+        const specs = formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
+          const val = (quotationDraft as any)[f.db_key] !== undefined ? (quotationDraft as any)[f.db_key] : lead.metadata?.[f.db_key];
+          if (!val || val === 'N/A' || val === 'No' || val === false) return null;
+          return { label: f.label, value: typeof val === 'boolean' ? 'Yes' : val };
+        }).filter(Boolean);
+
+        let specsRows = '';
+        for (let i = 0; i < specs.length; i += 2) {
+          const s1 = specs[i];
+          const s2 = specs[i+1];
+          specsRows += `
+            <tr>
+              <td style="width: 50%; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                <div style="font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s1?.label || ''}</div>
+                <div style="font-size: 11pt; color: #1e293b; font-weight: bold;">${s1?.value || ''}</div>
+              </td>
+              <td style="width: 50%; padding: 8px 0; border-bottom: 1px solid #f1f5f9; padding-left: 20px;">
+                <div style="font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s2?.label || ''}</div>
+                <div style="font-size: 11pt; color: #1e293b; font-weight: bold;">${s2?.value || ''}</div>
+              </td>
+            </tr>`;
+        }
+
+        const htmlString = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset='utf-8'>
+            <style>
+              @page { size: 8.5in 11in; margin: 0.5in; }
+              body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.2; }
+              .header-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+              .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 10px 0; }
+              .specs-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div style="background-color: #0a2540; height: 15px; width: 100%;"></div>
+            <table class="header-table">
+              <tr>
+                <td style="padding: 20px 0;">
+                  <h1 style="font-size: 26pt; margin: 0; color: #000;">Hossain House Design</h1>
+                  <p style="font-size: 10pt; color: #333; margin: 2px 0;">House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
+                  <p style="font-size: 9pt; color: #444; margin: 0;">+8801705323220, support@hossainhousedesign.com</p>
+                </td>
+                <td style="text-align: right; vertical-align: middle;">
+                   <div style="font-size: 11pt; font-weight: bold;">Date: ${date}</div>
+                </td>
+              </tr>
+            </table>
+            <div class="divider"></div>
+            
+            <div style="margin-top: 20px;">
+              <div style="font-size: 12pt; font-weight: bold;">To,</div>
+              <div style="font-size: 11pt; margin-top: 5px;">
+                <div style="font-weight: bold;">${clientName}</div>
+                <div>${quotationDraft.address || lead.address || ''}, ${quotationDraft.upazila || lead.upazila || ''}</div>
+              </div>
+            </div>
+
+            <table class="specs-table">
+              ${specsRows}
+            </table>
+
+            <div style="margin-top: 30px; font-size: 10pt; color: #64748b; font-style: italic;">
+              Thank you for choosing Hossain House Design. We are committed to delivering architectural excellence tailored to your specific requirements.
+            </div>
+
+            <div style="margin-top: 40px;">
+              <div style="font-size: 11pt;">Sincere</div>
+              <div style="font-size: 12pt; font-weight: bold; margin-top: 5px;">Marketing Manager</div>
+              <div style="font-size: 12pt; font-weight: 900;">Hossain House Design</div>
+              <div style="font-size: 10pt;">Ph: +8801705323220</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px; font-size: 9pt; color: #333; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+              www.hossainhousedesign.com
+            </div>
+            <div style="background-color: #0a2540; height: 15px; width: 100%; margin-top: 10px;"></div>
+          </body>
+          </html>`;
         
-        const blob = new Blob(['\ufeff', sourceHTML], {
-          type: 'application/msword'
-        });
-        
+        const blob = new Blob(['\ufeff', htmlString], { type: 'application/msword' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `Quotation_${quotationDraft.client_name || lead.client_name}.doc`;
+        link.download = `Quotation_${clientName}.doc`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -339,6 +404,7 @@ const LeadDetails = () => {
     if (!lead) return 'N/A';
     if (dbKey === 'interest_construction') return resolveInterest(lead, 'interest_construction') ? 'Yes' : 'No';
     if (dbKey === 'interest_interior') return resolveInterest(lead, 'interest_interior') ? 'Yes' : 'No';
+    // Fix: replaced undefined variable f with dbKey parameter
     const value = lead[dbKey as keyof Lead] !== undefined ? lead[dbKey as keyof Lead] : lead.metadata?.[dbKey];
     if (value === null || value === undefined || value === '') return 'N/A';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
