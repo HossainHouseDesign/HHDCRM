@@ -6,7 +6,7 @@ import {
   CheckCircle2, Clock, Grid, Bed, Bath, ListTree, Banknote,
   PhoneCall, RefreshCw, Compass, ShieldCheck, Mail,
   Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe,
-  AlertTriangle, UserCircle
+  AlertTriangle, UserCircle, User, Home, Zap
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus, FormFieldConfig } from '../types';
@@ -20,10 +20,8 @@ const ProjectDetails = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
-  // Fix: Added missing loading state
   const [loading, setLoading] = useState(true);
   
-  // Modal & Action State
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,7 +45,6 @@ const ProjectDetails = () => {
       if (projRes.error) throw projRes.error;
       
       const currentProject = projRes.data;
-      // Fix: Cast fallback to Lead to ensure property access like .metadata is allowed by TypeScript
       const currentClient = (currentProject.client as Lead) || ({} as Lead);
       const currentConfig = configRes.data?.value || DEFAULT_FORM_CONFIG;
 
@@ -55,7 +52,6 @@ const ProjectDetails = () => {
       setTeamMembers(teamRes.data || []);
       setFormConfig(currentConfig);
       
-      // Initialize Edit Form with project and client data
       const initialForm: any = {
         name: currentProject.name,
         status: currentProject.status,
@@ -67,7 +63,6 @@ const ProjectDetails = () => {
           .map((a: any) => a.profile.id)
       };
 
-      // Add architectural fields from client
       currentConfig.forEach((f: FormFieldConfig) => {
         initialForm[f.db_key] = currentClient[f.db_key as keyof Lead] !== undefined 
           ? currentClient[f.db_key as keyof Lead] 
@@ -90,7 +85,6 @@ const ProjectDetails = () => {
     if (!id || !project) return;
     setIsSaving(true);
     try {
-      // 1. Update Project record
       const { error: projectError } = await supabase.from('projects').update({
         name: editFormData.name,
         status: editFormData.status,
@@ -102,7 +96,6 @@ const ProjectDetails = () => {
       
       if (projectError) throw projectError;
       
-      // 2. Prepare architectural sync payload
       const standardCols = ['foundation', 'unit_count', 'bedroom_count', 'bathroom_count', 'stair_details', 'land_area', 'package', 'asking_fee', 'address', 'upazila', 'social_media', 'email', 'phone'];
       const clientUpdate: any = { 
         updated_at: new Date().toISOString(), 
@@ -123,7 +116,6 @@ const ProjectDetails = () => {
         if (clientError) throw clientError;
       }
 
-      // 3. Update Team Assignments
       const { error: deleteAssignError } = await supabase.from('project_assignments').delete().eq('project_id', id);
       if (deleteAssignError) throw deleteAssignError;
 
@@ -192,9 +184,23 @@ const ProjectDetails = () => {
     return <Info className="w-5 h-5 text-emerald-500 opacity-30" />;
   };
 
+  /**
+   * getSectionIcon returns the appropriate icon for each lead section.
+   * Fixes missing icon imports: User, Home, Zap.
+   */
+  const getSectionIcon = (section: string) => {
+    switch (section) {
+      case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;
+      case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
+      case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
+      case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
+      case 'Interests': return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
+      default: return <Compass className="w-4 h-4 text-emerald-500" />;
+    }
+  };
+
   if (loading || !project) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /></div>;
 
-  // Fix: Cast fallback to Lead to avoid union type mismatch errors on property access
   const client = (project.client as Lead) || ({} as Lead);
   const statusConfig = {
     'Upcoming': { style: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock },
@@ -203,13 +209,11 @@ const ProjectDetails = () => {
   };
   const statusDisplay = statusConfig[project.status] || statusConfig['Upcoming'];
 
-  // Group dynamic architectural fields
   const architecturalFields = formConfig.filter(f => (f.section === 'Architecture' || f.section === 'Financials') && f.visible);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
       
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center">
@@ -234,7 +238,6 @@ const ProjectDetails = () => {
         </div>
       )}
 
-      {/* Dynamic Spec Modification Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl overflow-y-auto">
           <div className="bg-white rounded-[56px] p-10 md:p-14 max-w-4xl w-full shadow-2xl my-10 relative">
@@ -286,8 +289,8 @@ const ProjectDetails = () => {
                     const isSelected = editFormData.assigned_team?.includes(tm.id);
                     return (
                       <button key={tm.id} type="button" onClick={() => setEditFormData({ ...editFormData, assigned_team: isSelected ? editFormData.assigned_team.filter((id: string) => id !== tm.id) : [...(editFormData.assigned_team || []), tm.id] })} className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all ${isSelected ? 'bg-[#064e3b] border-[#064e3b] text-white shadow-xl' : 'bg-white border-white text-slate-500'}`}>
-                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5" alt={tm.full_name} />
-                         <div className="text-left"><p className="text-[12px] font-black leading-tight">{tm.full_name}</p><p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-60">{tm.designation || 'Staff'}</p></div>
+                         <img src={tm.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5 object-cover" alt={tm.full_name} />
+                         <div className="text-left"><p className="text-[12px] font-black leading-tight">{tm.full_name}</p><p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-60">{tm.designation || 'Staff Architect'}</p></div>
                       </button>
                     );
                   })}
@@ -354,7 +357,6 @@ const ProjectDetails = () => {
                </div>
             </div>
 
-            {/* Design Team Assigned Section */}
             <div className="bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-xl relative overflow-hidden">
                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
                <div className="flex items-center justify-between pb-10 border-b border-slate-50 mb-12">
@@ -372,8 +374,8 @@ const ProjectDetails = () => {
                          {assignment.profile && (
                            <>
                              <img 
-                               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
-                               className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform" 
+                               src={assignment.profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
+                               className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform object-cover" 
                                alt={assignment.profile.full_name} 
                              />
                              <div>
@@ -404,8 +406,13 @@ const ProjectDetails = () => {
                 <div className="relative z-10 space-y-10">
                    <div className="space-y-2"><p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Project Owner Profile</p><h3 className="text-3xl font-black text-white tracking-tight leading-tight">{client?.client_name || 'Individual Client'}</h3></div>
                    <div className="flex items-center gap-6 p-8 bg-white/5 rounded-[40px] border border-white/5">
-                      {/* Fix: Add optional chaining to charAt to handle potential undefined client_name */}
-                      <div className="w-20 h-20 bg-emerald-500 text-white rounded-[28px] flex items-center justify-center font-black text-3xl shadow-2xl shadow-emerald-900/40">{client?.client_name?.charAt(0) || '?'}</div>
+                      <div className="w-20 h-20 bg-emerald-500 text-white rounded-[28px] flex items-center justify-center font-black text-3xl shadow-2xl shadow-emerald-900/40 overflow-hidden">
+                        {client?.metadata?.avatar_url ? (
+                          <img src={client.metadata.avatar_url} className="w-full h-full object-cover" alt="Client Avatar" />
+                        ) : (
+                          client?.client_name?.charAt(0) || '?'
+                        )}
+                      </div>
                       <div><p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Active Client Since</p><p className="text-lg font-black text-white mt-1">{client?.converted_at ? new Date(client.converted_at).toLocaleDateString() : 'N/A'}</p></div>
                    </div>
                    <div className="space-y-4">

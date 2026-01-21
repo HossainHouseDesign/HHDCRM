@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead } from '../types';
@@ -78,9 +79,17 @@ const ClientsList = () => {
                   <tr key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-[20px] flex items-center justify-center font-black text-lg group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-                          {c.client_name.charAt(0)}
-                        </div>
+                        {c.metadata?.avatar_url ? (
+                          <img 
+                            src={c.metadata.avatar_url} 
+                            className="w-14 h-14 rounded-[20px] object-cover shadow-sm border border-slate-100" 
+                            alt={c.client_name} 
+                          />
+                        ) : (
+                          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-[20px] flex items-center justify-center font-black text-lg group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
+                            {c.client_name.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="text-[15px] font-black text-slate-900 group-hover:text-emerald-700 transition-colors">{c.client_name}</p>
                           <p className="text-[11px] text-slate-400 font-bold mt-1.5">{c.phone}</p>

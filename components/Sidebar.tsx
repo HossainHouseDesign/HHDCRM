@@ -15,7 +15,7 @@ import {
   History,
   UserCircle
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../App';
 
 interface SidebarProps {
@@ -25,6 +25,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile, isAdmin } = useUser();
 
   const menuItems = [
@@ -36,7 +37,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
     { name: 'Archive', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
-    // Force this to show for everyone, but change label/icon based on role
     { 
       name: isAdmin ? 'Setting' : 'Account', 
       icon: isAdmin ? Settings : UserCircle, 
@@ -104,18 +104,34 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
         </nav>
       </div>
 
-      <div className="p-4 mt-auto">
-        <div className="bg-slate-50 rounded-[24px] p-5 border border-slate-100">
+      <div className="p-4 mt-auto border-t border-slate-50 space-y-4">
+        {/* New Profile Widget */}
+        <div 
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all"
+        >
+           <img 
+             src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'User'}`} 
+             className="w-10 h-10 rounded-xl bg-white shadow-sm object-cover" 
+             alt="Avatar" 
+           />
+           <div className="min-w-0">
+             <p className="text-[12px] font-black text-slate-900 truncate">{profile?.full_name || 'Guest'}</p>
+             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{profile?.designation || 'Staff'}</p>
+           </div>
+        </div>
+
+        <div className="bg-emerald-950 rounded-[24px] p-5 border border-emerald-900/20">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-[#064e3b]/5 rounded-lg flex items-center justify-center">
-               <Compass className="w-4 h-4 text-[#064e3b]" />
+            <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center">
+               <Compass className="w-4 h-4 text-emerald-400" />
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">V 3.4.0 Core</p>
+            <p className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest leading-none">V 3.4.0 Core</p>
           </div>
-          <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-4">
+          <p className="text-[11px] font-medium text-white/50 leading-relaxed mb-4">
             {isAdmin ? "Master Access Active." : "Provisioned Access Active."}
           </p>
-          <button className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-[#064e3b] hover:text-white hover:border-transparent transition-all shadow-sm">
+          <button className="w-full bg-emerald-900 text-emerald-100 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-white hover:text-[#064e3b] transition-all shadow-sm">
             System Log
           </button>
         </div>

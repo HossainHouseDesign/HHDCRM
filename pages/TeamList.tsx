@@ -167,8 +167,8 @@ const TeamList = () => {
                     <td className="px-10 py-6">
                       <div className="flex items-center gap-4">
                         <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.full_name || s.email || 'Staff'}`} 
-                          className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100" 
+                          src={s.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.full_name || s.email || 'Staff'}`} 
+                          className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 object-cover" 
                           alt="Avatar" 
                         />
                         <div>

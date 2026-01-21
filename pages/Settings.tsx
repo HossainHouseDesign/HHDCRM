@@ -5,7 +5,8 @@ import {
   Plus, Trash2, RefreshCw, Eye, EyeOff, Lock, ChevronRight, Users, 
   UserCircle, FormInput, ArrowLeft, Save, Shield, RotateCcw, 
   Mail, Phone, Briefcase, Camera, Tag, ListFilter, X, History,
-  Type as TypeIcon, Wand2, ShieldCheck, User as UserIcon
+  Type as TypeIcon, Wand2, ShieldCheck, User as UserIcon,
+  Image as ImageIcon
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormFieldConfig, FieldType, Profile } from '../types';
@@ -47,13 +48,14 @@ const Settings = () => {
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed: Identity not found.");
 
-      // Using the dedicated RPC for profile updates to handle shadow login users.
-      const { error } = await supabase.rpc('update_self_profile_v3', {
+      // Using the dedicated RPC v4 for profile updates to support avatar_url.
+      const { error } = await supabase.rpc('update_self_profile_v4', {
         p_id: userId,
         p_full_name: localProfile.full_name?.trim(),
         p_designation: localProfile.designation?.trim(),
         p_phone: localProfile.phone?.trim(),
-        p_password: localProfile.login_password
+        p_password: localProfile.login_password,
+        p_avatar_url: localProfile.avatar_url?.trim()
       });
 
       if (error) throw error;
@@ -77,6 +79,8 @@ const Settings = () => {
     setLocalProfile(prev => ({ ...prev, login_password: pass }));
     setShowPassword(true);
   };
+
+  const currentAvatar = localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name || 'Arch'}`;
 
   if (loading) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-6">
@@ -135,7 +139,16 @@ const Settings = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 blur-[80px] rounded-full pointer-events-none" />
         
         <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
-          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name || 'Arch'}`} className="w-32 h-32 md:w-40 md:h-40 rounded-[40px] bg-slate-50 border-4 border-white shadow-2xl" alt="Avatar" />
+          <div className="relative group">
+            <img 
+              src={currentAvatar} 
+              className="w-32 h-32 md:w-40 md:h-40 rounded-[40px] bg-slate-50 border-4 border-white shadow-2xl object-cover transition-transform group-hover:scale-105" 
+              alt="Avatar" 
+            />
+            <div className="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <Camera className="w-8 h-8 text-white" />
+            </div>
+          </div>
           <div className="text-center md:text-left space-y-2">
             <h2 className="text-3xl font-black text-slate-900">{localProfile.full_name || 'System User'}</h2>
             <p className="text-[#064e3b] font-black uppercase tracking-[0.3em] text-[10px]">{localProfile.designation || 'Architectural Staff'}</p>
@@ -179,6 +192,19 @@ const Settings = () => {
                   <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
                 </div>
               </div>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Profile Image URL</label>
+              <div className="relative">
+                <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <input 
+                  className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" 
+                  placeholder="https://images.unsplash.com/photo-..." 
+                  value={localProfile.avatar_url || ''} 
+                  onChange={e => setLocalProfile({...localProfile, avatar_url: e.target.value})} 
+                />
+              </div>
+              <p className="text-[9px] text-slate-400 font-medium ml-2 mt-1">Provide a direct link to your professional headshot or logo.</p>
             </div>
           </div>
 
