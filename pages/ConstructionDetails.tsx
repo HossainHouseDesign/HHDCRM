@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -8,7 +7,7 @@ import {
   User, MessageSquare, ChevronRight, History,
   Ruler, Grid, Bed, Bath, ListTree, Banknote,
   Globe, Info, ChevronDown, Briefcase, Compass,
-  Home, Zap
+  Home, Zap, Trash2, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useNotification, useUser } from '../App';
@@ -51,9 +50,11 @@ const ConstructionDetails = () => {
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [newLog, setNewLog] = useState({
     log_notes: '',
@@ -157,6 +158,26 @@ const ConstructionDetails = () => {
     }
   };
 
+  const executeSoftDelete = async () => {
+    if (!site) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('construction_projects')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', site.id);
+      
+      if (error) throw error;
+      showNotification("Site record moved to Recycle Bin.", "info");
+      navigate('/construction');
+    } catch (err: any) {
+      showNotification("Archive failed: " + err.message, "error");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const getClientValue = (dbKey: string) => {
     const client = site?.project?.client as Lead;
     if (!client) return 'N/A';
@@ -213,6 +234,31 @@ const ConstructionDetails = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-48 animate-in fade-in duration-700 overflow-x-hidden">
       
+      {/* DELETE MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center">
+            <div className="w-24 h-24 bg-red-50 text-red-600 rounded-[32px] flex items-center justify-center mb-10 mx-auto shadow-sm">
+              <Trash2 className="w-10 h-10" />
+            </div>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Archive Site?</h3>
+            <p className="text-slate-500 leading-relaxed font-medium mb-10 text-sm">
+              You are about to archive <span className="font-black text-slate-800">"{site.title}"</span>. This site and all observation logs will be moved to the Recycle Bin.
+            </p>
+            <div className="flex gap-4">
+              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-5 bg-slate-50 text-slate-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Cancel</button>
+              <button 
+                onClick={executeSoftDelete} 
+                disabled={isDeleting} 
+                className="flex-1 py-5 bg-red-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-95"
+              >
+                {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Confirm Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ADD OBSERVATION MODAL */}
       {showLogModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -275,9 +321,14 @@ const ConstructionDetails = () => {
       <div className="bg-[#0f172a] pt-20 pb-40 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#064e3b]/10 blur-[150px] rounded-full pointer-events-none" />
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 relative z-10">
-          <button onClick={() => navigate('/construction')} className="flex items-center gap-3 text-white/40 hover:text-white transition-colors mb-12 text-[11px] font-black uppercase tracking-widest group">
-            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Sites
-          </button>
+          <div className="flex justify-between items-center mb-12">
+            <button onClick={() => navigate('/construction')} className="flex items-center gap-3 text-white/40 hover:text-white transition-colors text-[11px] font-black uppercase tracking-widest group">
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" /> Back to Sites
+            </button>
+            <button onClick={() => setShowDeleteModal(true)} className="p-4 bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-400/10 rounded-2xl transition-all active:scale-95">
+              <Trash2 className="w-6 h-6" />
+            </button>
+          </div>
 
           <div className="flex flex-col lg:flex-row justify-between items-start gap-12">
             <div className="space-y-6 max-w-2xl">
@@ -356,7 +407,6 @@ const ConstructionDetails = () => {
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
               <div className="flex items-center gap-5 pb-10 border-b border-slate-50 mb-12">
                   <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-[22px] flex items-center justify-center shadow-sm">
-                    {/* Fix: Added missing Compass component to imports and used here */}
                     <Compass className="w-7 h-7" />
                   </div>
                   <div>
@@ -377,7 +427,6 @@ const ConstructionDetails = () => {
                       </div>
                    </div>
                  ))}
-                 {/* Explicitly show budget if available from project */}
                  <div className="space-y-2 group">
                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Design Budget</p>
                     <div className="flex items-center gap-3 font-black text-emerald-600">

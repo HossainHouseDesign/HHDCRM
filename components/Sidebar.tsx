@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -36,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
     { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
-    { name: 'Archive', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
+    { name: 'Recycle Bin', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
     { 
       name: isAdmin ? 'Setting' : 'Account', 
       icon: isAdmin ? Settings : UserCircle, 
