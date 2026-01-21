@@ -15,6 +15,7 @@ export interface Profile {
   avatar_url?: string;
   deleted_at?: string;
   created_at: string;
+  login_password?: string;
   permissions?: {
     leads?: boolean;
     quotations?: boolean;

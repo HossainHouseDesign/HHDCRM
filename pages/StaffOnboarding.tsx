@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  ArrowLeft, UserPlus, UserCircle, Mail, Briefcase, 
-  Phone, ShieldCheck, RefreshCw, Building2, Eye, Edit3, Trash2, Banknote, ShieldAlert, CheckCircle2,
-  FileText, FileSpreadsheet, Users, Layers, Hammer, Users2, Settings
+  ArrowLeft, UserCircle, Mail, Briefcase, 
+  ShieldCheck, RefreshCw, Building2, Eye, EyeOff, Lock, 
+  CheckCircle2, FileText, FileSpreadsheet, Users, Layers, 
+  Hammer, Users2, Settings, Wand2, ShieldAlert
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { UserRole, Profile } from '../types';
@@ -18,6 +19,7 @@ const StaffOnboarding = () => {
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [adminProfile, setAdminProfile] = useState<Profile | null>(null);
   
   const [formData, setFormData] = useState({
@@ -60,7 +62,6 @@ const StaffOnboarding = () => {
         return navigate('/');
       }
 
-      // Safe role comparison
       const userRole = (profile.role || '').toLowerCase();
       if (userRole !== 'office_admin' && userRole !== 'super_admin') {
         showNotification(`Security Protocol: Role '${profile.role}' lacks provisioning clearance.`, "error");
@@ -77,7 +78,7 @@ const StaffOnboarding = () => {
           email: data.email,
           phone: data.phone || '',
           designation: data.designation || '',
-          password: '',
+          password: data.login_password || '',
           role: data.role || 'staff'
         });
         if (data.permissions) {
@@ -96,6 +97,17 @@ const StaffOnboarding = () => {
     setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const generatePassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pass = "";
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData(prev => ({ ...prev, password: pass }));
+    showNotification("Secure password generated.", "info");
+    setShowPassword(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -107,11 +119,11 @@ const StaffOnboarding = () => {
         email: formData.email,
         phone: formData.phone,
         designation: formData.designation,
-        // Using existing role if editing, or default 'staff'
         role: formData.role,
         office_id: adminProfile.office_id,
         status: 'active',
         permissions: permissions,
+        login_password: formData.password,
         updated_at: new Date().toISOString()
       };
 
@@ -133,13 +145,13 @@ const StaffOnboarding = () => {
   };
 
   const permissionList = [
-    { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management module', icon: FileText, color: 'emerald' },
-    { key: 'quotations', label: 'Quotations', desc: 'Proposal and Bidding module', icon: FileSpreadsheet, color: 'purple' },
-    { key: 'clients', label: 'Client Directory', desc: 'Active contract management', icon: Users, color: 'blue' },
-    { key: 'projects', label: 'Project Vault', desc: 'Architectural tracking module', icon: Layers, color: 'indigo' },
-    { key: 'construction', label: 'Construction', desc: 'Site execution and visit logs', icon: Hammer, color: 'amber' },
-    { key: 'team', label: 'Team Directory', desc: 'Personnel visibility', icon: Users2, color: 'rose' },
-    { key: 'settings', label: 'Setting', desc: 'System configuration access', icon: Settings, color: 'slate' },
+    { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management module', icon: FileText },
+    { key: 'quotations', label: 'Quotations', desc: 'Proposal and Bidding module', icon: FileSpreadsheet },
+    { key: 'clients', label: 'Client Directory', desc: 'Active contract management', icon: Users },
+    { key: 'projects', label: 'Project Vault', desc: 'Architectural tracking module', icon: Layers },
+    { key: 'construction', label: 'Construction', desc: 'Site execution and visit logs', icon: Hammer },
+    { key: 'team', label: 'Team Directory', desc: 'Personnel visibility', icon: Users2 },
+    { key: 'settings', label: 'Setting', desc: 'System configuration access', icon: Settings },
   ] as const;
 
   if (loading) return (
@@ -160,34 +172,60 @@ const StaffOnboarding = () => {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-12">
+        {/* Profile Identity & Security */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-16 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none" />
           
           <div className="space-y-10 relative z-10">
-            <h3 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Staff Identification</h3>
+            <h3 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Staff Identification & Security</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+                <div className="relative">
+                  <UserCircle className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input required className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <div className="relative">
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input required type="email" className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
-                <input className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" placeholder="Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
+                <div className="relative">
+                  <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                  <input className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" placeholder="Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
+                </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Firm Branch</label>
-                <div className="w-full h-14 px-6 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-400 flex items-center gap-2 cursor-not-allowed">
-                  <Building2 className="w-4 h-4" /> Branch Encrypted
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Password</label>
+                <div className="relative group/pass">
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within/pass:text-emerald-500 transition-colors" />
+                  <input 
+                    required 
+                    type={showPassword ? 'text' : 'password'} 
+                    className="w-full h-14 pl-12 pr-28 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" 
+                    value={formData.password} 
+                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password">
+                      <Wand2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Access Control Section */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12">
           <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
              <ShieldCheck className="w-6 h-6 text-emerald-500" />
@@ -229,7 +267,7 @@ const StaffOnboarding = () => {
           <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
              <ShieldAlert className="w-6 h-6 text-slate-300 shrink-0" />
              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-               Warning: Permissions defined here will hide or show entire application modules for this user. Office Administrators retain master override capability regardless of these settings.
+               Module Integrity: Password defined above will be the staff member's primary login credential. Permissions defined here will hide or show entire application modules in the sidebar.
              </p>
           </div>
         </div>
