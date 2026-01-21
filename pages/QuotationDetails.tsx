@@ -125,13 +125,13 @@ const QuotationDetails = () => {
           const s2 = specs[i+1];
           specsRows += `
             <tr>
-              <td style="width: 50%; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
-                <div style="font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s1?.label || ''}</div>
-                <div style="font-size: 11pt; color: #1e293b; font-weight: bold;">${s1?.value || ''}</div>
+              <td style="width: 50%; padding: 4px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
+                <div style="font-size: 7.5pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s1?.label || ''}</div>
+                <div style="font-size: 10pt; color: #1e293b; font-weight: bold;">${s1?.value || ''}</div>
               </td>
-              <td style="width: 50%; padding: 8px 0; border-bottom: 1px solid #f1f5f9; padding-left: 20px;">
-                <div style="font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s2?.label || ''}</div>
-                <div style="font-size: 11pt; color: #1e293b; font-weight: bold;">${s2?.value || ''}</div>
+              <td style="width: 50%; padding: 4px 0; border-bottom: 1px solid #f1f5f9; padding-left: 20px; vertical-align: top;">
+                <div style="font-size: 7.5pt; color: #64748b; font-weight: bold; text-transform: uppercase;">${s2?.label || ''}</div>
+                <div style="font-size: 10pt; color: #1e293b; font-weight: bold;">${s2?.value || ''}</div>
               </td>
             </tr>`;
         }
@@ -141,33 +141,33 @@ const QuotationDetails = () => {
           <head>
             <meta charset='utf-8'>
             <style>
-              @page { size: 8.5in 11in; margin: 0.5in; }
-              body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.2; }
-              .header-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-              .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 10px 0; }
-              .specs-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              @page { size: 8.5in 11in; margin: 0.4in; }
+              body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
+              .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+              .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 5px 0; }
+              .specs-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             </style>
           </head>
           <body>
-            <div style="background-color: #0a2540; height: 15px; width: 100%;"></div>
+            <div style="background-color: #0a2540; height: 10px; width: 100%;"></div>
             <table class="header-table">
               <tr>
-                <td style="padding: 20px 0;">
-                  <h1 style="font-size: 26pt; margin: 0; color: #000;">Hossain House Design</h1>
-                  <p style="font-size: 10pt; color: #333; margin: 2px 0;">House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
-                  <p style="font-size: 9pt; color: #444; margin: 0;">+8801705323220, support@hossainhousedesign.com</p>
+                <td style="padding: 10px 0;">
+                  <h1 style="font-size: 22pt; margin: 0; color: #000; font-weight: 900;">Hossain House Design</h1>
+                  <p style="font-size: 9pt; color: #333; margin: 1px 0;">House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
+                  <p style="font-size: 8.5pt; color: #444; margin: 0;">+8801705323220, support@hossainhousedesign.com</p>
                 </td>
                 <td style="text-align: right; vertical-align: middle;">
-                   <div style="font-size: 11pt; font-weight: bold;">Date: ${date}</div>
+                   <div style="font-size: 10pt; font-weight: bold;">Date: ${date}</div>
                 </td>
               </tr>
             </table>
             <div class="divider"></div>
             
-            <div style="margin-top: 20px;">
-              <div style="font-size: 12pt; font-weight: bold;">To,</div>
-              <div style="font-size: 11pt; margin-top: 5px;">
-                <div style="font-weight: bold;">${clientName}</div>
+            <div style="margin-top: 10px;">
+              <div style="font-size: 11pt; font-weight: bold;">To,</div>
+              <div style="font-size: 10pt; margin-top: 2px;">
+                <div style="font-weight: bold; font-size: 11pt;">${clientName}</div>
                 <div>${quotation.address || ''}, ${quotation.upazila || ''}</div>
               </div>
             </div>
@@ -176,21 +176,21 @@ const QuotationDetails = () => {
               ${specsRows}
             </table>
 
-            <div style="margin-top: 30px; font-size: 10pt; color: #64748b; font-style: italic;">
-              Thank you for choosing Hossain House Design. We are committed to delivering architectural excellence tailored to your specific requirements.
+            <div style="margin-top: 15px; font-size: 9pt; color: #64748b; font-style: italic;">
+              Thank you for choosing Hossain House Design. We are committed to delivering architectural excellence tailored to your requirements.
             </div>
 
-            <div style="margin-top: 40px;">
-              <div style="font-size: 11pt;">Sincere</div>
-              <div style="font-size: 12pt; font-weight: bold; margin-top: 5px;">Marketing Manager</div>
-              <div style="font-size: 12pt; font-weight: 900;">Hossain House Design</div>
-              <div style="font-size: 10pt;">Ph: +8801705323220</div>
+            <div style="margin-top: 20px;">
+              <div style="font-size: 10pt;">Sincere</div>
+              <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">Marketing Manager</div>
+              <div style="font-size: 11pt; font-weight: 900;">Hossain House Design</div>
+              <div style="font-size: 9pt;">Ph: +8801705323220</div>
             </div>
 
-            <div style="text-align: center; margin-top: 40px; font-size: 9pt; color: #333; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            <div style="text-align: center; margin-top: 30px; font-size: 8.5pt; color: #333; border-top: 1px solid #f1f5f9; padding-top: 5px;">
               www.hossainhousedesign.com
             </div>
-            <div style="background-color: #0a2540; height: 15px; width: 100%; margin-top: 10px;"></div>
+            <div style="background-color: #0a2540; height: 10px; width: 100%; margin-top: 5px;"></div>
           </body>
           </html>`;
         
@@ -318,7 +318,7 @@ const QuotationDetails = () => {
         </div>
       </div>
       
-      {/* BRANDED PDF/DOC TEMPLATE */}
+      {/* BRANDED PDF TEMPLATE (NO WATERMARK HERE EITHER FOR SAFETY) */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
@@ -348,7 +348,6 @@ const QuotationDetails = () => {
                  </div>
               </div>
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '40px', minHeight: '400px', padding: '40px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '350px', height: '350px', opacity: 0.03, zIndex: 0, pointerEvents: 'none' }}><div style={{ width: '100%', height: '100%', backgroundColor: '#000', borderRadius: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ color: 'white', fontSize: '40pt', fontWeight: 900 }}>H</h1></div></div>
                  <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '10mm' }}>
                     {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
                        const val = getFieldValue(f.db_key);
