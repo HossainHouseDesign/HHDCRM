@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   Activity, Target, ArrowRight, ExternalLink,
   Layers, Clock, Layout, UserPlus, Zap, MessageSquare,
-  Briefcase, PlusCircle
+  Briefcase, PlusCircle, Command as CommandIcon
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -34,16 +34,19 @@ const Dashboard = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   
   // Interaction State
   const [timeframe, setTimeframe] = useState<Timeframe>('Monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
   
   // Notification Popover State
   const [showNotificationList, setShowNotificationList] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -52,26 +55,52 @@ const Dashboard = () => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setShowNotificationList(false);
       }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isManualSync = false) => {
     try {
-      setLoading(true);
+      if (isManualSync) setSyncing(true);
+      else setLoading(true);
+      
       const [leadsRes, projectsRes] = await Promise.all([
-        supabase.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
-        supabase.from('projects').select('*').is('deleted_at', null)
+        supabase.from('leads').select('*, creator:profiles!created_by(full_name)').is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('projects').select('*, client:leads(*)').is('deleted_at', null)
       ]);
+      
       setLeads(leadsRes.data || []);
       setProjects(projectsRes.data || []);
+      
+      if (isManualSync) {
+        showNotification("Vault synchronization complete.", "success");
+      }
     } catch (err) {
       console.error(err);
+      showNotification("Failed to sync with architectural vault.", "error");
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
   };
+
+  // Universal Search Logic
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return { leads: [], projects: [], clients: [] };
+    const q = searchQuery.toLowerCase();
+    
+    return {
+      leads: leads.filter(l => !l.is_client && (l.client_name.toLowerCase().includes(q) || l.phone.includes(q))).slice(0, 5),
+      clients: leads.filter(l => l.is_client && (l.client_name.toLowerCase().includes(q) || l.phone.includes(q))).slice(0, 5),
+      projects: projects.filter(p => p.name.toLowerCase().includes(q) || p.client?.client_name.toLowerCase().includes(q)).slice(0, 5)
+    };
+  }, [searchQuery, leads, projects]);
+
+  const hasAnyResults = searchResults.leads.length > 0 || searchResults.clients.length > 0 || searchResults.projects.length > 0;
 
   const calendarData = useMemo(() => {
     const data: Record<string, DayMeta> = {};
@@ -87,6 +116,7 @@ const Dashboard = () => {
       const createdDate = l.created_at.split('T')[0];
       ensureDate(createdDate);
       data[createdDate].newLeads.push({ id: l.id, name: l.client_name });
+      
       if (l.is_client && l.converted_at) {
         const convertedDate = l.converted_at.split('T')[0];
         ensureDate(convertedDate);
@@ -130,43 +160,105 @@ const Dashboard = () => {
   }, [leads, projects]);
 
   const analyticsData = useMemo(() => {
-    const monthsArr = [];
+    const dataPoints = [];
     const now = new Date();
     
-    // Generate labels for last 6 months
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      monthsArr.push({
-        name: d.toLocaleString('default', { month: 'short' }),
-        monthNum: d.getMonth(),
-        year: d.getFullYear(),
-        Leads: 0,
-        Clients: 0,
-        Projects: 0
+    if (timeframe === 'Weekly') {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dStr = d.toISOString().split('T')[0];
+        dataPoints.push({
+          name: d.toLocaleDateString('default', { weekday: 'short' }),
+          key: dStr,
+          Leads: 0,
+          Clients: 0,
+          Projects: 0
+        });
+      }
+
+      leads.forEach(l => {
+        const cDate = l.created_at.split('T')[0];
+        const mIdx = dataPoints.findIndex(dp => dp.key === cDate);
+        if (mIdx !== -1 && !l.is_client) dataPoints[mIdx].Leads++;
+
+        if (l.is_client && l.converted_at) {
+          const convDate = l.converted_at.split('T')[0];
+          const cIdx = dataPoints.findIndex(dp => dp.key === convDate);
+          if (cIdx !== -1) dataPoints[cIdx].Clients++;
+        }
+      });
+
+      projects.forEach(p => {
+        const pDate = p.created_at.split('T')[0];
+        const pIdx = dataPoints.findIndex(dp => dp.key === pDate);
+        if (pIdx !== -1) dataPoints[pIdx].Projects++;
+      });
+    } 
+    else if (timeframe === 'Monthly') {
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        dataPoints.push({
+          name: d.toLocaleString('default', { month: 'short' }),
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          Leads: 0,
+          Clients: 0,
+          Projects: 0
+        });
+      }
+
+      leads.forEach(l => {
+        const date = new Date(l.created_at);
+        const mIdx = dataPoints.findIndex(m => m.month === date.getMonth() && m.year === date.getFullYear());
+        if (mIdx !== -1 && !l.is_client) dataPoints[mIdx].Leads++;
+
+        if (l.is_client && l.converted_at) {
+          const cDate = new Date(l.converted_at);
+          const cIdx = dataPoints.findIndex(m => m.month === cDate.getMonth() && m.year === cDate.getFullYear());
+          if (cIdx !== -1) dataPoints[cIdx].Clients++;
+        }
+      });
+
+      projects.forEach(p => {
+        const pDate = new Date(p.created_at);
+        const pIdx = dataPoints.findIndex(m => m.month === pDate.getMonth() && m.year === pDate.getFullYear());
+        if (pIdx !== -1) dataPoints[pIdx].Projects++;
+      });
+    }
+    else if (timeframe === 'Yearly') {
+      for (let i = 4; i >= 0; i--) {
+        const year = now.getFullYear() - i;
+        dataPoints.push({
+          name: year.toString(),
+          year: year,
+          Leads: 0,
+          Clients: 0,
+          Projects: 0
+        });
+      }
+
+      leads.forEach(l => {
+        const year = new Date(l.created_at).getFullYear();
+        const yIdx = dataPoints.findIndex(y => y.year === year);
+        if (yIdx !== -1 && !l.is_client) dataPoints[yIdx].Leads++;
+
+        if (l.is_client && l.converted_at) {
+          const cYear = new Date(l.converted_at).getFullYear();
+          const cIdx = dataPoints.findIndex(y => y.year === cYear);
+          if (cIdx !== -1) dataPoints[cIdx].Clients++;
+        }
+      });
+
+      projects.forEach(p => {
+        const pYear = new Date(p.created_at).getFullYear();
+        const pIdx = dataPoints.findIndex(y => y.year === pYear);
+        if (pIdx !== -1) dataPoints[pIdx].Projects++;
       });
     }
 
-    // Process Leads & Clients
-    leads.forEach(l => {
-      const date = new Date(l.created_at);
-      const mIdx = monthsArr.findIndex(m => m.monthNum === date.getMonth() && m.year === date.getFullYear());
-      if (mIdx !== -1) {
-        if (l.is_client) monthsArr[mIdx].Clients++;
-        else monthsArr[mIdx].Leads++;
-      }
-    });
-
-    // Process Projects
-    projects.forEach(p => {
-      const date = new Date(p.created_at);
-      const mIdx = monthsArr.findIndex(m => m.monthNum === date.getMonth() && m.year === date.getFullYear());
-      if (mIdx !== -1) {
-        monthsArr[mIdx].Projects++;
-      }
-    });
-
-    return monthsArr;
-  }, [leads, projects]);
+    return dataPoints;
+  }, [leads, projects, timeframe]);
 
   const selectedDayStats = useMemo(() => {
     return calendarData[selectedDate] || { followUps: [], newLeads: [], newClients: [], completions: [] };
@@ -185,17 +277,110 @@ const Dashboard = () => {
   return (
     <div className="animate-in fade-in duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 md:px-10 pb-24">
       <header className="sticky top-16 lg:top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-md py-6 sm:py-8 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-8 border-b border-slate-50">
-        <div className="relative w-full md:w-[450px]">
+        <div className="relative w-full md:w-[450px]" ref={searchContainerRef}>
            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
            <input 
              type="text" 
              placeholder="Secure Command Search..." 
              className="w-full bg-white border border-slate-100 rounded-[24px] h-14 pl-14 pr-12 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/5 transition-all shadow-sm" 
              value={searchQuery} 
-             onChange={(e) => setSearchQuery(e.target.value)} 
+             onFocus={() => setShowSearchResults(true)}
+             onChange={(e) => {
+               setSearchQuery(e.target.value);
+               setShowSearchResults(true);
+             }} 
            />
+           
+           {/* UNIVERSAL SEARCH DROPDOWN */}
+           {showSearchResults && searchQuery.trim() !== '' && (
+             <div className="absolute top-[calc(100%+12px)] left-0 right-0 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[32px] shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                   <h5 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-2">
+                     <CommandIcon className="w-3 h-3" /> Command Results
+                   </h5>
+                   <button onClick={() => setShowSearchResults(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-300"><X className="w-3.5 h-3.5" /></button>
+                </div>
+                
+                <div className="max-h-[450px] overflow-y-auto no-scrollbar py-3 px-3 space-y-1">
+                   {!hasAnyResults ? (
+                     <div className="py-12 text-center space-y-4">
+                        <Search className="w-8 h-8 text-slate-100 mx-auto" />
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No entries match your query</p>
+                     </div>
+                   ) : (
+                     <>
+                        {/* PROJECTS CATEGORY */}
+                        {searchResults.projects.length > 0 && (
+                          <div className="space-y-1 pb-4">
+                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest px-4 mb-2">Portfolio Projects</p>
+                            {searchResults.projects.map(p => (
+                              <button key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className="w-full flex items-center gap-4 p-4 hover:bg-blue-50 rounded-2xl transition-all text-left group">
+                                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                  <Layers className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[13px] font-black text-slate-900 truncate">{p.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-bold uppercase truncate">Client: {p.client?.client_name || 'Individual'}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* CLIENTS CATEGORY */}
+                        {searchResults.clients.length > 0 && (
+                          <div className="space-y-1 pb-4">
+                            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest px-4 mb-2">Verified Clients</p>
+                            {searchResults.clients.map(c => (
+                              <button key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="w-full flex items-center gap-4 p-4 hover:bg-indigo-50 rounded-2xl transition-all text-left group">
+                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                                  <UserCheck className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[13px] font-black text-slate-900 truncate">{c.client_name}</p>
+                                  <p className="text-[10px] text-slate-400 font-bold uppercase truncate">{c.phone} • {c.address}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* LEADS CATEGORY */}
+                        {searchResults.leads.length > 0 && (
+                          <div className="space-y-1 pb-2">
+                            <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest px-4 mb-2">Pipeline Leads</p>
+                            {searchResults.leads.map(l => (
+                              <button key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="w-full flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all text-left group">
+                                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[13px] font-black text-slate-900 truncate">{l.client_name}</p>
+                                  <p className="text-[10px] text-slate-400 font-bold uppercase truncate">{l.phone} • {l.status}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                     </>
+                   )}
+                </div>
+                <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center">
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Enterprise Search Protocol V2.1</p>
+                </div>
+             </div>
+           )}
         </div>
         <div className="flex items-center gap-6">
+          <button 
+            onClick={() => fetchDashboardData(true)}
+            disabled={syncing}
+            className={`p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm relative group ${syncing ? 'bg-emerald-50/10 ring-2 ring-emerald-500/10' : ''}`}
+            title="Manual Database Sync"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-400 group-hover:text-emerald-600 transition-all ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
+          </button>
+
           <div className="relative" ref={notificationRef}>
             <button 
               onClick={() => setShowNotificationList(!showNotificationList)}
@@ -325,9 +510,9 @@ const Dashboard = () => {
           <div className="xl:col-span-8 bg-white p-10 rounded-[56px] border border-slate-100 shadow-sm space-y-12">
             <div className="flex justify-between items-center">
               <div>
-                <h4 className="text-xl font-black text-slate-900 tracking-tight">Lead Trajectory</h4>
+                <h4 className="text-xl font-black text-slate-900 tracking-tight">Portfolio Velocity</h4>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2 opacity-80 flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> PIPELINE PERFORMANCE
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> {timeframe.toUpperCase()} PIPELINE PERFORMANCE
                 </p>
               </div>
               <div className="bg-slate-100 p-1.5 rounded-[24px] flex gap-2">
