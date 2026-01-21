@@ -5,7 +5,7 @@ import {
   ArrowUpRight, Search, Bell, Plus, 
   Pause, Square, Briefcase, FileText, Layout,
   UserPlus, Layers, TrendingUp, X, MapPin, 
-  Hammer, FileSpreadsheet, Command, Users2
+  Hammer, FileSpreadsheet, Command, Users2, UserCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -265,6 +265,9 @@ const Dashboard = () => {
             <p className="text-slate-400 text-sm mt-2 font-medium">Monitoring lead flow and project velocity.</p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <button onClick={() => navigate('/clients/add')} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+              <UserCheck className="w-4 h-4 text-emerald-400" /> Add Client
+            </button>
             <button onClick={() => navigate('/leads/new')} className="flex items-center gap-2 px-6 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
               <Plus className="w-4 h-4" /> Intake Lead
             </button>

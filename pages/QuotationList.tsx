@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead } from '../types';
-import { Search, Eye, RefreshCw, Hash, MapPin, FileSpreadsheet } from 'lucide-react';
+import { Search, Eye, RefreshCw, Hash, MapPin, FileSpreadsheet, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const QuotationList = () => {
@@ -39,8 +40,10 @@ const QuotationList = () => {
               <FileSpreadsheet className="w-3.5 h-3.5 text-purple-500" /> MONITORING ACTIVE ARCHITECTURAL PROPOSALS
             </p>
           </div>
-          <div className="bg-purple-50 text-purple-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-purple-100 flex items-center gap-3 shadow-sm">
-             Drafting Verified Phase
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <button onClick={() => navigate('/quotations/add')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/10 active:scale-95">
+              <Plus className="w-5 h-5" /> New Quotation
+            </button>
           </div>
         </header>
 

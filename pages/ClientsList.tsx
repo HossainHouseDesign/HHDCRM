@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead } from '../types';
-import { Search, Eye, RefreshCw, Briefcase, MapPin, Hash, BriefcaseIcon } from 'lucide-react';
+import { Search, Eye, RefreshCw, Briefcase, MapPin, Hash, BriefcaseIcon, UserCheck, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ClientsList = () => {
@@ -18,8 +18,18 @@ const ClientsList = () => {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const { data } = await supabase.from('leads').select('*').eq('is_client', true).is('deleted_at', null).order('converted_at', { ascending: false });
+      // FIX: Added !created_by to the creator join to resolve ambiguity
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*, creator:profiles!created_by(full_name)')
+        .eq('is_client', true)
+        .is('deleted_at', null)
+        .order('converted_at', { ascending: false });
+      
+      if (error) throw error;
       setClients(data || []);
+    } catch (err: any) {
+      console.error("Client Fetch Error:", err);
     } finally {
       setLoading(false);
     }
@@ -41,8 +51,10 @@ const ClientsList = () => {
               <BriefcaseIcon className="w-3.5 h-3.5 text-emerald-500" /> MANAGING CONVERTED PROJECT LIFECYCLES
             </p>
           </div>
-          <div className="bg-emerald-50 text-emerald-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 flex items-center gap-3 shadow-sm">
-            <Briefcase className="w-4 h-4" /> Validated Contracts
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <button onClick={() => navigate('/clients/add')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/10 active:scale-95">
+              <Plus className="w-5 h-5" /> Add New Client
+            </button>
           </div>
         </header>
 
@@ -61,20 +73,21 @@ const ClientsList = () => {
       <div className="px-6 md:px-10 mt-10">
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/5 overflow-hidden">
           <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-320px)] overflow-y-auto">
-            <table className="w-full text-left min-w-[1000px] border-separate border-spacing-0">
+            <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0">
               <thead className="sticky top-0 z-[40] bg-white">
                 <tr className="bg-white text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Project Lead</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Architectural Specs</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Conversion Status</th>
+                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Added By</th>
+                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Conversion Date</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
-                  <tr><td colSpan={4} className="py-24 text-center"><RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin mx-auto" /></td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center"><RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin mx-auto" /></td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={4} className="py-24 text-center text-slate-300 font-black tracking-widest">No active projects found</td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center text-slate-300 font-black tracking-widest">No active projects found</td></tr>
                 ) : filtered.map((c) => (
                   <tr key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
                     <td className="px-10 py-8">
@@ -103,6 +116,14 @@ const ClientsList = () => {
                           <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {c.address || 'Location Pending'}
                         </p>
                       </div>
+                    </td>
+                    <td className="px-10 py-8">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
+                              <UserCheck className="w-4 h-4" />
+                           </div>
+                           <p className="text-[12px] font-black text-slate-700">{c.creator?.full_name || 'Legacy Record'}</p>
+                        </div>
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex flex-col">

@@ -36,8 +36,9 @@ const ProjectDetails = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      // FIX: Specified relationship hint for the assignments join and potential creator join
       const [projRes, teamRes, configRes] = await Promise.all([
-        supabase.from('projects').select('*, client:leads(*), assignments:project_assignments(profile:profiles(*))').eq('id', id).single(),
+        supabase.from('projects').select('*, client:leads(*), creator:profiles!created_by(full_name), assignments:project_assignments(profile:profiles(*))').eq('id', id).single(),
         supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active'),
         supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
       ]);
@@ -184,10 +185,6 @@ const ProjectDetails = () => {
     return <Info className="w-5 h-5 text-emerald-500 opacity-30" />;
   };
 
-  /**
-   * getSectionIcon returns the appropriate icon for each lead section.
-   * Fixes missing icon imports: User, Home, Zap.
-   */
   const getSectionIcon = (section: string) => {
     switch (section) {
       case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;

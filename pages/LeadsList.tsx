@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead, LeadStatus, FormFieldConfig } from '../types';
 import { 
   Search, Plus, Eye, RefreshCw, Hash, MapPin, 
   Layers, Phone, Home, Hammer, Paintbrush, FilterX, CheckCircle2,
-  ChevronDown
+  ChevronDown, UserCheck
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DEFAULT_FORM_CONFIG } from './Settings';
@@ -42,8 +43,8 @@ const LeadsList = () => {
   const detectedKeys = useMemo(() => {
     const config = formConfig.length > 0 ? formConfig : DEFAULT_FORM_CONFIG;
     const findKey = (term: string) => config.find(f => 
-      f.db_key.toLowerCase().includes(term) || 
-      f.label.toUpperCase().includes(term.toUpperCase())
+      (f.db_key || '').toLowerCase().includes(term.toLowerCase()) || 
+      (f.label || '').toUpperCase().includes(term.toUpperCase())
     )?.db_key;
     return {
       construction: findKey('construction') || 'interest_construction',
@@ -77,8 +78,9 @@ const LeadsList = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      // FIX: Added !created_by to profiles join to resolve ambiguity
       const [leadsRes, configRes] = await Promise.all([
-        supabase.from('leads').select('*').eq('is_client', false).is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('leads').select('*, creator:profiles!created_by(full_name)').eq('is_client', false).is('deleted_at', null).order('created_at', { ascending: false }),
         supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
       ]);
       setLeads(leadsRes.data || []);
@@ -174,12 +176,12 @@ const LeadsList = () => {
       <div className="px-6 md:px-10 mt-10">
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/5 overflow-hidden">
           <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-320px)] overflow-y-auto">
-            <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0">
+            <table className="w-full text-left min-w-[1200px] border-separate border-spacing-0">
               <thead className="sticky top-0 z-[40] bg-white">
                 <tr className="text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">ID & Client Entity</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Architecture Interest</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Inquiry Detail</th>
+                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Added By</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Lifecycle Stage</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
                 </tr>
@@ -206,9 +208,14 @@ const LeadsList = () => {
                          </div>
                       </td>
                       <td className="px-10 py-8">
-                         <div className="space-y-1.5">
-                            <p className="text-[11px] font-black text-slate-700">{l.package || 'Discovery Package'}</p>
-                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-2"><MapPin className="w-3 h-3" /> {l.address || 'Pending'}</p>
+                         <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-[#064e3b] group-hover:text-white transition-all">
+                               <UserCheck className="w-4 h-4" />
+                            </div>
+                            <div>
+                               <p className="text-[12px] font-black text-slate-700">{l.creator?.full_name || 'System Auto'}</p>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Provisioned Staff</p>
+                            </div>
                          </div>
                       </td>
                       <td className="px-10 py-8">

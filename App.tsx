@@ -10,6 +10,8 @@ import Settings from './pages/Settings';
 import TeamList from './pages/TeamList';
 import StaffOnboarding from './pages/StaffOnboarding';
 import ClientsList from './pages/ClientsList';
+import AddClient from './pages/AddClient';
+import AddQuotation from './pages/AddQuotation';
 import RecycleBin from './pages/RecycleBin';
 import Construction from './pages/Construction';
 import Projects from './pages/Projects';
@@ -127,11 +129,13 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  // Fix: Added 'const' to showNotification to prevent scoping errors.
   const showNotification = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 8000);
   }, []);
+  // Fix: Correctly compare notification ID property with the ID string parameter
   const removeNotification = (id: string) => setNotifications(prev => prev.filter(n => n.id !== id));
 
   return (
@@ -205,8 +209,10 @@ const AppContent = () => {
             <Route path="/leads/edit/:id" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
             <Route path="/quotations" element={<QuotationList />} />
+            <Route path="/quotations/add" element={<AddQuotation />} />
             <Route path="/quotations/:id" element={<QuotationDetails />} />
             <Route path="/clients" element={<ClientsList />} />
+            <Route path="/clients/add" element={<AddClient />} />
             <Route path="/construction" element={<Construction />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />

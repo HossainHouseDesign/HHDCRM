@@ -15,6 +15,8 @@ export interface Profile {
   deleted_at?: string;
   created_at: string;
   login_password?: string;
+  // Fix: Added office_id property to match database schema requirements
+  office_id?: string;
   permissions?: {
     leads?: boolean;
     quotations?: boolean;
@@ -72,6 +74,12 @@ export interface Lead {
   interest_interior?: boolean;
   metadata?: Record<string, any>; 
   deleted_at?: string;
+  created_by?: string;
+  // Fix: Added office_id property to match database schema requirements
+  office_id?: string;
+  creator?: {
+    full_name: string;
+  };
 }
 
 export interface LeadAIAnalysis {
@@ -95,4 +103,8 @@ export interface Project {
   deleted_at?: string;
   client?: Lead;
   assignments?: any[];
+  created_by?: string;
+  creator?: {
+    full_name: string;
+  };
 }

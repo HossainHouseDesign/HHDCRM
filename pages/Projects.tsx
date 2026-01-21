@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Layers, Search, Plus, RefreshCw, Briefcase, Calendar, 
@@ -9,7 +10,7 @@ import {
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../App';
+import { useNotification, useUser } from '../App';
 
 type ProjectFilterType = 'All' | 'Upcoming' | 'Running' | 'Complete';
 type ViewMode = 'grid' | 'list';
@@ -17,6 +18,7 @@ type ViewMode = 'grid' | 'list';
 const Projects = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { profile } = useUser();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +64,9 @@ const Projects = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // FIX: Added !created_by to profiles join to resolve ambiguity
       const [projRes, clientRes] = await Promise.all([
-        supabase.from('projects').select('*, client:leads(*), assignments:project_assignments(profile:profiles(*))').is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('projects').select('*, client:leads(*), creator:profiles!created_by(full_name), assignments:project_assignments(profile:profiles(*))').is('deleted_at', null).order('created_at', { ascending: false }),
         supabase.from('leads').select('*').eq('is_client', true).is('deleted_at', null)
       ]);
       
@@ -96,6 +99,7 @@ const Projects = () => {
         budget: formData.budget,
         start_date: formData.start_date,
         description: formData.description,
+        created_by: profile?.id, // Attribution
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }]);
@@ -108,17 +112,7 @@ const Projects = () => {
       await fetchData();
     } catch (err: any) {
       console.error("Submission Error Details:", err);
-      
-      let errMsg = 'Vault commit failed';
-      if (err instanceof Error) {
-        errMsg = err.message;
-      } else if (typeof err === 'object' && err !== null) {
-        errMsg = err.message || err.details || err.hint || JSON.stringify(err);
-      } else if (typeof err === 'string') {
-        errMsg = err;
-      }
-      
-      showNotification(`Submission Error: ${errMsg}`, "error");
+      showNotification(`Submission Error: ${err.message || 'Vault commit failed'}`, "error");
     } finally {
       setIsSaving(false);
     }
@@ -235,7 +229,7 @@ const Projects = () => {
             <button onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')} className="p-4 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
               {viewMode === 'list' ? <LayoutGrid className="w-6 h-6" /> : <List className="w-6 h-6" />}
             </button>
-            <button onClick={() => setShowModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/10 active:scale-95 transition-all flex items-center justify-center gap-3">
+            <button onClick={() => setShowModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center justify-center gap-3">
               <Plus className="w-5 h-5" /> New Project
             </button>
           </div>
@@ -253,18 +247,18 @@ const Projects = () => {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-6 md:px-10 mt-12">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 mt-12">
         {loading ? (
           <div className="py-32 flex justify-center"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /></div>
         ) : (
           <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/5 overflow-hidden">
             <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-320px)] overflow-y-auto">
-              <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0">
+              <table className="w-full text-left min-w-[1200px] border-separate border-spacing-0">
                 <thead className="sticky top-0 z-[40]">
                   <tr className="bg-white text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
                     <th className="px-10 py-7 border-b border-slate-100 bg-white">Architectural Project</th>
                     <th className="px-10 py-7 border-b border-slate-100 bg-white">Client Entity</th>
-                    <th className="px-10 py-7 border-b border-slate-100 bg-white">Execution Site</th>
+                    <th className="px-10 py-7 border-b border-slate-100 bg-white">Added By</th>
                     <th className="px-10 py-7 border-b border-slate-100 bg-white">Lifecycle Stage</th>
                     <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
                   </tr>
@@ -295,9 +289,11 @@ const Projects = () => {
                            </div>
                         </td>
                         <td className="px-10 py-8">
-                           <div className="flex items-center gap-2.5">
-                              <MapPin className="w-4 h-4 text-emerald-500/40" />
-                              <div><p className="text-[12px] font-bold text-slate-600">{p.client?.address}</p><p className="text-[10px] font-bold text-slate-400">{p.client?.upazila}</p></div>
+                           <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
+                                <UserCheck className="w-4 h-4" />
+                              </div>
+                              <p className="text-[12px] font-black text-slate-700">{p.creator?.full_name || 'System'}</p>
                            </div>
                         </td>
                         <td className="px-10 py-8">
