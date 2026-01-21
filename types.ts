@@ -1,6 +1,6 @@
 
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
-export type UserRole = 'Admin' | 'Staff' | 'Client';
+export type UserRole = 'super_admin' | 'office_admin' | 'staff';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
 
 export interface Profile {
@@ -8,11 +8,13 @@ export interface Profile {
   full_name: string;
   email: string;
   role: UserRole;
+  office_id?: string;
   phone?: string;
   designation?: string;
   status: 'active' | 'inactive';
   avatar_url?: string;
   deleted_at?: string;
+  created_at: string;
 }
 
 export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea' | 'checkbox';
@@ -31,6 +33,7 @@ export interface FormFieldConfig {
 
 export interface Lead {
   id: string;
+  office_id: string; // Mandatory for RBAC
   client_name: string;
   phone: string;
   email?: string; 
@@ -63,27 +66,31 @@ export interface Lead {
   deleted_at?: string;
 }
 
-export interface Project {
-  id: string;
-  client_id: string;
-  name: string;
-  description?: string;
-  status: ProjectStatus;
-  budget: number;
-  start_date: string;
-  end_date?: string;
-  deleted_at?: string;
-  created_at: string;
-  updated_at: string;
-  // Join fields
-  client?: Lead;
-  assignments?: { profile: Profile }[];
-}
-
+/**
+ * Interface for AI lead analysis results
+ */
 export interface LeadAIAnalysis {
   summary: string;
   feasibility_score: number;
   brief: string;
   priority_score: number;
   proposal_text: string;
+}
+
+/**
+ * Interface for Project entities
+ */
+export interface Project {
+  id: string;
+  name: string;
+  client_id: string;
+  status: ProjectStatus;
+  budget: number;
+  start_date: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string;
+  client?: Lead;
+  assignments?: any[];
 }

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, UserPlus, UserCircle, Mail, Briefcase, 
-  Phone, Lock, CheckCircle2, ShieldCheck, RefreshCw, X 
+  Phone, ShieldCheck, RefreshCw, Building2 
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { UserRole, Profile } from '../types';
@@ -15,40 +16,63 @@ const StaffOnboarding = () => {
   const { showNotification } = useNotification();
 
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(isEditing);
+  const [loading, setLoading] = useState(true);
+  const [adminProfile, setAdminProfile] = useState<Profile | null>(null);
+  
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
     phone: '',
     designation: '',
     password: '',
-    role: 'Staff' as UserRole
+    role: 'staff' as UserRole
   });
 
   useEffect(() => {
-    if (isEditing) {
-      fetchStaff();
-    }
+    validateAccess();
   }, [id]);
 
-  const fetchStaff = async () => {
+  const validateAccess = async () => {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
-      if (error) throw error;
-      if (data) {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return navigate('/');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error || !profile) {
+        showNotification("Identity could not be verified in the profile vault.", "error");
+        return navigate('/');
+      }
+
+      // Normalized role check
+      const userRole = (profile.role || '').toLowerCase();
+      if (userRole !== 'office_admin' && userRole !== 'super_admin') {
+        showNotification(`Security Protocol: Role '${profile.role}' lacks provisioning clearance.`, "error");
+        return navigate('/');
+      }
+
+      setAdminProfile(profile);
+
+      if (isEditing) {
+        const { data, error: editError } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (editError) throw editError;
         setFormData({
-          full_name: data.full_name || '',
-          email: data.email || '',
+          full_name: data.full_name,
+          email: data.email,
           phone: data.phone || '',
           designation: data.designation || '',
           password: '',
-          role: data.role || 'Staff'
+          role: 'staff'
         });
       }
     } catch (err: any) {
-      const msg = err.message || 'Failed to load records';
-      showNotification(`Vault Error: ${msg}`, "error");
-      navigate('/settings');
+      showNotification("Security Layer Exception: " + err.message, "error");
+      navigate('/');
     } finally {
       setLoading(false);
     }
@@ -56,20 +80,17 @@ const StaffOnboarding = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.email.trim()) {
-      showNotification("Email address is mandatory for staff profiles.", "warning");
-      return;
-    }
-
     setSaving(true);
     try {
-      const payload: any = {
-        full_name: formData.full_name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
-        designation: formData.designation.trim(),
-        role: formData.role,
+      if (!adminProfile?.office_id) throw new Error("Administrator session lacks a valid Office Link.");
+
+      const payload = {
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        designation: formData.designation,
+        role: 'staff',
+        office_id: adminProfile.office_id,
         status: 'active',
         updated_at: new Date().toISOString()
       };
@@ -77,135 +98,70 @@ const StaffOnboarding = () => {
       if (isEditing) {
         const { error } = await supabase.from('profiles').update(payload).eq('id', id);
         if (error) throw error;
-        showNotification("Staff credentials updated", "success");
       } else {
-        payload.created_at = new Date().toISOString();
+        // Create profile entry
         const { error } = await supabase.from('profiles').insert([payload]);
         if (error) throw error;
-        showNotification("New staff member onboarded", "success");
       }
-      navigate('/settings');
+      
+      showNotification("Staff credentials provisioned successfully.", "success");
+      navigate('/team');
     } catch (err: any) {
-      console.error("Submission Error Details:", err);
-      
-      let errMsg = 'Vault synchronization failure';
-      let errCode = '';
-      
-      if (typeof err === 'object' && err !== null) {
-        errMsg = err.message || err.details || err.hint || JSON.stringify(err);
-        errCode = err.code || '';
-      } else if (typeof err === 'string') {
-        errMsg = err;
-      }
-
-      // Handle specific SQL/Supabase error codes
-      if (errCode === '42P07' || errMsg.includes('already exists')) {
-        showNotification('Sync Conflict: The database table already exists. Please run the RECOVERY script in Supabase SQL Editor.', "warning");
-      } else if (errMsg.includes('profiles_id_fkey') || errMsg.includes('foreign key constraint')) {
-        showNotification('Database Conflict: You must run the Repair Script in Supabase SQL Editor to decouple Staff from Auth.', "error");
-      } else if (errMsg.toLowerCase().includes('duplicate key')) {
-        showNotification('Email address already exists in workspace.', "error");
-      } else {
-        showNotification(`Sync Failed: ${errMsg}`, "error");
-      }
+      showNotification("Sync Failed: " + err.message, "error");
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) return (
-    <div className="h-[60vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
-      <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
-      <p className="text-slate-400 font-black tracking-widest uppercase text-[10px]">Accessing Workspace Records</p>
+    <div className="h-screen flex flex-col items-center justify-center gap-6">
+      <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Security Clearances...</p>
     </div>
   );
 
-  const labelClass = "text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] ml-2 mb-2 block";
-  const inputClass = "w-full pl-14 sm:pl-16 pr-6 h-14 sm:h-[72px] bg-white border border-slate-100 rounded-2xl sm:rounded-[28px] text-[13px] font-bold text-slate-700 focus:bg-white focus:border-emerald-200 outline-none transition-all placeholder:text-slate-300 shadow-sm focus:ring-4 focus:ring-emerald-500/5";
-  const iconClass = "absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors";
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8 sm:space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-32">
-      <header className="flex justify-between items-center pt-8">
-        <div className="flex items-center gap-4 sm:gap-6">
-          <button onClick={() => navigate('/settings')} className="p-3.5 sm:p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-all shadow-xl shadow-slate-200/50 active:scale-95">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify Access' : 'Onboard Staff'}</h1>
-            <p className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] mt-1.5 opacity-80 italic">CONFIGURE WORKSPACE PERMISSIONS.</p>
-          </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
+      <header className="flex items-center gap-6 mb-12">
+        <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Update Credentials' : 'Provision Staff'}</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Vault Branch: {adminProfile?.office_id?.slice(0,8).toUpperCase()}</p>
         </div>
       </header>
 
-      <div className="bg-white rounded-[32px] sm:rounded-[64px] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
-        <div className="p-8 sm:p-12 md:p-20 space-y-12 sm:space-y-16">
-          <form onSubmit={handleSubmit} className="space-y-12 sm:space-y-16">
-            <div className="space-y-8 sm:space-y-10">
-              <h3 className="text-[11px] sm:text-[12px] font-black text-[#064e3b] uppercase tracking-[0.3em] flex items-center gap-4">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Professional Profile
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
-                <div className="space-y-2">
-                  <label className={labelClass}>FULL LEGAL NAME *</label>
-                  <div className="relative group">
-                    <UserCircle className={iconClass} />
-                    <input required className={inputClass} placeholder="e.g. Architect Samiul Alim" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>WORKSPACE EMAIL *</label>
-                  <div className="relative group">
-                    <Mail className={iconClass} />
-                    <input type="email" required className={inputClass} placeholder="staff@firm.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>PROFESSIONAL DESIGNATION</label>
-                  <div className="relative group">
-                    <Briefcase className={iconClass} />
-                    <input className={inputClass} placeholder="e.g. Senior Project Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>CONTACT NUMBER</label>
-                  <div className="relative group">
-                    <Phone className={iconClass} />
-                    <input className={inputClass} placeholder="+880 1XXX-XXXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                  </div>
-                </div>
+      <form onSubmit={handleSubmit} className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-16 space-y-16 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none" />
+        
+        <div className="space-y-10 relative z-10">
+          <h3 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Staff Identification</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+              <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+              <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+              <input className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" placeholder="Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Firm Branch</label>
+              <div className="w-full h-14 px-6 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-400 flex items-center gap-2 cursor-not-allowed">
+                <Building2 className="w-4 h-4" /> Branch Encrypted
               </div>
             </div>
-            <div className="space-y-8 sm:space-y-10">
-              <h3 className="text-[11px] sm:text-[12px] font-black text-[#064e3b] uppercase tracking-[0.3em] flex items-center gap-4">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Security Clearance
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                {(['Admin', 'Staff'] as UserRole[]).map(role => {
-                  const isActive = formData.role === role;
-                  return (
-                    <button key={role} type="button" onClick={() => setFormData({...formData, role})} className={`group p-8 sm:p-10 rounded-[32px] sm:rounded-[40px] text-left transition-all duration-500 flex items-center justify-between border-2 relative overflow-hidden ${isActive ? 'bg-[#064e3b] border-transparent text-white shadow-2xl shadow-emerald-900/40 translate-y-[-2px]' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-emerald-200 hover:bg-white shadow-sm'}`}>
-                      <div className="space-y-2 relative z-10">
-                        <p className={`text-[11px] sm:text-[12px] font-black uppercase tracking-[0.3em] ${isActive ? 'text-emerald-400' : 'text-emerald-600'}`}>{role}</p>
-                        <p className={`text-[10px] sm:text-[11px] font-medium leading-relaxed max-w-[220px] ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>{role === 'Admin' ? 'Full operational & system control access for firm directors.' : 'Lead management & project intake access for design team.'}</p>
-                      </div>
-                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center transition-all duration-700 shrink-0 ${isActive ? 'bg-emerald-500 border-transparent scale-100' : 'border-slate-200 scale-90 opacity-20'}`}>
-                        <CheckCircle2 className={`w-6 h-6 sm:w-7 sm:h-7 ${isActive ? 'text-white' : 'text-slate-300'}`} />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="pt-8 sm:pt-12 border-t border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
-              <button type="button" onClick={() => navigate('/settings')} className="px-8 sm:px-10 py-4 sm:py-5 text-slate-400 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] hover:text-red-500 transition-all flex items-center gap-3 active:scale-95"><X className="w-4 h-4" /> Discard</button>
-              <button type="submit" disabled={saving} className="w-full md:w-auto px-12 sm:px-16 py-6 sm:py-8 bg-[#064e3b] text-white rounded-[24px] sm:rounded-[32px] text-[11px] sm:text-xs font-black uppercase tracking-[0.3em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/40 active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-4 sm:gap-6 border border-white/10">
-                {saving ? <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-emerald-400" /> : <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />} {saving ? 'SYNCHRONIZING...' : isEditing ? 'AUTHORIZE UPDATE' : 'AUTHORIZE ONBOARDING'}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
-      </div>
+
+        <button type="submit" disabled={saving} className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] shadow-xl flex items-center justify-center gap-4 hover:bg-black transition-all active:scale-95 disabled:opacity-50">
+          {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />}
+          Commit Staff Entry
+        </button>
+      </form>
     </div>
   );
 };

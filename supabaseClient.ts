@@ -6,100 +6,64 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * ARCHLEAD PRO - MASTER DATABASE SCHEMA & REPAIR SCRIPT
+ * ARCHLEAD PRO - MASTER DATABASE REPAIR SCRIPT
  * 
- * Instructions:
- * 1. Open your Supabase Dashboard.
- * 2. Go to the SQL Editor.
- * 3. Paste the script below and run it.
+ * RUN THE FOLLOWING IN YOUR SUPABASE SQL EDITOR:
  * 
- * --- START SCRIPT ---
+ * -- 1. SECURITY DEFINER FUNCTION (Prevents Recursion)
+ * CREATE OR REPLACE FUNCTION public.get_user_office_id()
+ * RETURNS uuid AS $$
+ *   SELECT office_id FROM public.profiles WHERE id = auth.uid();
+ * $$ LANGUAGE sql STABLE SECURITY DEFINER;
  * 
- * -- Enable UUID engine
- * CREATE EXTENSION IF NOT EXISTS "pgcrypto";
- * 
- * -- 1. PROFILES (Staff Management)
- * CREATE TABLE IF NOT EXISTS public.profiles (
+ * -- 2. CORE TABLES SETUP
+ * CREATE TABLE IF NOT EXISTS public.offices (
  *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   full_name TEXT NOT NULL,
- *   email TEXT UNIQUE NOT NULL,
- *   phone TEXT,
- *   designation TEXT,
- *   role TEXT DEFAULT 'Staff' CHECK (role IN ('Admin', 'Staff')),
- *   status TEXT DEFAULT 'active',
- *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   deleted_at TIMESTAMP WITH TIME ZONE
- * );
- * 
- * -- IMPORTANT: Remove auth dependency to prevent fkey errors during staff onboarding
- * ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
- * 
- * -- 2. LEADS (Project Discovery & Clients)
- * CREATE TABLE IF NOT EXISTS public.leads (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   client_name TEXT NOT NULL,
- *   phone TEXT NOT NULL,
- *   email TEXT,
- *   current_location TEXT,
- *   land_area TEXT,
- *   address TEXT, -- District
- *   upazila TEXT,
- *   union_name TEXT,
- *   police_station TEXT,
- *   village_name TEXT,
- *   package TEXT,
- *   asking_fee NUMERIC DEFAULT 0,
- *   budget TEXT,
- *   social_media TEXT,
- *   next_calling_date DATE,
- *   notes TEXT,
- *   status TEXT DEFAULT 'Discovery',
- *   is_client BOOLEAN DEFAULT FALSE,
- *   converted_at TIMESTAMP WITH TIME ZONE,
- *   foundation TEXT,
- *   unit_count TEXT,
- *   bedroom_count TEXT,
- *   bathroom_count TEXT,
- *   stair_details TEXT,
- *   interest_construction BOOLEAN DEFAULT FALSE,
- *   interest_interior BOOLEAN DEFAULT FALSE,
- *   metadata JSONB DEFAULT '{}'::jsonb,
- *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   deleted_at TIMESTAMP WITH TIME ZONE
- * );
- * 
- * -- 3. PROJECTS (Active Execution)
- * CREATE TABLE IF NOT EXISTS public.projects (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   client_id UUID REFERENCES public.leads(id) ON DELETE CASCADE,
  *   name TEXT NOT NULL,
- *   description TEXT,
- *   status TEXT DEFAULT 'Upcoming' CHECK (status IN ('Upcoming', 'Running', 'Complete')),
- *   budget NUMERIC DEFAULT 0,
- *   start_date DATE DEFAULT CURRENT_DATE,
- *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   deleted_at TIMESTAMP WITH TIME ZONE
- * );
- * 
- * -- 4. PROJECT ASSIGNMENTS (Staff to Project)
- * CREATE TABLE IF NOT EXISTS public.project_assignments (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
- *   profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
  *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
  * );
  * 
- * -- 5. SETTINGS (Dynamic Forms)
- * CREATE TABLE IF NOT EXISTS public.settings (
- *   key TEXT PRIMARY KEY,
- *   value JSONB NOT NULL,
- *   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
- * );
+ * -- 3. PROFILES TABLE SCHEMA
+ * -- Ensure all columns exist, especially 'deleted_at' and 'role'
+ * DO $$ 
+ * BEGIN
+ *   IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+ *     CREATE TABLE public.profiles (
+ *       id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+ *       full_name TEXT NOT NULL,
+ *       email TEXT UNIQUE NOT NULL,
+ *       role TEXT NOT NULL DEFAULT 'staff',
+ *       office_id UUID REFERENCES public.offices(id),
+ *       designation TEXT,
+ *       phone TEXT,
+ *       status TEXT DEFAULT 'active',
+ *       deleted_at TIMESTAMP WITH TIME ZONE,
+ *       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+ *       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+ *     );
+ *   ELSE
+ *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS office_id UUID REFERENCES public.offices(id);
+ *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'staff';
+ *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+ *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS designation TEXT;
+ *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ *   END IF;
+ * END $$;
  * 
- * NOTIFY pgrst, 'reload schema';
+ * -- 4. RLS POLICIES (OFFICE PARTITIONING)
+ * ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ * ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ * ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
  * 
- * --- END SCRIPT ---
+ * DROP POLICY IF EXISTS "Profiles access" ON public.profiles;
+ * CREATE POLICY "Profiles access" ON public.profiles 
+ * FOR ALL TO authenticated USING (office_id = public.get_user_office_id() OR id = auth.uid());
+ * 
+ * DROP POLICY IF EXISTS "Leads access" ON public.leads;
+ * CREATE POLICY "Leads access" ON public.leads 
+ * FOR ALL TO authenticated USING (office_id = public.get_user_office_id());
+ * 
+ * DROP POLICY IF EXISTS "Projects access" ON public.projects;
+ * CREATE POLICY "Projects access" ON public.projects 
+ * FOR ALL TO authenticated USING (office_id = public.get_user_office_id());
  */

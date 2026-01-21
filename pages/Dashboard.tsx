@@ -59,6 +59,14 @@ const Dashboard = () => {
     }
   };
 
+  const getRoleLabel = (role: string = '') => {
+    const r = role.toLowerCase();
+    if (r === 'office_admin') return 'Office Admin';
+    if (r === 'super_admin') return 'Super Admin';
+    if (r === 'staff') return 'Firm Staff';
+    return role || 'Access Restricted';
+  };
+
   const stats = useMemo(() => {
     const totalLeads = leads.filter(l => !l.is_client).length;
     const totalClients = leads.filter(l => l.is_client).length;
@@ -104,11 +112,11 @@ const Dashboard = () => {
           <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
             <div className="text-right hidden sm:block">
               <p className="text-[14px] font-black text-slate-900 leading-none">{currentUser.full_name || 'Firm Member'}</p>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{currentUser.role || 'Access Restricted'}</p>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{getRoleLabel(currentUser.role)}</p>
             </div>
             <img 
               src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.full_name || 'Arch1'}`} 
-              className="w-12 h-12 rounded-2xl border-2 border-white shadow-lg bg-white"
+              className="w-12 h-12 rounded-2xl border-2 border-white shadow-lg bg-white cursor-pointer hover:scale-105 transition-transform"
               alt="Avatar"
               onClick={() => navigate('/settings')}
             />
