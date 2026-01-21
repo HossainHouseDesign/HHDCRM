@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -16,6 +16,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useNotification } from '../App';
+import { Profile } from '../types';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -25,17 +26,39 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setUserProfile(data);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
-    { name: 'Lead', icon: FileText, path: '/leads', badge: '12+' },
-    { name: 'Quotation', icon: FileSpreadsheet, path: '/quotations' },
-    { name: 'Client', icon: Users, path: '/clients' },
-    { name: 'Project', icon: Layers, path: '/projects' },
-    { name: 'Construction', icon: Hammer, path: '/construction' },
-    { name: 'Team', icon: Users2, path: '/team' },
-    { name: 'Setting', icon: Settings, path: '/settings' },
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/', key: 'dashboard' },
+    { name: 'Lead', icon: FileText, path: '/leads', badge: '12+', key: 'leads' },
+    { name: 'Quotation', icon: FileSpreadsheet, path: '/quotations', key: 'quotations' },
+    { name: 'Client', icon: Users, path: '/clients', key: 'clients' },
+    { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },
+    { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
+    { name: 'Team', icon: Users2, path: '/team', key: 'team' },
+    { name: 'Setting', icon: Settings, path: '/settings', key: 'settings' },
   ];
+
+  // Filter items based on user role and granular permissions
+  const filteredMenuItems = menuItems.filter(item => {
+    // Admins see everything
+    if (userProfile?.role === 'office_admin' || userProfile?.role === 'super_admin') return true;
+    // Dashboard is always visible
+    if (item.key === 'dashboard') return true;
+    // Check granular permissions for staff
+    return userProfile?.permissions?.[item.key as keyof typeof userProfile.permissions] === true;
+  });
 
   const handleLogout = async () => {
     try {
@@ -51,7 +74,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   return (
     <aside className="w-64 bg-white h-full flex flex-col border-r border-slate-100/50">
-      {/* Brand Header */}
       <div className="p-8 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#064e3b] rounded-xl flex items-center justify-center">
@@ -68,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
       <div className="flex-1 px-4 py-8 space-y-1 overflow-y-auto no-scrollbar">
         <nav className="space-y-1">
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const active = isActive(item.path);
             return (
               <Link
@@ -84,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   <item.icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`} />
                   <span className="text-sm font-bold tracking-tight">{item.name}</span>
                 </div>
-                {item.badge && !active && (
+                {'badge' in item && item.badge && !active && (
                   <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-100">
                     {item.badge}
                   </span>
@@ -103,7 +125,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </nav>
       </div>
 
-      {/* Sidebar Footer Info */}
       <div className="p-4 mt-auto">
         <div className="bg-slate-50 rounded-[24px] p-5 border border-slate-100">
           <div className="flex items-center gap-3 mb-3">

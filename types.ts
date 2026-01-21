@@ -15,6 +15,15 @@ export interface Profile {
   avatar_url?: string;
   deleted_at?: string;
   created_at: string;
+  permissions?: {
+    leads?: boolean;
+    quotations?: boolean;
+    clients?: boolean;
+    projects?: boolean;
+    construction?: boolean;
+    team?: boolean;
+    settings?: boolean;
+  };
 }
 
 export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea' | 'checkbox';
@@ -33,13 +42,13 @@ export interface FormFieldConfig {
 
 export interface Lead {
   id: string;
-  office_id: string; // Mandatory for RBAC
+  office_id: string;
   client_name: string;
   phone: string;
   email?: string; 
   current_location?: string;
   land_area?: string;
-  address?: string; // District
+  address?: string; 
   upazila?: string;
   union_name?: string;
   police_station?: string;
@@ -66,9 +75,6 @@ export interface Lead {
   deleted_at?: string;
 }
 
-/**
- * Interface for AI lead analysis results
- */
 export interface LeadAIAnalysis {
   summary: string;
   feasibility_score: number;
@@ -77,9 +83,6 @@ export interface LeadAIAnalysis {
   proposal_text: string;
 }
 
-/**
- * Interface for Project entities
- */
 export interface Project {
   id: string;
   name: string;
