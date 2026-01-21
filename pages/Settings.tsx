@@ -30,9 +30,9 @@ const Settings = () => {
   const [localProfile, setLocalProfile] = useState<Partial<Profile>>({});
 
   useEffect(() => {
-    // Force staff to only see the profile view immediately
     if (globalProfile) {
       setLocalProfile(globalProfile);
+      // STRICT RULE: Non-admins can only see their profile view.
       if (!isAdmin) {
         setView('profile');
       }
@@ -47,8 +47,8 @@ const Settings = () => {
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed: Identity not found.");
 
-      // CRITICAL: We use the RPC here because shadow-logged staff might not have valid Supabase Auth RLS permissions
-      const { error } = await supabase.rpc('update_self_profile_v2', {
+      // Using the dedicated RPC for profile updates to handle shadow login users.
+      const { error } = await supabase.rpc('update_self_profile_v3', {
         p_id: userId,
         p_full_name: localProfile.full_name?.trim(),
         p_designation: localProfile.designation?.trim(),
@@ -61,6 +61,7 @@ const Settings = () => {
       showNotification("Account information synchronized successfully.", "success");
       await refreshUser();
       
+      // Admins return to hub, staff stay on the update screen.
       if (isAdmin) setView('hub');
     } catch (err: any) { 
       showNotification("Synchronization failed: " + err.message, "error"); 
@@ -84,7 +85,7 @@ const Settings = () => {
     </div>
   );
 
-  // Admin Hub View
+  // Admin Hub View: Grid of settings options.
   if (view === 'hub' && isAdmin) return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
       <header className="mb-16">
@@ -117,7 +118,7 @@ const Settings = () => {
     </div>
   );
 
-  // Profile Edit View (For all users, especially Staff)
+  // Profile Edit View: The ONLY view staff can see.
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
       <header className="mb-12 flex items-center gap-6">

@@ -13,12 +13,13 @@ import {
 import { supabase } from '../supabaseClient';
 import { Lead, Profile } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../App';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { profile, isAdmin } = useUser();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [team, setTeam] = useState<Profile[]>([]);
-  const [currentUser, setCurrentUser] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState<'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
   
@@ -43,17 +44,15 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const [leadsRes, teamRes, profileRes] = await Promise.all([
+      // Only fetch leads and team previews here. 
+      // Current user profile is managed by useUser context in App.tsx
+      const [leadsRes, teamRes] = await Promise.all([
         supabase.from('leads').select('*').is('deleted_at', null).order('created_at', { ascending: true }),
-        supabase.from('profiles').select('*').eq('status', 'active').limit(4),
-        user ? supabase.from('profiles').select('*').eq('id', user.id).single() : Promise.resolve({ data: null })
+        supabase.from('profiles').select('*').eq('status', 'active').limit(4)
       ]);
       
       setLeads(leadsRes.data || []);
       setTeam(teamRes.data || []);
-      if (profileRes.data) setCurrentUser(profileRes.data);
     } finally {
       setLoading(false);
     }
@@ -111,11 +110,13 @@ const Dashboard = () => {
           </button>
           <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
             <div className="text-right hidden sm:block">
-              <p className="text-[14px] font-black text-slate-900 leading-none">{currentUser.full_name || 'Firm Member'}</p>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{getRoleLabel(currentUser.role)}</p>
+              <p className="text-[14px] font-black text-slate-900 leading-none">{profile?.full_name || 'Firm Member'}</p>
+              <p className="text-[10px] text-[#064e3b] font-black uppercase tracking-widest mt-1">
+                {profile?.designation || getRoleLabel(profile?.role)}
+              </p>
             </div>
             <img 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.full_name || 'Arch1'}`} 
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'Arch1'}`} 
               className="w-12 h-12 rounded-2xl border-2 border-white shadow-lg bg-white cursor-pointer hover:scale-105 transition-transform"
               alt="Avatar"
               onClick={() => navigate('/settings')}
@@ -134,9 +135,11 @@ const Dashboard = () => {
             <button onClick={() => navigate('/leads/new')} className="flex items-center gap-2 px-6 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
               <Plus className="w-4 h-4" /> Intake Lead
             </button>
-            <button onClick={() => navigate('/settings/staff/new')} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-              <UserPlus className="w-4 h-4" /> Onboard Staff
-            </button>
+            {isAdmin && (
+              <button onClick={() => navigate('/settings/staff/new')} className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                <UserPlus className="w-4 h-4" /> Onboard Staff
+              </button>
+            )}
           </div>
         </div>
 
@@ -201,7 +204,7 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 bg-white p-12 rounded-[64px] border border-slate-100 shadow-sm space-y-12">
+          <div className="lg:col-span-8 bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-sm space-y-12">
              <div className="flex justify-between items-center">
                <h4 className="text-xl font-black text-slate-900 tracking-tight">Core Design Team</h4>
                <button onClick={() => navigate('/team')} className="text-[10px] font-black text-slate-400 border border-slate-100 px-8 py-4 rounded-2xl hover:bg-slate-50 transition-all uppercase tracking-widest">
