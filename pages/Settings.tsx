@@ -78,14 +78,17 @@ const Settings = () => {
     try {
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed.");
+      
+      // Fix: Ensure all 6 parameters are always sent, even as null, to match the SQL signature exactly.
       const { error } = await supabase.rpc('update_self_profile_v4', {
         p_id: userId,
-        p_full_name: localProfile.full_name?.trim(),
-        p_designation: localProfile.designation?.trim(),
-        p_phone: localProfile.phone?.trim(),
-        p_password: localProfile.login_password,
-        p_avatar_url: localProfile.avatar_url?.trim()
+        p_full_name: localProfile.full_name?.trim() || null,
+        p_designation: localProfile.designation?.trim() || null,
+        p_phone: localProfile.phone?.trim() || null,
+        p_password: localProfile.login_password || null,
+        p_avatar_url: localProfile.avatar_url?.trim() || null
       });
+
       if (error) throw error;
       showNotification("Account information synchronized.", "success");
       await refreshUser();
