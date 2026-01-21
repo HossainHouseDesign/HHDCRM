@@ -6,7 +6,8 @@ import {
   Hammer, FileSpreadsheet, Command, UserCheck,
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   Activity, Target, ArrowRight, ExternalLink,
-  Layers, Clock, Layout, UserPlus, Zap, MessageSquare
+  Layers, Clock, Layout, UserPlus, Zap, MessageSquare,
+  Briefcase, PlusCircle
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -267,20 +268,30 @@ const Dashboard = () => {
       </header>
 
       <div className="pt-8 space-y-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
           <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Executive Control</h1>
             <p className="text-slate-400 text-sm mt-2 font-medium">Global oversight of pipeline velocity and site operations.</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button onClick={() => navigate('/leads/new')} className="flex items-center gap-3 px-8 py-5 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10 active:scale-95 transition-all">
-              <Plus className="w-4 h-4" /> Intake Lead
+          <div className="flex flex-wrap items-center gap-4">
+            <button 
+              onClick={() => navigate('/leads/new')} 
+              className="flex items-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
+            >
+              <PlusCircle className="w-5 h-5" /> Add New Lead
             </button>
-            {isAdmin && (
-              <button onClick={() => navigate('/settings/staff/new')} className="flex items-center gap-3 px-8 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                <UserPlus className="w-4 h-4" /> Onboard Staff
-              </button>
-            )}
+            <button 
+              onClick={() => navigate('/clients/add')} 
+              className="flex items-center gap-3 px-10 py-5 bg-indigo-600 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
+            >
+              <Briefcase className="w-5 h-5" /> Add Client
+            </button>
+            <button 
+              onClick={() => navigate('/projects?new=true')} 
+              className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-[#064e3b] hover:scale-105 active:scale-95 transition-all"
+            >
+              <Layers className="w-5 h-5" /> Add Project
+            </button>
           </div>
         </div>
 

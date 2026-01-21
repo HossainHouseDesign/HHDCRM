@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Layers, Search, Plus, RefreshCw, Briefcase, Calendar, 
@@ -9,7 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotification, useUser } from '../App';
 
 type ProjectFilterType = 'All' | 'Upcoming' | 'Running' | 'Complete';
@@ -17,6 +16,7 @@ type ViewMode = 'grid' | 'list';
 
 const Projects = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showNotification } = useNotification();
   const { profile } = useUser();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -52,7 +52,15 @@ const Projects = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // Check for auto-open parameter from Dashboard
+    const params = new URLSearchParams(location.search);
+    if (params.get('new') === 'true') {
+      setShowModal(true);
+      // Clean up URL without reload
+      navigate('/projects', { replace: true });
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -353,7 +361,7 @@ const Projects = () => {
                     <input type="date" className="w-full h-16 px-8 bg-slate-50 border border-slate-100 rounded-[24px] text-[14px] font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
                   </div>
                </div>
-               <button type="submit" disabled={isSaving} className="w-full py-8 bg-[#064e3b] text-white rounded-[32px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50">
+               <button type="submit" disabled={isSaving} className="w-full py-8 bg-[#064e3b] text-white rounded-[32px] text-[12px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-2xl active:scale-95 disabled:opacity-50">
                  {isSaving ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <Save className="w-6 h-6 text-emerald-400" />} Synchronize Project Vault
                </button>
             </form>
