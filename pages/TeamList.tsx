@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Trash2, RefreshCw, Edit2, Users, ShieldCheck, UserCircle, AlertTriangle, 
-  Search, ShieldAlert
+  Search, ShieldAlert, Mail, Phone
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Profile } from '../types';
@@ -24,7 +24,6 @@ const TeamList = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // We explicitly query all profiles that are not soft-deleted
       const { data: teamRes, error } = await supabase
         .from('profiles')
         .select('*')
@@ -40,11 +39,13 @@ const TeamList = () => {
     }
   };
 
-  const filteredTeam = team.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.designation && s.designation.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredTeam = team.filter(s => {
+    const search = searchTerm.toLowerCase();
+    const name = (s.full_name || '').toLowerCase();
+    const email = (s.email || '').toLowerCase();
+    const designation = (s.designation || '').toLowerCase();
+    return name.includes(search) || email.includes(search) || designation.includes(search);
+  });
 
   const getRoleBadge = (role: string) => {
     const r = (role || '').toLowerCase();
@@ -56,33 +57,30 @@ const TeamList = () => {
 
   const softDeleteEmployee = async (target: Profile) => {
     if (!isAdmin) {
-      showNotification("Access Denied: Only Office Admins can modify staff records.", "error");
+      showNotification("Access Denied: Administrative clearance required.", "error");
       return;
     }
-
     if (target.id === currentUser?.id) {
-      showNotification("Security Protocol: You cannot archive your own administrative account.", "warning");
+      showNotification("Security Protocol: You cannot archive your own account.", "warning");
       return;
     }
-
-    if (!window.confirm(`Archive ${target.full_name} to the Recycle Bin?`)) return;
+    if (!window.confirm(`Archive ${target.full_name || 'this staff member'} to the Recycle Bin?`)) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          deleted_at: new Date().toISOString(),
-          status: 'inactive'
+          deleted_at: new Date().toISOString(), 
+          status: 'inactive' 
         })
         .eq('id', target.id);
       
       if (error) throw error;
       
       setTeam(prev => prev.filter(s => s.id !== target.id));
-      showNotification(`${target.full_name} archived successfully.`, "success");
+      showNotification(`${target.full_name || 'Staff Member'} archived successfully.`, "success");
     } catch (err: any) {
-      console.error("Delete error:", err);
-      showNotification("Archive failed: " + (err.message || "Database error."), "error");
+      showNotification("Archive failed: " + err.message, "error");
     }
   };
 
@@ -101,18 +99,11 @@ const TeamList = () => {
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1 opacity-80">Synchronized Human Capital Management</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <button 
-            onClick={fetchInitialData}
-            className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-[#064e3b] transition-all shadow-sm active:scale-95"
-            title="Refresh Directory"
-          >
+          <button onClick={fetchInitialData} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-[#064e3b] transition-all shadow-sm active:scale-95" title="Sync Team">
             <RefreshCw className="w-5 h-5" />
           </button>
           {isAdmin && (
-            <button 
-              onClick={() => navigate('/settings/staff/new')}
-              className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-emerald-900/10 active:scale-95"
-            >
+            <button onClick={() => navigate('/settings/staff/new')} className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
               <Plus className="w-4 h-4" /> Provision Staff
             </button>
           )}
@@ -130,16 +121,15 @@ const TeamList = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
         {!isAdmin && (
-          <div className="px-6 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3 text-amber-700">
+          <div className="px-6 py-3 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3 text-amber-700 shadow-sm">
              <ShieldAlert className="w-4 h-4 shrink-0" />
              <p className="text-[10px] font-black uppercase tracking-widest">ReadOnly Mode Active</p>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
         <div className="p-8 bg-slate-50/30 border-b border-slate-50 flex items-center justify-between">
             <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#064e3b] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4" /> Verified Operational Personnel
@@ -154,7 +144,7 @@ const TeamList = () => {
                 <th className="px-10 py-6">Member Identity</th>
                 <th className="px-10 py-6">Email & Contact</th>
                 <th className="px-10 py-6">Security Access</th>
-                <th className="px-10 py-6 text-right">Vault Actions</th>
+                <th className="px-10 py-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -162,12 +152,9 @@ const TeamList = () => {
                 <tr>
                   <td colSpan={4} className="px-10 py-24 text-center">
                     <div className="max-w-xs mx-auto space-y-4">
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto">
-                        <Users className="w-8 h-8 text-slate-200" />
-                      </div>
+                      <Users className="w-12 h-12 text-slate-100 mx-auto" />
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">No active entries</p>
-                        <p className="text-[10px] text-slate-300 font-medium mt-1">Refine your search or check database RLS settings.</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Directory Sector Empty</p>
                       </div>
                     </div>
                   </td>
@@ -180,23 +167,25 @@ const TeamList = () => {
                     <td className="px-10 py-6">
                       <div className="flex items-center gap-4">
                         <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.full_name}`} 
-                          className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 group-hover:scale-105 transition-transform" 
-                          alt={s.full_name} 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${s.full_name || s.email || 'Staff'}`} 
+                          className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100" 
+                          alt="Avatar" 
                         />
                         <div>
                           <p className="text-sm font-black text-slate-900 flex items-center gap-2">
-                            {s.full_name}
-                            {isSelf && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-[8px] uppercase font-black tracking-widest">Master</span>}
+                            {s.full_name || 'Unnamed Member'}
+                            {isSelf && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-[8px] uppercase font-black tracking-widest">You</span>}
                           </p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{s.designation || 'Staff Architect'}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                            {s.designation || 'Architectural Staff'}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-10 py-6">
                        <div className="space-y-1">
-                          <p className="text-[13px] font-bold text-slate-700">{s.email}</p>
-                          <p className="text-[10px] text-slate-300 font-medium">{s.phone || 'No phone recorded'}</p>
+                          <p className="text-[13px] font-bold text-slate-700">{s.email || 'N/A'}</p>
+                          <p className="text-[10px] text-slate-300 font-medium">{s.phone || 'N/A'}</p>
                        </div>
                     </td>
                     <td className="px-10 py-6">
@@ -208,11 +197,11 @@ const TeamList = () => {
                       <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                         {isAdmin && (
                           <>
-                            <button onClick={() => navigate(`/settings/staff/edit/${s.id}`)} className="p-3 text-slate-400 hover:text-[#064e3b] hover:bg-white rounded-xl transition-all shadow-sm" title="Edit Staff">
+                            <button onClick={() => navigate(`/settings/staff/edit/${s.id}`)} className="p-3 text-slate-400 hover:text-[#064e3b] hover:bg-white rounded-xl transition-all shadow-sm" title="Edit Profile">
                               <Edit2 className="w-4 h-4" />
                             </button>
                             {!isSelf && (
-                              <button onClick={() => softDeleteEmployee(s)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-white rounded-xl transition-all shadow-sm" title="Archive Staff">
+                              <button onClick={() => softDeleteEmployee(s)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-white rounded-xl transition-all shadow-sm" title="Archive Profile">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             )}

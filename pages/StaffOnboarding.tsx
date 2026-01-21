@@ -31,7 +31,7 @@ const StaffOnboarding = () => {
     role: 'staff' as UserRole
   });
 
-  const [permissions, setPermissions] = useState({
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({
     leads: true,
     quotations: false,
     clients: false,
@@ -42,68 +42,62 @@ const StaffOnboarding = () => {
   });
 
   useEffect(() => {
-    if (!contextLoading) {
-      validateAccess();
-    }
+    if (!contextLoading) validateAccess();
   }, [id, contextLoading]);
 
   const validateAccess = async () => {
     if (!isAdmin) {
-      showNotification("Security Protocol: Your identity lacks administrative clearance.", "error");
+      showNotification("Security Protocol: Administrative clearance required.", "error");
       return navigate('/');
     }
 
     try {
       setLoading(true);
       if (isEditing) {
-        const { data, error: editError } = await supabase.from('profiles').select('*').eq('id', id).single();
-        if (editError) throw editError;
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (error) throw error;
         setFormData({
-          full_name: data.full_name,
-          email: data.email,
+          full_name: data.full_name || '',
+          email: data.email || '',
           phone: data.phone || '',
           designation: data.designation || '',
           password: data.login_password || '',
-          role: data.role || 'staff'
+          role: (data.role as UserRole) || 'staff'
         });
         if (data.permissions) {
           setPermissions(prev => ({ ...prev, ...data.permissions }));
         }
       }
     } catch (err: any) {
-      showNotification("Security Layer Exception: " + err.message, "error");
-      navigate('/');
+      showNotification("Record Access Error: " + err.message, "error");
+      navigate('/team');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTogglePermission = (key: keyof typeof permissions) => {
+  const handleTogglePermission = (key: string) => {
     setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const generatePassword = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let pass = "";
-    for (let i = 0; i < 10; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    for (let i = 0; i < 12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
     setFormData(prev => ({ ...prev, password: pass }));
-    showNotification("Secure password generated.", "info");
     setShowPassword(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
-    
     setSaving(true);
     try {
       const payload: any = {
-        full_name: formData.full_name.trim(),
+        full_name: formData.full_name.trim() || 'Unknown Staff',
         email: formData.email.toLowerCase().trim(),
         phone: formData.phone.trim(),
-        designation: formData.designation.trim(),
+        designation: formData.designation.trim() || 'Architectural Staff',
         role: formData.role,
         status: 'active',
         permissions: permissions,
@@ -115,98 +109,70 @@ const StaffOnboarding = () => {
         const { error } = await supabase.from('profiles').update(payload).eq('id', id);
         if (error) throw error;
       } else {
-        // For new records, we let the database handle the UUID generation
         const { error } = await supabase.from('profiles').insert([payload]);
-        if (error) {
-          console.error("Supabase Insert Error:", error);
-          throw new Error(error.message);
-        }
+        if (error) throw error;
       }
       
-      showNotification("Staff credentials and permissions provisioned successfully.", "success");
+      showNotification("Staff registry synchronized.", "success");
       navigate('/team');
     } catch (err: any) {
-      showNotification("Provisioning Failed: " + (err.message || "Unknown error"), "error");
-      console.error("Provisioning Logic Error:", err);
+      showNotification("Provisioning Failed: " + err.message, "error");
     } finally {
       setSaving(false);
     }
   };
 
   const permissionList = [
-    { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management module', icon: FileText },
-    { key: 'quotations', label: 'Quotations', desc: 'Proposal and Bidding module', icon: FileSpreadsheet },
-    { key: 'clients', label: 'Client Directory', desc: 'Active contract management', icon: Users },
-    { key: 'projects', label: 'Project Vault', desc: 'Architectural tracking module', icon: Layers },
-    { key: 'construction', label: 'Construction', desc: 'Site execution and visit logs', icon: Hammer },
+    { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management', icon: FileText },
+    { key: 'quotations', label: 'Quotations', desc: 'Proposal management', icon: FileSpreadsheet },
+    { key: 'clients', label: 'Client Directory', desc: 'Active contracts', icon: Users },
+    { key: 'projects', label: 'Project Vault', desc: 'Design tracking', icon: Layers },
+    { key: 'construction', label: 'Construction', desc: 'Site execution logs', icon: Hammer },
     { key: 'team', label: 'Team Directory', desc: 'Personnel visibility', icon: Users2 },
-    { key: 'settings', label: 'Setting', desc: 'System configuration access', icon: Settings },
+    { key: 'settings', label: 'Setting', desc: 'System configuration', icon: Settings },
   ] as const;
 
   if (loading || contextLoading) return (
-    <div className="h-screen flex flex-col items-center justify-center gap-6">
+    <div className="h-screen flex flex-col items-center justify-center gap-6 bg-[#f8fafc]">
       <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Security Clearances...</p>
     </div>
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
+    <div className="max-w-5xl mx-auto px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
       <header className="flex items-center gap-6 mb-12">
         <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify Permissions' : 'Provision Staff'}</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify Personnel' : 'Provision Staff'}</h1>
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Firm Security Protocol</p>
         </div>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-12">
-        {/* Profile Identity & Security */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none" />
-          
           <div className="space-y-10 relative z-10">
-            <h3 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Staff Identification & Security</h3>
+            <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Credentials</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                <div className="relative">
-                  <UserCircle className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input required className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
-                </div>
+                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input required type="email" className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                </div>
+                <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
-                <div className="relative">
-                  <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                  <input className="w-full h-14 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" placeholder="Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
-                </div>
+                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Senior Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Password</label>
-                <div className="relative group/pass">
-                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within/pass:text-emerald-500 transition-colors" />
-                  <input 
-                    required 
-                    type={showPassword ? 'text' : 'password'} 
-                    className="w-full h-14 pl-12 pr-28 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all" 
-                    value={formData.password} 
-                    onChange={e => setFormData({...formData, password: e.target.value})} 
-                  />
+                <div className="relative">
+                  <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-6 pr-24 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                    <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password">
-                      <Wand2 className="w-4 h-4" />
-                    </button>
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                    <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -214,7 +180,6 @@ const StaffOnboarding = () => {
           </div>
         </div>
 
-        {/* Access Control Section */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12">
           <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
              <ShieldCheck className="w-6 h-6 text-emerald-500" />
@@ -226,12 +191,12 @@ const StaffOnboarding = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {permissionList.map((perm) => {
-               const isActive = permissions[perm.key as keyof typeof permissions];
+               const isActive = permissions[perm.key] === true;
                return (
                  <button 
                    key={perm.key}
                    type="button"
-                   onClick={() => handleTogglePermission(perm.key as keyof typeof permissions)}
+                   onClick={() => handleTogglePermission(perm.key)}
                    className={`w-full h-28 px-6 bg-white border rounded-[32px] transition-all flex items-center justify-between group/cb shadow-sm relative overflow-hidden ${isActive ? 'border-emerald-500 bg-emerald-50/20 ring-4 ring-emerald-500/5' : 'border-slate-100 hover:border-slate-200'}`}
                  >
                     <div className="flex items-center gap-4 relative z-10">
@@ -245,7 +210,7 @@ const StaffOnboarding = () => {
                           </p>
                        </div>
                     </div>
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${isActive ? 'bg-emerald-500 border-emerald-400 shadow-md' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${isActive ? 'bg-emerald-500 border-emerald-400 shadow-md' : 'bg-white border-slate-100'}`}>
                        {isActive ? <CheckCircle2 className="w-5 h-5 text-white" /> : <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />}
                     </div>
                  </button>
@@ -256,7 +221,7 @@ const StaffOnboarding = () => {
           <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
              <ShieldAlert className="w-6 h-6 text-slate-300 shrink-0" />
              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-               Module Integrity: Password defined above will be the staff member's primary login credential. Permissions defined here will hide or show entire application modules in the sidebar.
+               Module Integrity: The login credentials and permissions defined here will take immediate effect upon the next staff login.
              </p>
           </div>
         </div>

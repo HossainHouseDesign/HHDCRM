@@ -30,7 +30,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       if (isLogin) {
         // 1. Attempt standard Supabase Auth Login
         const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
         });
 
@@ -41,13 +41,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           return;
         }
 
-        // 2. If standard fails, attempt Staff Shadow Login via RPC
+        // 2. Fallback: Shadow Login for provisioned staff
         const { data: staffData, error: staffError } = await supabase.rpc('check_staff_login', {
           p_email: formData.email.trim(),
           p_password: formData.password
         });
 
-        if (staffError) throw new Error("Security Layer Connection Error.");
+        if (staffError) {
+          console.error("RPC Error:", staffError);
+          throw new Error("Security layer connection failure. Please contact your administrator.");
+        }
         
         if (staffData && staffData.length > 0) {
           const profile = staffData[0];
@@ -62,16 +65,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           };
 
           localStorage.setItem('donezo_manual_session', JSON.stringify(manualSession));
-          showNotification(`Staff Access Granted. Welcome back, ${profile.full_name}.`, "success");
+          showNotification(`Staff Access Granted. Welcome, ${profile.full_name}.`, "success");
           onLogin();
         } else {
-          throw new Error("Invalid Credentials. Please contact your office admin if issues persist.");
+          throw new Error("Invalid Credentials. Please check your email and password.");
         }
 
       } else {
-        // Registration for new Office Admins (Single Firm Model)
+        // Admin Registration
         const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
           options: { data: { full_name: formData.full_name } }
         });
@@ -81,8 +84,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         const { error: profileError } = await supabase.from('profiles').upsert([{
           id: authData.user.id,
-          full_name: formData.full_name,
-          email: formData.email,
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim().toLowerCase(),
           role: 'office_admin',
           status: 'active',
           updated_at: new Date().toISOString()
