@@ -27,28 +27,18 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formFields, setFormFields] = useState<FormFieldConfig[]>([]);
   const [localProfile, setLocalProfile] = useState<Partial<Profile>>({});
 
   useEffect(() => {
-    // Force staff to only see the profile view
-    if (globalProfile && !isAdmin) {
-      setView('profile');
+    // Force staff to only see the profile view immediately
+    if (globalProfile) {
+      setLocalProfile(globalProfile);
+      if (!isAdmin) {
+        setView('profile');
+      }
+      setLoading(false);
     }
-    fetchConfig();
-    if (globalProfile) setLocalProfile(globalProfile);
   }, [globalProfile, isAdmin]);
-
-  const fetchConfig = async () => {
-    try {
-      const { data } = await supabase.from('settings').select('*').eq('key', 'lead_form_config').single();
-      setFormFields(data?.value || DEFAULT_FORM_CONFIG);
-    } catch (err) { 
-      setFormFields(DEFAULT_FORM_CONFIG); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +48,7 @@ const Settings = () => {
       if (!userId) throw new Error("Security check failed: Identity not found.");
 
       // CRITICAL: We use the RPC here because shadow-logged staff might not have valid Supabase Auth RLS permissions
-      const { error } = await supabase.rpc('update_staff_profile', {
+      const { error } = await supabase.rpc('update_self_profile_v2', {
         p_id: userId,
         p_full_name: localProfile.full_name?.trim(),
         p_designation: localProfile.designation?.trim(),
@@ -94,6 +84,7 @@ const Settings = () => {
     </div>
   );
 
+  // Admin Hub View
   if (view === 'hub' && isAdmin) return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
       <header className="mb-16">
@@ -127,15 +118,15 @@ const Settings = () => {
   );
 
   // Profile Edit View (For all users, especially Staff)
-  if (view === 'profile' || !isAdmin) return (
+  return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
       <header className="mb-12 flex items-center gap-6">
          {isAdmin && (
            <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
          )}
          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Identity Management</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">SECURE ACCOUNT SELF-SERVICE</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isAdmin ? 'My Identity' : 'Account Settings'}</h1>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">SECURE PROFILE MANAGEMENT</p>
          </div>
       </header>
 
@@ -205,8 +196,6 @@ const Settings = () => {
       </div>
     </div>
   );
-
-  return null;
 };
 
 export default Settings;

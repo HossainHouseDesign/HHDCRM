@@ -36,12 +36,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
     { name: 'Archive', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
-    { name: isAdmin ? 'Setting' : 'Account', icon: isAdmin ? Settings : UserCircle, path: '/settings', key: 'settings', forceShow: true },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
-    // Force show specified items (like Account/Settings for everyone)
-    if (item.forceShow) return true;
     // Admin only features
     if (item.adminOnly && !isAdmin) return false;
     // Admins see everything else
@@ -88,14 +85,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
                   <item.icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`} />
                   <span className="text-sm font-bold tracking-tight">{item.name}</span>
                 </div>
-                {'badge' in item && item.badge && !active && (
-                  <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-100">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
+
+          {/* Account/Settings Link - Always Visible */}
+          <Link
+            to="/settings"
+            className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
+              isActive('/settings') 
+                ? 'bg-[#064e3b] text-white shadow-lg shadow-emerald-900/10 translate-x-1' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            {isAdmin ? <Settings className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`} /> : <UserCircle className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-slate-400 group-hover:text-emerald-600'}`} />}
+            <span className="text-sm font-bold tracking-tight">{isAdmin ? 'Setting' : 'Account'}</span>
+          </Link>
           
           <button
             onClick={onLogout}
