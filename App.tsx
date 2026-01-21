@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -60,7 +61,7 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           </div>
         ))}
       </div>
-    </NotificationProvider>
+    </NotificationContext.Provider>
   );
 };
 
@@ -71,17 +72,50 @@ const AppContent = () => {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const initializeAuth = async () => {
+      // 1. Check for manual staff session in storage first (highest priority for staff)
+      const manualSession = localStorage.getItem('donezo_manual_session');
+      if (manualSession) {
+        try {
+          const parsed = JSON.parse(manualSession);
+          setSession(parsed);
+          setInitializing(false);
+          return;
+        } catch (e) {
+          localStorage.removeItem('donezo_manual_session');
+        }
+      }
+
+      // 2. Fallback to standard Supabase session
+      const { data: { session: sbSession } } = await supabase.auth.getSession();
+      setSession(sbSession);
       setInitializing(false);
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sbSession) => {
+       // Only update if it's a real session or if we don't have a manual session
+       const manualSession = localStorage.getItem('donezo_manual_session');
+       if (sbSession) {
+         setSession(sbSession);
+       } else if (!manualSession && event === 'SIGNED_OUT') {
+         setSession(null);
+       }
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => { setIsSidebarOpen(false); }, [location.pathname]);
 
-  if (initializing) return <div className="h-screen flex flex-col items-center justify-center gap-6 bg-[#f8fafc]"><RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" /><p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Initializing Session...</p></div>;
+  if (initializing) return (
+    <div className="h-screen flex flex-col items-center justify-center gap-6 bg-[#f8fafc]">
+      <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Initializing Session...</p>
+    </div>
+  );
+
   if (!session) return <Auth />;
 
   return (

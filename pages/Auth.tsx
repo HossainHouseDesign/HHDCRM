@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNotification } from '../App';
@@ -23,13 +24,51 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        // 1. Attempt standard Supabase Auth Login (Admins only)
+        const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
-        if (error) throw error;
+
+        if (!sbError && sbData.session) {
+          showNotification("Administrator identity verified.", "success");
+          localStorage.removeItem('donezo_manual_session'); // Clear old shadow sessions
+          window.location.reload(); 
+          return;
+        }
+
+        // 2. If standard fails, attempt Staff Shadow Login via RPC
+        const { data: staffData, error: staffError } = await supabase.rpc('check_staff_login', {
+          p_email: formData.email.trim(),
+          p_password: formData.password
+        });
+
+        if (staffError) {
+           console.error("RPC Error:", staffError);
+           throw new Error("Security Layer Connection Error. Please verify database functions.");
+        }
+        
+        if (staffData && staffData.length > 0) {
+          const profile = staffData[0];
+          const manualSession = {
+            user: {
+              id: profile.id,
+              email: profile.email,
+              user_metadata: { full_name: profile.full_name }
+            },
+            access_token: 'manual_shadow_token',
+            is_manual: true
+          };
+
+          localStorage.setItem('donezo_manual_session', JSON.stringify(manualSession));
+          showNotification(`Staff Access Granted. Welcome back, ${profile.full_name}.`, "success");
+          window.location.reload();
+        } else {
+          throw new Error("Invalid Credentials. If you are an admin, check your email/pass. If staff, contact your office admin.");
+        }
+
       } else {
-        // 1. Register User in Auth
+        // Registration for new Office Admins
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -37,9 +76,8 @@ const Auth = () => {
         });
 
         if (authError) throw authError;
-        if (!authData.user) throw new Error("Registration failed to return user data.");
+        if (!authData.user) throw new Error("Registration timed out. Check your network.");
 
-        // 2. Create the Office automatically named after the admin
         const workspaceName = `${formData.full_name || 'Admin'}'s Office`;
         const { data: officeData, error: officeError } = await supabase
           .from('offices')
@@ -47,32 +85,25 @@ const Auth = () => {
           .select()
           .single();
 
-        if (officeError) {
-          console.error("Office Creation Error:", officeError);
-          throw new Error("Workspace initialization failed. Ensure the 'offices' table exists in your database.");
-        }
+        if (officeError) throw officeError;
 
-        // 3. Link Profile to Office with office_admin role
         const { error: profileError } = await supabase.from('profiles').upsert([{
           id: authData.user.id,
           full_name: formData.full_name,
           email: formData.email,
-          role: 'office_admin', // Fixed: Ensure this matches the DB enum or text check
+          role: 'office_admin',
           office_id: officeData.id,
           status: 'active',
           updated_at: new Date().toISOString()
         }]);
 
-        if (profileError) {
-          console.error("Profile Link Error:", profileError);
-          throw new Error("Failed to link profile to office: " + profileError.message);
-        }
+        if (profileError) throw profileError;
         
-        showNotification("Firm account created. Please verify your email before logging in.", "success");
+        showNotification("Firm account created. Please verify your email.", "success");
         setIsLogin(true);
       }
     } catch (err: any) {
-      showNotification(err.message || "Authorization failed.", "error");
+      showNotification(err.message || "Authorization protocol failure.", "error");
     } finally {
       setLoading(false);
     }
@@ -80,7 +111,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row animate-in fade-in duration-700">
-      {/* Brand Side */}
       <div className="hidden md:flex md:w-1/2 bg-[#064e3b] relative overflow-hidden items-center justify-center p-20">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:40px_40px]"></div>
@@ -96,7 +126,6 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* Form Side */}
       <div className="flex-1 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-[#f8fafc]">
         <div className="w-full max-w-md space-y-12">
           <div className="space-y-4 text-center md:text-left">

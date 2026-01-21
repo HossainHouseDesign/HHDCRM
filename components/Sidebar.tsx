@@ -30,6 +30,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   
   useEffect(() => {
     const fetchProfile = async () => {
+      // 1. Check manual session first
+      const manualSessionStr = localStorage.getItem('donezo_manual_session');
+      if (manualSessionStr) {
+        const manualSession = JSON.parse(manualSessionStr);
+        const { data } = await supabase.from('profiles').select('*').eq('id', manualSession.user.id).single();
+        if (data) {
+          setUserProfile(data);
+          return;
+        }
+      }
+
+      // 2. Fallback to standard Supabase user
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -50,21 +62,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: 'Setting', icon: Settings, path: '/settings', key: 'settings' },
   ];
 
-  // Filter items based on user role and granular permissions
   const filteredMenuItems = menuItems.filter(item => {
-    // Admins see everything
     if (userProfile?.role === 'office_admin' || userProfile?.role === 'super_admin') return true;
-    // Dashboard is always visible
     if (item.key === 'dashboard') return true;
-    // Check granular permissions for staff
     return userProfile?.permissions?.[item.key as keyof typeof userProfile.permissions] === true;
   });
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem('donezo_manual_session');
       showNotification("Session terminated. You have been logged out.", "info");
-      navigate('/');
+      window.location.reload();
     } catch (err) {
       showNotification("Logout failed.", "error");
     }
