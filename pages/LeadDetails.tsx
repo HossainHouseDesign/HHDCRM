@@ -39,6 +39,7 @@ const LeadDetails = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   
   const [showQuotationModal, setShowQuotationModal] = useState(false);
@@ -95,6 +96,150 @@ const LeadDetails = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const finalizeQuotation = async (silent: boolean = false) => {
+    if (!lead) return false;
+    if (!silent) setIsUpdatingStatus(true);
+    try {
+      const payload: Record<string, any> = {
+        status: 'Quotation',
+        updated_at: new Date().toISOString(),
+        metadata: { ...(lead.metadata || {}) }
+      };
+      
+      if (lead.office_id) payload.office_id = lead.office_id;
+
+      Object.keys(quotationDraft).forEach(key => {
+        if (['id', 'created_at', 'updated_at', 'deleted_at', 'metadata', 'office_id'].includes(key)) return;
+        const value = quotationDraft[key];
+        if (STANDARD_COLUMNS.includes(key)) {
+          if (key === 'asking_fee') {
+            payload[key] = isNaN(Number(value)) ? 0 : Number(value);
+          } else {
+            payload[key] = (value === 'N/A' || value === '') ? null : value;
+          }
+        } else {
+          payload.metadata[key] = (value === 'N/A' || value === '') ? null : value;
+        }
+      });
+
+      const { error } = await supabase.from('leads').update(payload).eq('id', lead.id);
+      if (error) throw error;
+      
+      if (!silent) {
+        showNotification("Quotation dispatched. Moving to Portfolio...", "success");
+        setShowQuotationModal(false);
+        navigate('/quotations');
+      }
+      return true;
+    } catch (err: any) {
+      if (!silent) showNotification(`Porting Error: ${err.message}`, "error");
+      return false;
+    } finally {
+      if (!silent) setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleDownloadDoc = async () => {
+    if (!pdfTemplateRef.current || !lead) return;
+    setIsGeneratingDoc(true);
+    const isQuotationFlow = showQuotationModal;
+
+    setTimeout(async () => {
+      try {
+        const content = pdfTemplateRef.current?.innerHTML;
+        if (!content) return;
+        
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+              "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+              "xmlns='http://www.w3.org/TR/REC-html40'>"+
+              "<head><meta charset='utf-8'><title>Architectural Quotation</title><style>"+
+              "body {font-family: Arial, sans-serif; font-size: 11pt; color: #111; line-height: 1.6;}"+
+              "h1 {font-size: 28pt; color: #000; margin-bottom: 5px;}"+
+              ".content-box { border: 1px solid #e2e8f0; border-radius: 20px; padding: 30px; margin-top: 30px; }"+
+              ".spec-item { border-bottom: 1px solid #f1f5f9; padding: 10px 0; }"+
+              ".spec-label { font-size: 8pt; color: #64748b; font-weight: bold; text-transform: uppercase; }"+
+              ".spec-value { font-size: 12pt; color: #1e293b; font-weight: bold; }"+
+              "</style></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + content + footer;
+        
+        const blob = new Blob(['\ufeff', sourceHTML], {
+          type: 'application/msword'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Quotation_${quotationDraft.client_name || lead.client_name}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        if (isQuotationFlow) {
+          showNotification("Doc exported. Advancing lead status...", "success");
+          const success = await finalizeQuotation(true);
+          if (success) {
+            setShowQuotationModal(false);
+            navigate('/quotations');
+          }
+        } else {
+          showNotification("Word Document Exported.", "success");
+        }
+      } catch (err) {
+        showNotification("Doc export failed.", "error");
+      } finally {
+        setIsGeneratingDoc(false);
+      }
+    }, 500);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!pdfTemplateRef.current || !lead) return;
+    setIsGeneratingPDF(true);
+    const isQuotationFlow = showQuotationModal;
+
+    setTimeout(async () => {
+      try {
+        const element = pdfTemplateRef.current;
+        if (!element) return;
+
+        const opt = {
+          margin: 0,
+          filename: `Quotation_${quotationDraft.client_name || lead.client_name}.pdf`,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { 
+            scale: 3, 
+            useCORS: true, 
+            letterRendering: true,
+            logging: false,
+            scrollY: 0,
+            scrollX: 0
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // @ts-ignore
+        await window.html2pdf().from(element).set(opt).save();
+        
+        if (isQuotationFlow) {
+          showNotification("Quotation downloaded. Syncing transition...", "success");
+          const success = await finalizeQuotation(true);
+          if (success) {
+            setShowQuotationModal(false);
+            navigate('/quotations');
+          }
+        } else {
+          showNotification("Document Exported.", "success");
+        }
+      } catch (err) {
+        showNotification("Export failed. Check connection or permissions.", "error");
+      } finally {
+        setIsGeneratingPDF(false);
+      }
+    }, 600);
   };
 
   const handleStatusUpdate = async (newStatus: LeadStatus) => {
@@ -158,101 +303,6 @@ const LeadDetails = () => {
       setIsUpdatingStatus(false);
       setShowConvertModal(false);
     }
-  };
-
-  const finalizeQuotation = async (silent: boolean = false) => {
-    if (!lead) return;
-    if (!silent) setIsUpdatingStatus(true);
-    try {
-      const payload: Record<string, any> = {
-        status: 'Quotation',
-        updated_at: new Date().toISOString(),
-        metadata: { ...(lead.metadata || {}) }
-      };
-      
-      // Ensure office_id is preserved
-      if (lead.office_id) payload.office_id = lead.office_id;
-
-      Object.keys(quotationDraft).forEach(key => {
-        if (['id', 'created_at', 'updated_at', 'deleted_at', 'metadata', 'office_id'].includes(key)) return;
-        const value = quotationDraft[key];
-        if (STANDARD_COLUMNS.includes(key)) {
-          if (key === 'asking_fee') {
-            payload[key] = isNaN(Number(value)) ? 0 : Number(value);
-          } else {
-            payload[key] = (value === 'N/A' || value === '') ? null : value;
-          }
-        } else {
-          payload.metadata[key] = (value === 'N/A' || value === '') ? null : value;
-        }
-      });
-
-      const { error } = await supabase.from('leads').update(payload).eq('id', lead.id);
-      if (error) throw error;
-      
-      if (!silent) {
-        showNotification("Quotation dispatched. Lead status updated.", "success");
-        setShowQuotationModal(false);
-        navigate('/quotations');
-      }
-      return true;
-    } catch (err: any) {
-      const errorMsg = err.message || 'Vault commit failed';
-      showNotification(`Porting Error: ${errorMsg}`, "error");
-      return false;
-    } finally {
-      if (!silent) setIsUpdatingStatus(false);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!pdfTemplateRef.current || !lead) return;
-    setIsGeneratingPDF(true);
-    
-    // Capture state before async boundary
-    const isQuotationFlow = showQuotationModal;
-
-    setTimeout(async () => {
-      try {
-        const element = pdfTemplateRef.current;
-        if (!element) return;
-
-        const opt = {
-          margin: 0,
-          filename: `Quotation_${quotationDraft.client_name || lead.client_name}.pdf`,
-          image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { 
-            scale: 3, 
-            useCORS: true, 
-            letterRendering: true,
-            logging: false,
-            scrollY: 0,
-            scrollX: 0
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Trigger download
-        // @ts-ignore
-        await window.html2pdf().from(element).set(opt).save();
-        
-        if (isQuotationFlow) {
-          showNotification("Quotation downloaded. Finalizing lifecycle transition...", "success");
-          // Proceed with database update and navigation
-          const success = await finalizeQuotation(true);
-          if (success) {
-            setShowQuotationModal(false);
-            navigate('/quotations');
-          }
-        } else {
-          showNotification("Document Exported.", "success");
-        }
-      } catch (err) {
-        showNotification("Export failed. Please check browser permissions.", "error");
-      } finally {
-        setIsGeneratingPDF(false);
-      }
-    }, 500);
   };
 
   const handleAIAnalysis = async () => {
@@ -410,12 +460,12 @@ const LeadDetails = () => {
       {/* Quotation Modal */}
       {showQuotationModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[48px] p-8 sm:p-12 max-w-4xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto no-scrollbar">
+          <div className="bg-white rounded-[48px] p-8 sm:p-12 max-w-5xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto no-scrollbar">
             <div className="flex justify-between items-start mb-10">
               <div><h3 className="text-3xl font-black text-slate-900 tracking-tight">Quotation Review</h3><p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-2">Finalize Technical Specifications</p></div>
               <button onClick={() => setShowQuotationModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Financials' || f.section === 'Interests')).map(f => (
                   <div key={f.id} className="space-y-2">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{f.label}</label>
@@ -429,9 +479,16 @@ const LeadDetails = () => {
                   </div>
                ))}
             </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-               <button onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="flex-1 py-6 bg-slate-900 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50">{isGeneratingPDF ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 text-emerald-400" />} {isGeneratingPDF ? 'Generating...' : 'Print / Export PDF'}</button>
-               <button onClick={() => finalizeQuotation()} disabled={isUpdatingStatus} className="flex-1 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 active:scale-95">{isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileCheck className="w-5 h-5 text-emerald-400" />} Dispatch & Update Status</button>
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+               <button onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="flex-1 py-6 bg-slate-900 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50">
+                 {isGeneratingPDF ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 text-emerald-400" />} {isGeneratingPDF ? 'Syncing...' : 'Export PDF'}
+               </button>
+               <button onClick={handleDownloadDoc} disabled={isGeneratingDoc} className="flex-1 py-6 bg-slate-700 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50">
+                 {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5 text-blue-400" />} {isGeneratingDoc ? 'Syncing...' : 'Export WORD DOC'}
+               </button>
+               <button onClick={() => finalizeQuotation()} disabled={isUpdatingStatus} className="flex-1 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 active:scale-95">
+                 {isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileCheck className="w-5 h-5 text-emerald-400" />} Dispatch & Update
+               </button>
             </div>
           </div>
         </div>
@@ -458,6 +515,9 @@ const LeadDetails = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
              {!lead.is_client && <button onClick={() => setShowConvertModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 border border-white/10"><UserCheck className="w-5 h-5 text-white" /> Convert Client</button>}
              <button onClick={() => setShowQuotationModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95"><FileSpreadsheet className="w-5 h-5 text-emerald-400" /> Send Quotation</button>
+             <button onClick={handleDownloadDoc} disabled={isGeneratingDoc} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 rounded-2xl transition-all shadow-sm">
+               {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+             </button>
              <button onClick={() => navigate(`/leads/edit/${lead.id}`)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-[#064e3b] rounded-2xl transition-all shadow-sm"><Edit3 className="w-5 h-5" /></button>
              <button onClick={() => setShowDeleteModal(true)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-red-500 rounded-2xl transition-all shadow-sm"><Trash2 className="w-5 h-5" /></button>
           </div>
@@ -500,9 +560,13 @@ const LeadDetails = () => {
       {/* PROFESSIONAL BRANDED PDF TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+           {/* Top Navigation Bar */}
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
+           
+           {/* Header Section */}
            <div style={{ padding: '30px 60px 10px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                 {/* Logo Simulation */}
                  <div style={{ width: '80px', height: '80px', backgroundColor: '#0a2540', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', bottom: '15%', width: '60%', height: '50%', backgroundColor: '#ff5a1f', transform: 'skewY(-5deg)' }}></div>
                     <div style={{ position: 'absolute', top: '15%', width: '40%', height: '40%', border: '4px solid white', borderRadius: '4px', transform: 'rotate(45deg)' }}></div>
@@ -515,9 +579,18 @@ const LeadDetails = () => {
                  </div>
               </div>
            </div>
+           
+           {/* Branded Orange Separator */}
            <div style={{ height: '6px', width: '100%', backgroundColor: '#ff5a1f', marginTop: '10px' }}></div>
+           
+           {/* Content Area */}
            <div style={{ padding: '40px 80px', flex: 1, position: 'relative' }}>
-              <div style={{ textAlign: 'right', marginBottom: '20px' }}><p style={{ fontSize: '12pt', fontWeight: 700, color: '#000' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
+              {/* Date */}
+              <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+                 <p style={{ fontSize: '12pt', fontWeight: 700, color: '#000' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
+
+              {/* Recipient details */}
               <div style={{ marginBottom: '40px' }}>
                  <h3 style={{ fontSize: '14pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
                  <div style={{ fontSize: '13pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
@@ -526,8 +599,17 @@ const LeadDetails = () => {
                     <p style={{ margin: '2px 0' }}>{quotationDraft.address || lead.address}, {quotationDraft.upazila || lead.upazila}</p>
                  </div>
               </div>
+
+              {/* Technical Specifications in Rounded Container */}
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '40px', minHeight: '400px', padding: '40px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '350px', height: '350px', opacity: 0.03, zIndex: 0, pointerEvents: 'none' }}><div style={{ width: '100%', height: '100%', backgroundColor: '#000', borderRadius: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h1 style={{ color: 'white', fontSize: '40pt', fontWeight: 900 }}>H</h1></div></div>
+                 {/* Faint Watermark */}
+                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '350px', height: '350px', opacity: 0.03, zIndex: 0, pointerEvents: 'none' }}>
+                    <div style={{ width: '100%', height: '100%', backgroundColor: '#000', borderRadius: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       <h1 style={{ color: 'white', fontSize: '40pt', fontWeight: 900 }}>H</h1>
+                    </div>
+                 </div>
+
+                 {/* Grid of technical specifications */}
                  <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '10mm' }}>
                     {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
                        const val = (quotationDraft as any)[f.db_key] !== undefined ? (quotationDraft as any)[f.db_key] : lead.metadata?.[f.db_key];
@@ -540,11 +622,29 @@ const LeadDetails = () => {
                        );
                     })}
                  </div>
-                 <div style={{ marginTop: 'auto', paddingTop: '30px' }}><p style={{ fontSize: '11pt', color: '#64748b', fontStyle: 'italic', lineHeight: '1.6' }}>Design excellence tailored to your specific land requirements and aesthetic vision.</p></div>
+                 
+                 <div style={{ marginTop: 'auto', paddingTop: '30px' }}>
+                    <p style={{ fontSize: '11pt', color: '#64748b', fontStyle: 'italic', lineHeight: '1.6' }}>
+                       Thank you for choosing Hossain House Design. We are committed to delivering architectural excellence tailored to your specific requirements.
+                    </p>
+                 </div>
               </div>
-              <div style={{ marginTop: '50px' }}><p style={{ fontSize: '12pt', fontWeight: 600, margin: 0 }}>Sincere</p><p style={{ fontSize: '13pt', fontWeight: 800, marginTop: '8px', marginBottom: 0 }}>Marketing Manager</p><p style={{ fontSize: '13pt', fontWeight: 900, margin: 0 }}>Hossain House Design</p><p style={{ fontSize: '11pt', fontWeight: 600, marginTop: '4px' }}>Ph: +8801705323220</p></div>
+
+              {/* Signature Section */}
+              <div style={{ marginTop: '50px' }}>
+                 <p style={{ fontSize: '12pt', fontWeight: 600, margin: 0 }}>Sincere</p>
+                 <p style={{ fontSize: '13pt', fontWeight: 800, marginTop: '8px', marginBottom: 0 }}>Marketing Manager</p>
+                 <p style={{ fontSize: '13pt', fontWeight: 900, margin: 0 }}>Hossain House Design</p>
+                 <p style={{ fontSize: '11pt', fontWeight: 600, marginTop: '4px' }}>Ph: +8801705323220</p>
+              </div>
            </div>
-           <div style={{ textAlign: 'center', padding: '15px 0' }}><p style={{ fontSize: '10pt', fontWeight: 700, color: '#333' }}>www.hossainhousedesign.com</p></div>
+           
+           {/* Website Footer */}
+           <div style={{ textAlign: 'center', padding: '15px 0' }}>
+              <p style={{ fontSize: '10pt', fontWeight: 700, color: '#333' }}>www.hossainhousedesign.com</p>
+           </div>
+
+           {/* Bottom Navigation Bar */}
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
         </div>
       </div>

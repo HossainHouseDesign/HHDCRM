@@ -7,7 +7,8 @@ import {
   ArrowLeft, FileSpreadsheet, Download, Edit3, Trash2, 
   MapPin, Phone, Mail, Banknote, RefreshCw, X, Save, 
   CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown,
-  UserCheck, ShieldCheck, User, Map, Home, Zap, Compass, Hammer, Paintbrush
+  UserCheck, ShieldCheck, User, Map, Home, Zap, Compass, Hammer, Paintbrush,
+  FileText
 } from 'lucide-react';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { useNotification } from '../App';
@@ -32,6 +33,7 @@ const QuotationDetails = () => {
   const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState<Partial<Lead>>({});
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertFullData, setConvertFullData] = useState<Record<string, any>>({});
@@ -100,6 +102,47 @@ const QuotationDetails = () => {
       setIsConverting(false);
       setShowConvertModal(false);
     }
+  };
+
+  const handleDownloadDoc = async () => {
+    if (!pdfTemplateRef.current || !quotation) return;
+    setIsGeneratingDoc(true);
+
+    setTimeout(async () => {
+      try {
+        const content = pdfTemplateRef.current?.innerHTML;
+        if (!content) return;
+        
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+              "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+              "xmlns='http://www.w3.org/TR/REC-html40'>"+
+              "<head><meta charset='utf-8'><title>ArchLead Proposal</title><style>"+
+              "body {font-family: Arial, sans-serif;}"+
+              ".content-box { border: 1px solid #ccc; padding: 20px; }"+
+              "</style></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + content + footer;
+        
+        const blob = new Blob(['\ufeff', sourceHTML], {
+          type: 'application/msword'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Quotation_${quotation.client_name}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showNotification("Word Document Exported.", "success");
+      } catch (err) {
+        showNotification("Doc export failed.", "error");
+      } finally {
+        setIsGeneratingDoc(false);
+      }
+    }, 300);
   };
 
   const handleDownloadPDF = async () => {
@@ -184,6 +227,9 @@ const QuotationDetails = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+             <button onClick={handleDownloadDoc} disabled={isGeneratingDoc} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 rounded-2xl transition-all shadow-sm">
+               {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+             </button>
              <button onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="flex-1 sm:flex-none px-8 py-4 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-50">
                {isGeneratingPDF ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 text-emerald-400" />} Export PDF
              </button>
@@ -204,7 +250,7 @@ const QuotationDetails = () => {
         </div>
       </div>
       
-      {/* BRANDED PDF TEMPLATE */}
+      {/* BRANDED PDF/DOC TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
