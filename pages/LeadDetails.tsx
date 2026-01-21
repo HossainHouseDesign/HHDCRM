@@ -9,10 +9,11 @@ import { resolveInterest } from './LeadsList';
 import { 
   ArrowLeft, MapPin, Ruler, Banknote, Layers, Grid, Bed, Bath, 
   ListTree, Briefcase, Calendar, Phone, RefreshCw, CheckCircle2, 
-  Activity, Sparkles, Edit3, Trash2, PhoneCall, ShieldCheck, 
-  Hash, X, Save, Mail, Tag, FileText, AlertTriangle, Info, Globe,
-  Layout, FileSpreadsheet, Download, FileCheck, ChevronDown, ChevronRight,
-  UserCheck, ShieldAlert, User, Map, Home, Zap, Compass, Hammer, Paintbrush
+  Activity, Sparkles, Edit3, Trash2, ShieldCheck, 
+  Hash, X, Save, Mail, FileText, Info, Globe,
+  Layout, FileSpreadsheet, Download, FileCheck, ChevronDown,
+  UserCheck, User, Home, Zap, Compass, Hammer, Paintbrush,
+  Target
 } from 'lucide-react';
 import { useNotification, useUser } from '../App';
 
@@ -45,6 +46,9 @@ const LeadDetails = () => {
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState(new Date().toISOString().split('T')[0]);
+
   const [quotationDraft, setQuotationDraft] = useState<Record<string, any>>({});
   const [convertFullData, setConvertFullData] = useState<Record<string, any>>({});
 
@@ -98,6 +102,47 @@ const LeadDetails = () => {
     }
   };
 
+  const handleStatusUpdate = async (newStatus: LeadStatus, selectedFollowUpDate?: string) => {
+    if (!lead || isUpdatingStatus) return;
+
+    // Special Case: Follow Up requires a date selection first
+    if (newStatus === 'Follow_Up' && !selectedFollowUpDate) {
+      setShowFollowUpModal(true);
+      setShowStatusDropdown(false);
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      const payload: any = { 
+        status: newStatus, 
+        updated_at: new Date().toISOString(),
+        is_client: newStatus === 'Completed' ? true : lead.is_client,
+        converted_at: newStatus === 'Completed' && !lead.converted_at ? new Date().toISOString() : lead.converted_at
+      };
+
+      if (selectedFollowUpDate) {
+        payload.follow_up_date = selectedFollowUpDate;
+      }
+
+      const { error } = await supabase
+        .from('leads')
+        .update(payload)
+        .eq('id', lead.id);
+      
+      if (error) throw error;
+      
+      setLead({ ...lead, status: newStatus, follow_up_date: selectedFollowUpDate || lead.follow_up_date });
+      showNotification(`Lead advanced to ${newStatus.replace('_', ' ')}.`, "success");
+      setShowStatusDropdown(false);
+      setShowFollowUpModal(false);
+    } catch (err: any) {
+      showNotification(`Status sync failed: ${err.message}`, "error");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const finalizeQuotation = async (silent: boolean = false) => {
     if (!lead) return false;
     if (!silent) setIsUpdatingStatus(true);
@@ -141,17 +186,46 @@ const LeadDetails = () => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!pdfTemplateRef.current || !lead) return;
+    setIsGeneratingPDF(true);
+    const isQuotationFlow = showQuotationModal;
+
+    setTimeout(async () => {
+      try {
+        const element = pdfTemplateRef.current;
+        if (!element) return;
+        const opt = {
+          margin: 0,
+          filename: `Quotation_${quotationDraft.client_name || lead.client_name}.pdf`,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { scale: 3, useCORS: true, letterRendering: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        // @ts-ignore
+        await window.html2pdf().from(element).set(opt).save();
+        if (isQuotationFlow) {
+          const success = await finalizeQuotation(true);
+          if (success) { setShowQuotationModal(false); navigate('/quotations'); }
+        }
+      } catch (err) {
+        showNotification("Export failed.", "error");
+      } finally {
+        setIsGeneratingPDF(false);
+      }
+    }, 600);
+  };
+
+  // Fix: Implemented handleDownloadDoc to enable Word document export for quotations and resolve compilation error
   const handleDownloadDoc = async () => {
     if (!lead) return;
     setIsGeneratingDoc(true);
-    const isQuotationFlow = showQuotationModal;
 
     setTimeout(async () => {
       try {
         const clientName = quotationDraft.client_name || lead.client_name;
         const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
         
-        // Filter and chunk technical specs for 2-column table
         const specs = formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
           const val = quotationDraft[f.db_key] !== undefined ? quotationDraft[f.db_key] : lead.metadata?.[f.db_key];
           if (!val || val === 'N/A' || val === 'No' || val === false) return null;
@@ -159,9 +233,9 @@ const LeadDetails = () => {
         }).filter(Boolean);
 
         let specsRows = '';
-        for (let i = 0; i < specs.length; i += 2) {
-          const s1 = specs[i];
-          const s2 = specs[i+1];
+        for (let i = 0; i < (specs as any[]).length; i += 2) {
+          const s1 = (specs as any[])[i];
+          const s2 = (specs as any[])[i+1];
           specsRows += `
             <tr>
               <td style="width: 50%; padding: 4px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
@@ -180,7 +254,7 @@ const LeadDetails = () => {
           <head>
             <meta charset='utf-8'>
             <style>
-              @page { size: 8.5in 11.in; margin: 0.4in; }
+              @page { size: 8.5in 11in; margin: 0.4in; }
               body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
               .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
               .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 5px 0; }
@@ -207,7 +281,7 @@ const LeadDetails = () => {
               <div style="font-size: 11pt; font-weight: bold;">To,</div>
               <div style="font-size: 10pt; margin-top: 2px;">
                 <div style="font-weight: bold; font-size: 11pt;">${clientName}</div>
-                <div>${quotationDraft.address || lead.address || ''}, ${quotationDraft.upazila || lead.upazila || ''}</div>
+                <div>${quotationDraft.address || lead.address}, ${quotationDraft.upazila || lead.upazila}</div>
               </div>
             </div>
 
@@ -242,95 +316,14 @@ const LeadDetails = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-
-        if (isQuotationFlow) {
-          showNotification("Doc exported. Advancing lead status...", "success");
-          const success = await finalizeQuotation(true);
-          if (success) {
-            setShowQuotationModal(false);
-            navigate('/quotations');
-          }
-        } else {
-          showNotification("Word Document Exported.", "success");
-        }
+        
+        showNotification("Word Document Exported.", "success");
       } catch (err) {
         showNotification("Doc export failed.", "error");
       } finally {
         setIsGeneratingDoc(false);
       }
-    }, 500);
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!pdfTemplateRef.current || !lead) return;
-    setIsGeneratingPDF(true);
-    const isQuotationFlow = showQuotationModal;
-
-    setTimeout(async () => {
-      try {
-        const element = pdfTemplateRef.current;
-        if (!element) return;
-
-        const opt = {
-          margin: 0,
-          filename: `Quotation_${quotationDraft.client_name || lead.client_name}.pdf`,
-          image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { 
-            scale: 3, 
-            useCORS: true, 
-            letterRendering: true,
-            logging: false,
-            scrollY: 0,
-            scrollX: 0
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // @ts-ignore
-        await window.html2pdf().from(element).set(opt).save();
-        
-        if (isQuotationFlow) {
-          showNotification("Quotation downloaded. Syncing transition...", "success");
-          const success = await finalizeQuotation(true);
-          if (success) {
-            setShowQuotationModal(false);
-            navigate('/quotations');
-          }
-        } else {
-          showNotification("Document Exported.", "success");
-        }
-      } catch (err) {
-        showNotification("Export failed. Check connection or permissions.", "error");
-      } finally {
-        setIsGeneratingPDF(false);
-      }
-    }, 600);
-  };
-
-  const handleStatusUpdate = async (newStatus: LeadStatus) => {
-    if (!lead || isUpdatingStatus) return;
-    setIsUpdatingStatus(true);
-    try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ 
-          status: newStatus, 
-          updated_at: new Date().toISOString(),
-          is_client: newStatus === 'Completed' ? true : lead.is_client,
-          converted_at: newStatus === 'Completed' && !lead.converted_at ? new Date().toISOString() : lead.converted_at
-        })
-        .eq('id', lead.id);
-      
-      if (error) throw error;
-      
-      setLead({ ...lead, status: newStatus });
-      showNotification(`Lifecycle status updated to ${newStatus.replace('_', ' ')}.`, "success");
-      setShowStatusDropdown(false);
-    } catch (err: any) {
-      showNotification(`Status sync failed: ${err.message}`, "error");
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    }, 300);
   };
 
   const handleConvertToClient = async () => {
@@ -344,26 +337,19 @@ const LeadDetails = () => {
         updated_at: new Date().toISOString(),
         metadata: { ...(lead.metadata || {}) }
       };
-
       if (lead.office_id) payload.office_id = lead.office_id;
       else if (profile?.office_id) payload.office_id = profile.office_id;
-
       Object.keys(convertFullData).forEach(dbKey => {
         const val = convertFullData[dbKey];
-        if (STANDARD_COLUMNS.includes(dbKey)) {
-          payload[dbKey] = val;
-        } else {
-          payload.metadata[dbKey] = val;
-        }
+        if (STANDARD_COLUMNS.includes(dbKey)) payload[dbKey] = val;
+        else payload.metadata[dbKey] = val;
       });
-
       const { error } = await supabase.from('leads').update(payload).eq('id', lead.id);
       if (error) throw error;
-      
-      showNotification(`${convertFullData.client_name} successfully promoted to Client Portfolio.`, "success");
+      showNotification(`${convertFullData.client_name} promoted to Client Portfolio.`, "success");
       navigate('/clients');
     } catch (err: any) {
-      showNotification(`Conversion sync failed: ${err.message}`, "error");
+      showNotification(`Conversion failed: ${err.message}`, "error");
     } finally {
       setIsUpdatingStatus(false);
       setShowConvertModal(false);
@@ -467,13 +453,53 @@ const LeadDetails = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700 overflow-x-hidden relative">
       
+      {/* FOLLOW UP SCHEDULING MODAL */}
+      {showFollowUpModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white rounded-[48px] p-10 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 relative">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">Schedule Follow Up</h3>
+                   <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mt-2">DASHBOARD CALENDAR SYNCHRONIZATION</p>
+                </div>
+                <button onClick={() => setShowFollowUpModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
+              </div>
+              <div className="space-y-8">
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Action Date</label>
+                    <div className="relative">
+                       <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                       <input 
+                         type="date" 
+                         className="w-full h-16 pl-14 pr-8 bg-slate-50 border border-slate-100 rounded-[28px] text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-emerald-500/20 transition-all shadow-inner"
+                         value={followUpDate}
+                         onChange={(e) => setFollowUpDate(e.target.value)}
+                       />
+                    </div>
+                 </div>
+                 <div className="p-6 bg-amber-50 rounded-[32px] border border-amber-100/50 flex items-start gap-4">
+                    <Info className="w-6 h-6 text-amber-500 shrink-0" />
+                    <p className="text-[11px] font-medium text-amber-800 leading-relaxed">This date will trigger a high-visibility indicator in the Firm Calendar for all workspace staff.</p>
+                 </div>
+                 <button 
+                   onClick={() => handleStatusUpdate('Follow_Up', followUpDate)} 
+                   disabled={isUpdatingStatus}
+                   className="w-full py-7 bg-amber-600 text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95"
+                 >
+                   {isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />} AUTHORIZE SCHEDULE
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
       {showConvertModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[48px] p-8 md:p-14 max-w-5xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 relative overflow-hidden flex flex-col max-h-[90vh]">
             <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
             <div className="flex justify-between items-start mb-8 relative z-10 shrink-0">
               <div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Convert to Client Portfolio</h3>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Convert to Client</h3>
                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-2">VALIDATED CONTRACTUAL REVIEW & OVERRIDE</p>
               </div>
               <button onClick={() => setShowConvertModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
@@ -552,7 +578,7 @@ const LeadDetails = () => {
                  {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5 text-blue-400" />} {isGeneratingDoc ? 'Syncing...' : 'Export WORD DOC'}
                </button>
                <button onClick={() => finalizeQuotation()} disabled={isUpdatingStatus} className="flex-1 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 active:scale-95">
-                 {isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileCheck className="w-5 h-5 text-emerald-400" />} Dispatch & Update
+                 {isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileCheck className="w-5 h-5 text-emerald-400" />} Dispatch & Sync
                </button>
             </div>
           </div>
@@ -580,9 +606,6 @@ const LeadDetails = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
              {!lead.is_client && <button onClick={() => setShowConvertModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 border border-white/10"><UserCheck className="w-5 h-5 text-white" /> Convert Client</button>}
              <button onClick={() => setShowQuotationModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95"><FileSpreadsheet className="w-5 h-5 text-emerald-400" /> Send Quotation</button>
-             <button onClick={handleDownloadDoc} disabled={isGeneratingDoc} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 rounded-2xl transition-all shadow-sm">
-               {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-             </button>
              <button onClick={() => navigate(`/leads/edit/${lead.id}`)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-[#064e3b] rounded-2xl transition-all shadow-sm"><Edit3 className="w-5 h-5" /></button>
              <button onClick={() => setShowDeleteModal(true)} className="p-4 bg-white border border-slate-100 text-slate-400 hover:text-red-500 rounded-2xl transition-all shadow-sm"><Trash2 className="w-5 h-5" /></button>
           </div>
@@ -590,6 +613,15 @@ const LeadDetails = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8 space-y-12">
+            {lead.follow_up_date && (
+               <div className="p-8 bg-amber-50 border border-amber-100 rounded-[32px] flex items-center justify-between shadow-sm animate-in slide-in-from-top-4">
+                  <div className="flex items-center gap-5">
+                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-amber-600"><Target className="w-6 h-6" /></div>
+                     <div><p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Active Follow Up Strategy</p><p className="text-sm font-bold text-amber-800">Engagement scheduled for {new Date(lead.follow_up_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
+                  </div>
+                  <button onClick={() => setShowFollowUpModal(true)} className="px-6 py-3 bg-white border border-amber-200 text-amber-700 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm">Reschedule</button>
+               </div>
+            )}
             <div className="space-y-12">
                {Object.keys(groupedFields).map((section) => (
                     <div key={section} className="bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-xl relative overflow-hidden">
@@ -622,87 +654,54 @@ const LeadDetails = () => {
         </div>
       </div>
       
-      {/* PROFESSIONAL BRANDED PDF TEMPLATE (STILL USED FOR PDF EXPORT) */}
+      {/* PROFESSIONAL BRANDED PDF TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-           {/* Top Navigation Bar */}
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
-           
-           {/* Header Section */}
            <div style={{ padding: '30px 60px 10px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                 {/* Logo Simulation */}
                  <div style={{ width: '80px', height: '80px', backgroundColor: '#0a2540', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', bottom: '15%', width: '60%', height: '50%', backgroundColor: '#ff5a1f', transform: 'skewY(-5deg)' }}></div>
                     <div style={{ position: 'absolute', top: '15%', width: '40%', height: '40%', border: '4px solid white', borderRadius: '4px', transform: 'rotate(45deg)' }}></div>
-                    <span style={{ color: 'white', fontSize: '8pt', fontWeight: 900, position: 'absolute', bottom: '8px', width: '100%', textAlign: 'center', textTransform: 'uppercase' }}>Hossain</span>
                  </div>
                  <div>
-                    <h1 style={{ fontSize: '38pt', fontWeight: 900, margin: 0, padding: 0, color: '#000', letterSpacing: '-1px', lineHeight: '1' }}>Hossain House Design</h1>
+                    <h1 style={{ fontSize: '38pt', fontWeight: 900, margin: 0, padding: 0, color: '#000', lineHeight: '1' }}>Hossain House Design</h1>
                     <p style={{ fontSize: '11pt', margin: '4px 0 0 0', fontWeight: 600, color: '#333' }}>House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
-                    <p style={{ fontSize: '10pt', margin: '2px 0 0 0', fontWeight: 500, color: '#444' }}>+8801705323220, support@hossainhousedesign.com</p>
                  </div>
               </div>
            </div>
-           
-           {/* Branded Orange Separator */}
            <div style={{ height: '6px', width: '100%', backgroundColor: '#ff5a1f', marginTop: '10px' }}></div>
-           
-           {/* Content Area */}
            <div style={{ padding: '40px 80px', flex: 1, position: 'relative' }}>
-              {/* Date */}
               <div style={{ textAlign: 'right', marginBottom: '20px' }}>
                  <p style={{ fontSize: '12pt', fontWeight: 700, color: '#000' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
-
-              {/* Recipient details */}
               <div style={{ marginBottom: '40px' }}>
                  <h3 style={{ fontSize: '14pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
                  <div style={{ fontSize: '13pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
                     <p style={{ margin: '2px 0' }}>{quotationDraft.client_name || lead.client_name}</p>
-                    <p style={{ margin: '2px 0' }}>{quotationDraft.current_location || lead.current_location || 'Resident'}</p>
                     <p style={{ margin: '2px 0' }}>{quotationDraft.address || lead.address}, {quotationDraft.upazila || lead.upazila}</p>
                  </div>
               </div>
-
-              {/* Technical Specifications Container - NO WATERMARK HERE FOR DOC FIDELITY */}
               <div style={{ border: '1px solid #e2e8f0', borderRadius: '40px', minHeight: '400px', padding: '40px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                 {/* Grid of technical specifications */}
                  <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '10mm' }}>
                     {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
                        const val = quotationDraft[f.db_key] !== undefined ? quotationDraft[f.db_key] : lead.metadata?.[f.db_key];
                        if (!val || val === 'N/A' || val === 'No' || val === false) return null;
                        return (
                           <div key={f.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                             <p style={{ fontSize: '9pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>{f.label}</p>
+                             <p style={{ fontSize: '9pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</p>
                              <p style={{ fontSize: '12pt', fontWeight: 800, color: '#1e293b' }}>{typeof val === 'boolean' ? 'Yes' : val}</p>
                           </div>
                        );
                     })}
                  </div>
-                 
-                 <div style={{ marginTop: 'auto', paddingTop: '30px' }}>
-                    <p style={{ fontSize: '11pt', color: '#64748b', fontStyle: 'italic', lineHeight: '1.6' }}>
-                       Thank you for choosing Hossain House Design. We are committed to delivering architectural excellence tailored to your specific requirements.
-                    </p>
-                 </div>
               </div>
-
-              {/* Signature Section */}
               <div style={{ marginTop: '50px' }}>
                  <p style={{ fontSize: '12pt', fontWeight: 600, margin: 0 }}>Sincere</p>
                  <p style={{ fontSize: '13pt', fontWeight: 800, marginTop: '8px', marginBottom: 0 }}>Marketing Manager</p>
                  <p style={{ fontSize: '13pt', fontWeight: 900, margin: 0 }}>Hossain House Design</p>
-                 <p style={{ fontSize: '11pt', fontWeight: 600, marginTop: '4px' }}>Ph: +8801705323220</p>
               </div>
            </div>
-           
-           {/* Website Footer */}
-           <div style={{ textAlign: 'center', padding: '15px 0' }}>
-              <p style={{ fontSize: '10pt', fontWeight: 700, color: '#333' }}>www.hossainhousedesign.com</p>
-           </div>
-
-           {/* Bottom Navigation Bar */}
            <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
         </div>
       </div>

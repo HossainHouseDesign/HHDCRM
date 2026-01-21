@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DEFAULT_FORM_CONFIG } from './Settings';
+import { useNotification } from '../App';
 
 export const resolveInterest = (l: Lead, dbKey: string): boolean => {
   if (!dbKey) return false;
@@ -28,6 +29,7 @@ export const resolveInterest = (l: Lead, dbKey: string): boolean => {
 
 const LeadsList = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,13 +80,22 @@ const LeadsList = () => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      // FIX: Added !created_by to profiles join to resolve ambiguity
       const [leadsRes, configRes] = await Promise.all([
         supabase.from('leads').select('*, creator:profiles!created_by(full_name)').eq('is_client', false).is('deleted_at', null).order('created_at', { ascending: false }),
         supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
       ]);
+      
+      if (leadsRes.error) {
+        if (leadsRes.error.code === '42703') {
+           showNotification("Database Schema Outdated: Please run the SQL repair script from 'supabaseClient.ts'.", "error");
+        }
+        throw leadsRes.error;
+      }
+
       setLeads(leadsRes.data || []);
       if (configRes.data) setFormConfig(configRes.data.value);
+    } catch (err: any) {
+      console.error(err);
     } finally {
       setLoading(false);
     }

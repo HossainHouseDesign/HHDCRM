@@ -6,7 +6,7 @@ import {
   CheckCircle2, Clock, Grid, Bed, Bath, ListTree, Banknote,
   PhoneCall, RefreshCw, Compass, ShieldCheck, Mail,
   Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe,
-  AlertTriangle, UserCircle, User, Home, Zap
+  AlertTriangle, UserCircle, User, Home, Zap, Users2
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus, FormFieldConfig } from '../types';
@@ -36,7 +36,7 @@ const ProjectDetails = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // FIX: Specified relationship hint for the assignments join and potential creator join
+      // Relationship hints for joins
       const [projRes, teamRes, configRes] = await Promise.all([
         supabase.from('projects').select('*, client:leads(*), creator:profiles!created_by(full_name), assignments:project_assignments(profile:profiles(*))').eq('id', id).single(),
         supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active'),
@@ -240,7 +240,7 @@ const ProjectDetails = () => {
           <div className="bg-white rounded-[56px] p-10 md:p-14 max-w-4xl w-full shadow-2xl my-10 relative">
             <div className="flex justify-between items-start mb-14">
               <div>
-                <h3 className="text-4xl font-black text-slate-900 tracking-tight">Sync Architectural Logic</h3>
+                <h3 className="text-4xl font-black text-slate-900 tracking-tight">Sync Project Metadata</h3>
                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] mt-3">Refining Execution Portfolio Specifications</p>
               </div>
               <button onClick={() => setShowEditModal(false)} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
@@ -315,6 +315,7 @@ const ProjectDetails = () => {
             </div>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button onClick={() => setShowEditModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-emerald-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all active:scale-95"><Users2 className="w-4 h-4" /> Assign Personnel</button>
             <button onClick={() => setShowEditModal(true)} className="flex-1 sm:flex-none px-8 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all active:scale-95"><Edit3 className="w-4 h-4" /> Edit Technical Spec</button>
             <button onClick={() => setShowDeleteModal(true)} className="p-5 bg-white border border-slate-100 text-slate-300 hover:text-red-500 rounded-[24px] transition-all shadow-sm active:scale-95"><Trash2 className="w-6 h-6" /></button>
           </div>

@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://vtfooxylfnzyrgdkslms.supabase.co';
@@ -6,64 +7,39 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * ARCHLEAD PRO - MASTER DATABASE REPAIR SCRIPT
+ * ARCHLEAD PRO - MASTER DATABASE REPAIR SCRIPT (V17)
  * 
- * RUN THE FOLLOWING IN YOUR SUPABASE SQL EDITOR:
+ * -- 1. ADD FOLLOW UP TRACKING TO LEADS
+ * ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS follow_up_date DATE;
+ * CREATE INDEX IF NOT EXISTS idx_leads_follow_up_date ON public.leads(follow_up_date);
  * 
- * -- 1. SECURITY DEFINER FUNCTION (Prevents Recursion)
- * CREATE OR REPLACE FUNCTION public.get_user_office_id()
- * RETURNS uuid AS $$
- *   SELECT office_id FROM public.profiles WHERE id = auth.uid();
- * $$ LANGUAGE sql STABLE SECURITY DEFINER;
- * 
- * -- 2. CORE TABLES SETUP
- * CREATE TABLE IF NOT EXISTS public.offices (
+ * -- 2. REPAIR CONSTRUCTION TABLE CORE
+ * CREATE TABLE IF NOT EXISTS public.construction_projects (
  *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   name TEXT NOT NULL,
+ *   title TEXT NOT NULL DEFAULT 'Untitled Site',
  *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
  * );
  * 
- * -- 3. PROFILES TABLE SCHEMA
- * -- Ensure all columns exist, especially 'deleted_at' and 'role'
- * DO $$ 
- * BEGIN
- *   IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
- *     CREATE TABLE public.profiles (
- *       id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
- *       full_name TEXT NOT NULL,
- *       email TEXT UNIQUE NOT NULL,
- *       role TEXT NOT NULL DEFAULT 'staff',
- *       office_id UUID REFERENCES public.offices(id),
- *       designation TEXT,
- *       phone TEXT,
- *       status TEXT DEFAULT 'active',
- *       deleted_at TIMESTAMP WITH TIME ZONE,
- *       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
- *     );
- *   ELSE
- *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS office_id UUID REFERENCES public.offices(id);
- *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'staff';
- *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
- *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS designation TEXT;
- *     ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
- *   END IF;
- * END $$;
+ * -- 3. ADD MISSING COLUMNS INDIVIDUALLY
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE;
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS current_stage TEXT DEFAULT 'Initial Site Works';
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Active';
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS last_site_visit TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS start_date DATE DEFAULT CURRENT_DATE;
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS office_id UUID;
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id);
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ * ALTER TABLE public.construction_projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
  * 
- * -- 4. RLS POLICIES (OFFICE PARTITIONING)
- * ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
- * ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
- * ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
- * 
- * DROP POLICY IF EXISTS "Profiles access" ON public.profiles;
- * CREATE POLICY "Profiles access" ON public.profiles 
- * FOR ALL TO authenticated USING (office_id = public.get_user_office_id() OR id = auth.uid());
- * 
- * DROP POLICY IF EXISTS "Leads access" ON public.leads;
- * CREATE POLICY "Leads access" ON public.leads 
- * FOR ALL TO authenticated USING (office_id = public.get_user_office_id());
- * 
- * DROP POLICY IF EXISTS "Projects access" ON public.projects;
- * CREATE POLICY "Projects access" ON public.projects 
- * FOR ALL TO authenticated USING (office_id = public.get_user_office_id());
+ * -- 4. SITE LOGS (TIMELINE)
+ * CREATE TABLE IF NOT EXISTS public.construction_logs (
+ *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ *   construction_project_id UUID REFERENCES public.construction_projects(id) ON DELETE CASCADE,
+ *   log_notes TEXT NOT NULL,
+ *   stage_recorded TEXT,
+ *   progress_recorded INTEGER,
+ *   created_by UUID REFERENCES public.profiles(id),
+ *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+ * );
  */

@@ -67,7 +67,7 @@ const QuotationList = () => {
                 <tr className="bg-white text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Proposal Reference</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Client Entity</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Quoted Value</th>
+                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Asking Fee</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white">Lifecycle Stage</th>
                   <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
                 </tr>
@@ -96,8 +96,8 @@ const QuotationList = () => {
                     </td>
                     <td className="px-10 py-8">
                        <div className="flex flex-col">
-                          <span className="text-[15px] font-black text-purple-700">BDT {l.asking_fee?.toLocaleString() || 'N/A'}</span>
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mt-1">ARCHITECTURAL FEE</span>
+                          <span className="text-[15px] font-black text-purple-700">BDT {l.asking_fee?.toLocaleString() || '0'}</span>
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mt-1">ASKING FEE</span>
                        </div>
                     </td>
                     <td className="px-10 py-8">

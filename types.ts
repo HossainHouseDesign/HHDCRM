@@ -59,6 +59,8 @@ export interface Lead {
   budget?: string;
   social_media?: string;
   next_calling_date?: string;
+  // Fix: Added follow_up_date to satisfy tracking requirements and resolve type errors
+  follow_up_date?: string;
   notes?: string;
   status: LeadStatus;
   created_at: string;

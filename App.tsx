@@ -14,6 +14,7 @@ import AddClient from './pages/AddClient';
 import AddQuotation from './pages/AddQuotation';
 import RecycleBin from './pages/RecycleBin';
 import Construction from './pages/Construction';
+import ConstructionDetails from './pages/ConstructionDetails';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import QuotationList from './pages/QuotationList';
@@ -108,14 +109,9 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const isAdmin = useMemo(() => {
     const masterEmail = 'hhdandbhd@gmail.com';
-    
-    // 1. Session-First Master Override
     if (session?.user?.email?.toLowerCase() === masterEmail.toLowerCase()) return true;
-
-    // 2. Profile-Based Checks
     if (!profile) return false;
     if (profile.email?.toLowerCase() === masterEmail.toLowerCase()) return true;
-
     const r = (profile.role || '').toLowerCase();
     return ['office_admin', 'super_admin', 'admin', 'administrator', 'office-admin'].includes(r);
   }, [profile, session]);
@@ -129,13 +125,11 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  // Fix: Added 'const' to showNotification to prevent scoping errors.
   const showNotification = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 8000);
   }, []);
-  // Fix: Correctly compare notification ID property with the ID string parameter
   const removeNotification = (id: string) => setNotifications(prev => prev.filter(n => n.id !== id));
 
   return (
@@ -214,6 +208,7 @@ const AppContent = () => {
             <Route path="/clients" element={<ClientsList />} />
             <Route path="/clients/add" element={<AddClient />} />
             <Route path="/construction" element={<Construction />} />
+            <Route path="/construction/:id" element={<ConstructionDetails />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
             <Route path="/team" element={<TeamList />} />
