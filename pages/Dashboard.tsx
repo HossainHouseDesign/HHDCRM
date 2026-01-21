@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, CheckCircle2, RefreshCw, 
@@ -105,6 +106,10 @@ const Dashboard = () => {
     return data;
   }, [leads, projects]);
 
+  const selectedDayStats = useMemo(() => {
+    return calendarData[selectedDate] || { followUps: [], newLeads: [], newClients: [], completions: [] };
+  }, [calendarData, selectedDate]);
+
   const todaysFollowUps = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     return calendarData[todayStr]?.followUps || [];
@@ -132,8 +137,6 @@ const Dashboard = () => {
   const analyticsData = useMemo(() => {
     const monthsArr = [];
     const now = new Date();
-    
-    // Generate labels for last 6 months
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       monthsArr.push({
@@ -145,8 +148,6 @@ const Dashboard = () => {
         Projects: 0
       });
     }
-
-    // Process Leads & Clients
     leads.forEach(l => {
       const date = new Date(l.created_at);
       const mIdx = monthsArr.findIndex(m => m.monthNum === date.getMonth() && m.year === date.getFullYear());
@@ -155,22 +156,13 @@ const Dashboard = () => {
         else monthsArr[mIdx].Leads++;
       }
     });
-
-    // Process Projects
     projects.forEach(p => {
       const date = new Date(p.created_at);
       const mIdx = monthsArr.findIndex(m => m.monthNum === date.getMonth() && m.year === date.getFullYear());
-      if (mIdx !== -1) {
-        monthsArr[mIdx].Projects++;
-      }
+      if (mIdx !== -1) { monthsArr[mIdx].Projects++; }
     });
-
     return monthsArr;
   }, [leads, projects]);
-
-  const selectedDayStats = useMemo(() => {
-    return calendarData[selectedDate] || { followUps: [], newLeads: [], newClients: [], completions: [] };
-  }, [calendarData, selectedDate]);
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -209,7 +201,6 @@ const Dashboard = () => {
               )}
             </button>
 
-            {/* Notification Popover */}
             {showNotificationList && (
               <div className="absolute top-[calc(100%+12px)] right-0 w-80 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
@@ -286,16 +277,9 @@ const Dashboard = () => {
             >
               <Briefcase className="w-5 h-5" /> Add Client
             </button>
-            <button 
-              onClick={() => navigate('/projects?new=true')} 
-              className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-[#064e3b] hover:scale-105 active:scale-95 transition-all"
-            >
-              <Layers className="w-5 h-5" /> Add Project
-            </button>
           </div>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
             { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'bg-emerald-600' },
@@ -321,7 +305,6 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-          {/* Chart Section */}
           <div className="xl:col-span-8 bg-white p-10 rounded-[56px] border border-slate-100 shadow-sm space-y-12">
             <div className="flex justify-between items-center">
               <div>
@@ -342,14 +325,13 @@ const Dashboard = () => {
                   ))}
               </div>
             </div>
-            <div className="h-[400px] w-full">
+            <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analyticsData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={8}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
                   <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px -10px rgb(0 0 0 / 0.1)', padding: '16px' }} />
-                  <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }} />
                   <Bar dataKey="Leads" fill="#10b981" radius={[6, 6, 0, 0]} barSize={10} />
                   <Bar dataKey="Clients" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={10} />
                   <Bar dataKey="Projects" fill="#0f172a" radius={[6, 6, 0, 0]} barSize={10} />
@@ -358,74 +340,92 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Interaction Calendar */}
-          <div className="xl:col-span-4 bg-white rounded-[56px] border border-slate-100 shadow-sm flex flex-col">
-            <div className="p-10 border-b border-slate-50">
-              <div className="flex justify-between items-center mb-6">
-                <h4 className="text-xl font-black text-slate-900 tracking-tight">Vault Calendar</h4>
+          <div className="xl:col-span-4 bg-[#0a0a0a] rounded-[56px] shadow-2xl flex flex-col relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+            <div className="p-10 relative z-10">
+              <div className="flex justify-between items-center mb-10">
+                <div>
+                   <h4 className="text-white text-xl font-black tracking-tight flex items-center gap-3"><CalendarIcon className="w-5 h-5 text-emerald-400" /> Firm Calendar</h4>
+                   <p className="text-white/30 text-[9px] font-black uppercase tracking-widest mt-1">PLANNING HUB</p>
+                </div>
                 <div className="flex gap-2">
-                  <button onClick={handlePrevMonth} className="p-2.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all"><ChevronLeft className="w-4 h-4" /></button>
-                  <button onClick={handleNextMonth} className="p-2.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all"><ChevronRight className="w-4 h-4" /></button>
+                  <button onClick={handlePrevMonth} className="p-2.5 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/40 hover:text-white"><ChevronLeft className="w-4 h-4" /></button>
+                  <button onClick={handleNextMonth} className="p-2.5 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/40 hover:text-white"><ChevronRight className="w-4 h-4" /></button>
                 </div>
               </div>
-              <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-            </div>
-            
-            <div className="p-8 grid grid-cols-7 gap-1 mb-2">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d} className="text-center text-[10px] font-black text-slate-300 uppercase">{d}</div>)}
-              {calendarDays.map((day, i) => {
-                if (day === null) return <div key={`empty-${i}`} className="h-10" />;
-                const dateKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                const hasFollowUp = (calendarData[dateKey]?.followUps.length || 0) > 0;
-                const isSelected = selectedDate === dateKey;
-                return (
-                  <button 
-                    key={day} 
-                    onClick={() => setSelectedDate(dateKey)}
-                    className={`h-10 relative flex items-center justify-center text-xs font-bold rounded-xl transition-all ${isSelected ? 'bg-[#064e3b] text-white shadow-lg' : 'hover:bg-slate-50 text-slate-600'}`}
-                  >
-                    {day}
-                    {hasFollowUp && <div className={`absolute bottom-1.5 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />}
-                  </button>
-                );
-              })}
+              <div className="text-center mb-8"><h3 className="text-2xl font-black text-white capitalize">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3></div>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d} className="text-center text-[10px] font-black text-white/20 uppercase">{d}</div>)}
+                {calendarDays.map((day, i) => {
+                  if (day === null) return <div key={`empty-${i}`} className="h-10" />;
+                  const dateKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                  const meta = calendarData[dateKey];
+                  const hasActivity = meta && (meta.followUps.length > 0 || meta.newLeads.length > 0 || meta.newClients.length > 0);
+                  const isSelected = selectedDate === dateKey;
+                  const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+                  
+                  return (
+                    <button 
+                      key={day} 
+                      onClick={() => setSelectedDate(dateKey)}
+                      className={`h-11 relative flex flex-col items-center justify-center text-xs font-black rounded-2xl transition-all ${isSelected ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/40 scale-110' : isToday ? 'border border-emerald-500/50 text-white' : 'hover:bg-white/5 text-white/40'}`}
+                    >
+                      {day}
+                      <div className="flex gap-0.5 mt-0.5">
+                         {meta?.followUps.length ? <div className="w-1 h-1 bg-emerald-400 rounded-full" /> : null}
+                         {meta?.newLeads.length ? <div className="w-1 h-1 bg-blue-400 rounded-full" /> : null}
+                         {meta?.completions.length ? <div className="w-1 h-1 bg-indigo-400 rounded-full" /> : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="flex-1 bg-slate-50/50 p-8 rounded-b-[56px] space-y-6 overflow-y-auto no-scrollbar max-h-[300px]">
-               <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Day Intel: {selectedDate}</h5>
-               {selectedDayStats.followUps.length === 0 && selectedDayStats.newLeads.length === 0 ? (
-                 <div className="py-10 text-center space-y-3">
-                    <Zap className="w-8 h-8 text-slate-200 mx-auto" />
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No site visits or follow-ups</p>
-                 </div>
-               ) : (
-                 <div className="space-y-4">
-                    {selectedDayStats.followUps.map(f => (
-                      <div key={f.id} onClick={() => navigate(`/leads/${f.id}`)} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 cursor-pointer hover:border-amber-200 transition-all group shadow-sm">
-                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-amber-600 group-hover:text-white transition-all"><Target className="w-5 h-5" /></div>
-                            <div>
-                               <p className="text-[13px] font-black text-slate-900 truncate max-w-[120px]">{f.name}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase">Follow Up</p>
+            <div className="flex-1 bg-white/5 p-8 rounded-b-[56px] space-y-6 overflow-y-auto no-scrollbar max-h-[350px] relative z-10 border-t border-white/5">
+               <div className="flex items-center justify-between">
+                  <h5 className="text-[10px] font-black uppercase text-white/30 tracking-widest">Day Intelligence: {new Date(selectedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</h5>
+                  <div className="px-3 py-1 bg-emerald-500/10 rounded-lg text-emerald-400 text-[9px] font-black uppercase tracking-widest">Active Sync</div>
+               </div>
+               
+               <div className="space-y-4">
+                  {selectedDayStats.followUps.length === 0 && selectedDayStats.newLeads.length === 0 && selectedDayStats.completions.length === 0 ? (
+                    <div className="py-12 text-center space-y-4">
+                       <Zap className="w-10 h-10 text-white/5 mx-auto" />
+                       <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">No firm records for this date</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                       {selectedDayStats.followUps.map(f => (
+                         <div key={f.id} onClick={() => navigate(`/leads/${f.id}`)} className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-[32px] cursor-pointer hover:bg-white/10 transition-all group shadow-sm">
+                            <div className="flex items-center gap-4">
+                               <div className="w-11 h-11 bg-emerald-500 text-black rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"><Target className="w-5 h-5" /></div>
+                               <div><p className="text-[13px] font-black text-white truncate max-w-[150px]">{f.name}</p><p className="text-[9px] font-bold text-emerald-400 uppercase mt-0.5 tracking-widest">Follow Up Schedule</p></div>
                             </div>
+                            <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-emerald-400 transition-colors" />
                          </div>
-                         <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition-colors" />
-                      </div>
-                    ))}
-                    {selectedDayStats.newLeads.map(l => (
-                      <div key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 cursor-pointer hover:border-emerald-200 transition-all group shadow-sm">
-                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all"><Plus className="w-5 h-5" /></div>
-                            <div>
-                               <p className="text-[13px] font-black text-slate-900 truncate max-w-[120px]">{l.name}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase">Inquiry Ingested</p>
+                       ))}
+                       {selectedDayStats.newLeads.map(l => (
+                         <div key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-[32px] cursor-pointer hover:bg-white/10 transition-all group shadow-sm">
+                            <div className="flex items-center gap-4">
+                               <div className="w-11 h-11 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"><PlusCircle className="w-5 h-5" /></div>
+                               <div><p className="text-[13px] font-black text-white truncate max-w-[150px]">{l.name}</p><p className="text-[9px] font-bold text-blue-400 uppercase mt-0.5 tracking-widest">Inquiry Ingested</p></div>
                             </div>
+                            <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-blue-400 transition-colors" />
                          </div>
-                         <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors" />
-                      </div>
-                    ))}
-                 </div>
-               )}
+                       ))}
+                       {selectedDayStats.completions.map(c => (
+                         <div key={c.id} onClick={() => navigate(`/projects/${c.id}`)} className="flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-[32px] cursor-pointer hover:bg-white/10 transition-all group shadow-sm">
+                            <div className="flex items-center gap-4">
+                               <div className="w-11 h-11 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"><CheckCircle2 className="w-5 h-5" /></div>
+                               <div><p className="text-[13px] font-black text-white truncate max-w-[150px]">{c.name}</p><p className="text-[9px] font-bold text-indigo-400 uppercase mt-0.5 tracking-widest">Project Completed</p></div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors" />
+                         </div>
+                       ))}
+                    </div>
+                  )}
+               </div>
             </div>
           </div>
         </div>
