@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Plus, Trash2, RefreshCw, Eye, EyeOff, Lock, ChevronRight, Users, 
   UserCircle, FormInput, ArrowLeft, Save, Shield, RotateCcw, 
   Mail, Phone, Briefcase, Camera, Tag, ListFilter, X, History,
-  Type as TypeIcon, Building2
+  Type as TypeIcon
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormFieldConfig, FieldType, Profile } from '../types';
-import { useNotification } from '../App';
+import { useNotification, useUser } from '../App';
 
 export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
   { id: '1', label: 'Full Name', db_key: 'client_name', type: 'text', section: 'Identity', required: true, visible: true, placeholder: 'e.g. Sarah Khan' },
@@ -21,6 +22,7 @@ export const DEFAULT_FORM_CONFIG: FormFieldConfig[] = [
 const Settings = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { isAdmin } = useUser();
   const [view, setView] = useState<'hub' | 'form' | 'profile'>('hub');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,30 +72,38 @@ const Settings = () => {
   if (view === 'hub') return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
       <header className="mb-16"><h1 className="text-4xl font-black text-slate-900 tracking-tight">Workspace Hub</h1><p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-2 opacity-80">CENTRALIZED FIRM ADMINISTRATION</p></header>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <button onClick={() => setView('form')} className="p-12 bg-white border border-slate-100 rounded-[56px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1">
-          <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[32px] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform"><FormInput className="w-10 h-10" /></div>
-          <h3 className="text-2xl font-black text-slate-900 mb-3">Form Blueprint</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-xs">Define technical parameters and land specs for lead intake.</p>
-          <div className="mt-12 flex items-center gap-3 text-emerald-600 text-[11px] font-black uppercase tracking-widest group-hover:gap-5 transition-all">Manage Schema <ChevronRight className="w-4 h-4" /></div>
-        </button>
-        <Link to="/settings/recycle-bin" className="p-12 bg-white border border-slate-100 rounded-[56px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
-          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[32px] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform"><History className="w-10 h-10" /></div>
-          <h3 className="text-2xl font-black text-slate-900 mb-3">Archive Vault</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-xs">Access soft-deleted records. Restore or purge permanently.</p>
-          <div className="mt-12 flex items-center gap-3 text-red-600 text-[11px] font-black uppercase tracking-widest group-hover:gap-5 transition-all">Open Recycle Bin <ChevronRight className="w-4 h-4" /></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        {isAdmin && (
+          <button onClick={() => setView('form')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1">
+            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><FormInput className="w-8 h-8" /></div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Form Blueprint</h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">Define technical parameters and land specs for intake.</p>
+            <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Manage Schema <ChevronRight className="w-3 h-3" /></div>
+          </button>
+        )}
+
+        {isAdmin && (
+          <Link to="/settings/recycle-bin" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><History className="w-8 h-8" /></div>
+            <h3 className="text-xl font-black text-slate-900 mb-2">Archive Vault</h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
+            <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
+          </Link>
+        )}
+
+        <Link to="/team" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-blue-500 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><Users className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">Design Team</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Manage workspace staff and define roles.</p>
+          <div className="mt-8 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-widest">Directory <ChevronRight className="w-3 h-3" /></div>
         </Link>
-        <Link to="/team" className="p-12 bg-white border border-slate-100 rounded-[56px] shadow-sm group hover:border-blue-500 transition-all hover:-translate-y-1">
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[32px] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform"><Users className="w-10 h-10" /></div>
-          <h3 className="text-2xl font-black text-slate-900 mb-3">Design Team</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-xs">Manage workspace staff and define architectural roles.</p>
-          <div className="mt-12 flex items-center gap-3 text-blue-600 text-[11px] font-black uppercase tracking-widest group-hover:gap-5 transition-all">Team Directory <ChevronRight className="w-4 h-4" /></div>
-        </Link>
-        <button onClick={() => setView('profile')} className="p-12 bg-white border border-slate-100 rounded-[56px] shadow-sm text-left group hover:border-slate-900 transition-all hover:-translate-y-1">
-          <div className="w-20 h-20 bg-slate-50 text-slate-600 rounded-[32px] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform"><UserCircle className="w-10 h-10" /></div>
-          <h3 className="text-2xl font-black text-slate-900 mb-3">My Credentials</h3>
-          <p className="text-sm text-slate-400 font-medium leading-relaxed max-w-xs">Update your professional bio and security credentials.</p>
-          <div className="mt-12 flex items-center gap-3 text-slate-600 text-[11px] font-black uppercase tracking-widest group-hover:gap-5 transition-all">Update Profile <ChevronRight className="w-4 h-4" /></div>
+
+        <button onClick={() => setView('profile')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-slate-900 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-slate-50 text-slate-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><UserCircle className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">My Credentials</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Update professional bio and security credentials.</p>
+          <div className="mt-8 flex items-center gap-2 text-slate-600 text-[10px] font-black uppercase tracking-widest">Update Profile <ChevronRight className="w-3 h-3" /></div>
         </button>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
-export type UserRole = 'super_admin' | 'office_admin' | 'staff';
+export type UserRole = 'super_admin' | 'office_admin' | 'staff' | 'admin';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
 
 export interface Profile {
@@ -8,7 +8,6 @@ export interface Profile {
   full_name: string;
   email: string;
   role: UserRole;
-  office_id?: string;
   phone?: string;
   designation?: string;
   status: 'active' | 'inactive';
@@ -43,7 +42,6 @@ export interface FormFieldConfig {
 
 export interface Lead {
   id: string;
-  office_id: string;
   client_name: string;
   phone: string;
   email?: string; 

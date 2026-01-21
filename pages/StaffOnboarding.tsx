@@ -9,18 +9,18 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { UserRole, Profile } from '../types';
-import { useNotification } from '../App';
+import { useNotification, useUser } from '../App';
 
 const StaffOnboarding = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
   const { showNotification } = useNotification();
+  const { isAdmin, loading: contextLoading } = useUser();
 
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [adminProfile, setAdminProfile] = useState<Profile | null>(null);
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -42,34 +42,19 @@ const StaffOnboarding = () => {
   });
 
   useEffect(() => {
-    validateAccess();
-  }, [id]);
+    if (!contextLoading) {
+      validateAccess();
+    }
+  }, [id, contextLoading]);
 
   const validateAccess = async () => {
+    if (!isAdmin) {
+      showNotification("Security Protocol: Your identity lacks administrative clearance.", "error");
+      return navigate('/');
+    }
+
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return navigate('/');
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error || !profile) {
-        showNotification("Identity could not be verified in the profile vault.", "error");
-        return navigate('/');
-      }
-
-      const userRole = (profile.role || '').toLowerCase();
-      if (userRole !== 'office_admin' && userRole !== 'super_admin') {
-        showNotification(`Security Protocol: Role '${profile.role}' lacks provisioning clearance.`, "error");
-        return navigate('/');
-      }
-
-      setAdminProfile(profile);
-
       if (isEditing) {
         const { data, error: editError } = await supabase.from('profiles').select('*').eq('id', id).single();
         if (editError) throw editError;
@@ -110,17 +95,16 @@ const StaffOnboarding = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    
     setSaving(true);
     try {
-      if (!adminProfile?.office_id) throw new Error("Administrator session lacks a valid Office Link.");
-
-      const payload = {
-        full_name: formData.full_name,
-        email: formData.email,
-        phone: formData.phone,
-        designation: formData.designation,
+      const payload: any = {
+        full_name: formData.full_name.trim(),
+        email: formData.email.toLowerCase().trim(),
+        phone: formData.phone.trim(),
+        designation: formData.designation.trim(),
         role: formData.role,
-        office_id: adminProfile.office_id,
         status: 'active',
         permissions: permissions,
         login_password: formData.password,
@@ -131,14 +115,19 @@ const StaffOnboarding = () => {
         const { error } = await supabase.from('profiles').update(payload).eq('id', id);
         if (error) throw error;
       } else {
+        // For new records, we let the database handle the UUID generation
         const { error } = await supabase.from('profiles').insert([payload]);
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase Insert Error:", error);
+          throw new Error(error.message);
+        }
       }
       
-      showNotification("Staff credentials and permissions provisioned.", "success");
+      showNotification("Staff credentials and permissions provisioned successfully.", "success");
       navigate('/team');
     } catch (err: any) {
-      showNotification("Sync Failed: " + err.message, "error");
+      showNotification("Provisioning Failed: " + (err.message || "Unknown error"), "error");
+      console.error("Provisioning Logic Error:", err);
     } finally {
       setSaving(false);
     }
@@ -154,7 +143,7 @@ const StaffOnboarding = () => {
     { key: 'settings', label: 'Setting', desc: 'System configuration access', icon: Settings },
   ] as const;
 
-  if (loading) return (
+  if (loading || contextLoading) return (
     <div className="h-screen flex flex-col items-center justify-center gap-6">
       <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Security Clearances...</p>
@@ -167,7 +156,7 @@ const StaffOnboarding = () => {
         <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify Permissions' : 'Provision Staff'}</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Vault Branch: {adminProfile?.office_id?.slice(0,8).toUpperCase()}</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Firm Security Protocol</p>
         </div>
       </header>
 

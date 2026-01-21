@@ -67,9 +67,6 @@ const LeadForm = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Authentication required");
 
-      const { data: profile } = await supabase.from('profiles').select('office_id').eq('id', user.id).single();
-      if (!profile?.office_id) throw new Error("No office assigned to user");
-
       const standardCols = [
         'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
         'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
@@ -79,7 +76,6 @@ const LeadForm = () => {
 
       const payload: Record<string, any> = { 
         updated_at: new Date().toISOString(), 
-        office_id: profile.office_id,
         metadata: {} 
       };
 

@@ -7,7 +7,11 @@ import {
   Building2, RefreshCw 
 } from 'lucide-react';
 
-const Auth = () => {
+interface AuthProps {
+  onLogin: () => void;
+}
+
+const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { showNotification } = useNotification();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -24,7 +28,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        // 1. Attempt standard Supabase Auth Login (Admins only)
+        // 1. Attempt standard Supabase Auth Login
         const { data: sbData, error: sbError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
@@ -32,8 +36,8 @@ const Auth = () => {
 
         if (!sbError && sbData.session) {
           showNotification("Administrator identity verified.", "success");
-          localStorage.removeItem('donezo_manual_session'); // Clear old shadow sessions
-          window.location.reload(); 
+          localStorage.removeItem('donezo_manual_session');
+          onLogin();
           return;
         }
 
@@ -43,10 +47,7 @@ const Auth = () => {
           p_password: formData.password
         });
 
-        if (staffError) {
-           console.error("RPC Error:", staffError);
-           throw new Error("Security Layer Connection Error. Please verify database functions.");
-        }
+        if (staffError) throw new Error("Security Layer Connection Error.");
         
         if (staffData && staffData.length > 0) {
           const profile = staffData[0];
@@ -62,13 +63,13 @@ const Auth = () => {
 
           localStorage.setItem('donezo_manual_session', JSON.stringify(manualSession));
           showNotification(`Staff Access Granted. Welcome back, ${profile.full_name}.`, "success");
-          window.location.reload();
+          onLogin();
         } else {
-          throw new Error("Invalid Credentials. If you are an admin, check your email/pass. If staff, contact your office admin.");
+          throw new Error("Invalid Credentials. Please contact your office admin if issues persist.");
         }
 
       } else {
-        // Registration for new Office Admins
+        // Registration for new Office Admins (Single Firm Model)
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -76,30 +77,20 @@ const Auth = () => {
         });
 
         if (authError) throw authError;
-        if (!authData.user) throw new Error("Registration timed out. Check your network.");
-
-        const workspaceName = `${formData.full_name || 'Admin'}'s Office`;
-        const { data: officeData, error: officeError } = await supabase
-          .from('offices')
-          .insert([{ name: workspaceName }])
-          .select()
-          .single();
-
-        if (officeError) throw officeError;
+        if (!authData.user) throw new Error("Registration timed out.");
 
         const { error: profileError } = await supabase.from('profiles').upsert([{
           id: authData.user.id,
           full_name: formData.full_name,
           email: formData.email,
           role: 'office_admin',
-          office_id: officeData.id,
           status: 'active',
           updated_at: new Date().toISOString()
         }]);
 
         if (profileError) throw profileError;
         
-        showNotification("Firm account created. Please verify your email.", "success");
+        showNotification("Firm account created. Verification email sent.", "success");
         setIsLogin(true);
       }
     } catch (err: any) {

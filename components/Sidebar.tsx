@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -11,45 +11,20 @@ import {
   LogOut, 
   Compass, 
   X,
-  Hammer
+  Hammer,
+  History
 } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
-import { useNotification } from '../App';
-import { Profile } from '../types';
+import { Link, useLocation } from 'react-router-dom';
+import { useUser } from '../App';
 
 interface SidebarProps {
   onClose?: () => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { showNotification } = useNotification();
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
-  
-  useEffect(() => {
-    const fetchProfile = async () => {
-      // 1. Check manual session first
-      const manualSessionStr = localStorage.getItem('donezo_manual_session');
-      if (manualSessionStr) {
-        const manualSession = JSON.parse(manualSessionStr);
-        const { data } = await supabase.from('profiles').select('*').eq('id', manualSession.user.id).single();
-        if (data) {
-          setUserProfile(data);
-          return;
-        }
-      }
-
-      // 2. Fallback to standard Supabase user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setUserProfile(data);
-      }
-    };
-    fetchProfile();
-  }, []);
+  const { profile, isAdmin } = useUser();
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', key: 'dashboard' },
@@ -59,25 +34,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
+    { name: 'Archive', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
     { name: 'Setting', icon: Settings, path: '/settings', key: 'settings' },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
-    if (userProfile?.role === 'office_admin' || userProfile?.role === 'super_admin') return true;
+    // Admin only features
+    if (item.adminOnly && !isAdmin) return false;
+    // Admins see everything else
+    if (isAdmin) return true;
+    // Always show Dashboard
     if (item.key === 'dashboard') return true;
-    return userProfile?.permissions?.[item.key as keyof typeof userProfile.permissions] === true;
+    // Check staff permissions
+    return profile?.permissions?.[item.key as keyof typeof profile.permissions] === true;
   });
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('donezo_manual_session');
-      showNotification("Session terminated. You have been logged out.", "info");
-      window.location.reload();
-    } catch (err) {
-      showNotification("Logout failed.", "error");
-    }
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -92,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           </div>
           <span className="font-bold text-xl text-slate-900 tracking-tight">Donezo</span>
         </div>
-        <button onClick={onClose} className="lg:hidden p-2 text-slate-400">
+        <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -125,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           })}
           
           <button
-            onClick={handleLogout}
+            onClick={onLogout}
             className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group"
           >
             <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-600" />
@@ -142,9 +112,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             </div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">V 3.4.0 Core</p>
           </div>
-          <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-4">You are currently in Workspace Mode.</p>
+          <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-4">
+            {isAdmin ? "Master Access Active." : "Provisioned Access Active."}
+          </p>
           <button className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-[#064e3b] hover:text-white hover:border-transparent transition-all shadow-sm">
-            Quick Guide
+            System Log
           </button>
         </div>
       </div>
