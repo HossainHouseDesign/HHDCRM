@@ -7,7 +7,8 @@ import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   Activity, Target, ArrowRight, ExternalLink,
   Layers, Clock, Layout, UserPlus, Zap, MessageSquare,
-  Briefcase, PlusCircle, Command as CommandIcon
+  Briefcase, PlusCircle, Command as CommandIcon,
+  Check
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -42,6 +43,9 @@ const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Local Notification Dismissal State
+  const [dismissedNotifications, setDismissedNotifications] = useState<string[]>([]);
   
   // Notification Popover State
   const [showNotificationList, setShowNotificationList] = useState(false);
@@ -137,8 +141,15 @@ const Dashboard = () => {
 
   const todaysFollowUps = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    return calendarData[todayStr]?.followUps || [];
-  }, [calendarData]);
+    const initialList = calendarData[todayStr]?.followUps || [];
+    // Filter out dismissed notifications
+    return initialList.filter(f => !dismissedNotifications.includes(f.id));
+  }, [calendarData, dismissedNotifications]);
+
+  const dismissNotification = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDismissedNotifications(prev => [...prev, id]);
+  };
 
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -408,29 +419,44 @@ const Dashboard = () => {
                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">System clear. No follow-ups scheduled for today.</p>
                      </div>
                    ) : (
-                     <div className="space-y-1 px-3">
+                     <div className="space-y-2 px-3">
                         {todaysFollowUps.map(f => (
-                          <button 
+                          <div 
                             key={f.id} 
                             onClick={() => { navigate(`/leads/${f.id}`); setShowNotificationList(false); }}
-                            className="w-full flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all text-left group"
+                            className="w-full flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all text-left group relative cursor-pointer"
                           >
                              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
                                 <Target className="w-5 h-5" />
                              </div>
-                             <div className="min-w-0">
+                             <div className="min-w-0 flex-1">
                                 <p className="text-[13px] font-black text-slate-900 truncate">{f.name}</p>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">Engagement Due Today</p>
                              </div>
-                             <ArrowRight className="w-4 h-4 text-slate-200 ml-auto group-hover:text-emerald-500 transition-colors" />
-                          </button>
+                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <button 
+                                 onClick={(e) => dismissNotification(e, f.id)}
+                                 className="p-1.5 bg-white border border-emerald-100 rounded-lg text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                 title="Clear from list"
+                               >
+                                 <Check className="w-3.5 h-3.5" />
+                               </button>
+                               <ArrowRight className="w-4 h-4 text-slate-200 group-hover:text-emerald-500 transition-colors" />
+                             </div>
+                          </div>
                         ))}
                      </div>
                    )}
                 </div>
-                <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center">
+                <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center flex justify-between items-center px-6">
+                   <button 
+                     onClick={() => setDismissedNotifications(leads.map(l => l.id))} 
+                     className="text-[9px] font-black text-slate-300 uppercase tracking-widest hover:text-red-500 transition-colors"
+                   >
+                      Clear All
+                   </button>
                    <button onClick={() => { navigate('/leads'); setShowNotificationList(false); }} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors">
-                      View Discovery Pipeline
+                      View Pipeline
                    </button>
                 </div>
               </div>
