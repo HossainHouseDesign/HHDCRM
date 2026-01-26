@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -13,7 +12,7 @@ import {
   Hash, X, Save, Mail, FileText, Info, Globe,
   Layout, FileSpreadsheet, Download, FileCheck, ChevronDown,
   UserCheck, User, Home, Zap, Compass, Hammer, Paintbrush,
-  Target
+  Target, MessageSquare
 } from 'lucide-react';
 import { useNotification, useUser } from '../App';
 
@@ -21,7 +20,7 @@ const STANDARD_COLUMNS = [
   'client_name', 'phone', 'email', 'current_location', 'land_area', 'address', 'upazila', 
   'union_name', 'police_station', 'village_name', 'package', 'asking_fee', 'budget', 'social_media', 
   'next_calling_date', 'notes', 'foundation', 'unit_count', 'bedroom_count', 
-  'bathroom_count', 'stair_details', 'status', 'is_client', 'interest_construction', 'interest_interest_interior'
+  'bathroom_count', 'stair_details', 'status', 'is_client', 'interest_construction', 'interest_interior'
 ];
 
 const LeadDetails = () => {
@@ -105,7 +104,6 @@ const LeadDetails = () => {
   const handleStatusUpdate = async (newStatus: LeadStatus, selectedFollowUpDate?: string) => {
     if (!lead || isUpdatingStatus) return;
 
-    // Special Case: Follow Up requires a date selection first
     if (newStatus === 'Follow_Up' && !selectedFollowUpDate) {
       setShowFollowUpModal(true);
       setShowStatusDropdown(false);
@@ -216,7 +214,6 @@ const LeadDetails = () => {
     }, 600);
   };
 
-  // Fix: Implemented handleDownloadDoc to enable Word document export for quotations and resolve compilation error
   const handleDownloadDoc = async () => {
     if (!lead) return;
     setIsGeneratingDoc(true);
@@ -423,6 +420,12 @@ const LeadDetails = () => {
       case 'Interests': return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
       default: return <Compass className="w-4 h-4 text-emerald-500" />;
     }
+  };
+
+  const formatWhatsAppLink = (phone: string) => {
+    const clean = phone.replace(/\D/g, '');
+    const number = clean.startsWith('0') ? `88${clean}` : clean;
+    return `https://wa.me/${number}`;
   };
 
   if (loading || !lead) return (
@@ -649,7 +652,35 @@ const LeadDetails = () => {
             </div>
           </div>
           <div className="lg:col-span-4 space-y-12">
-             <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm"><h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3"><Phone className="w-5 h-5 text-emerald-500" /> Contact Intel</h3><div className="space-y-6"><div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-100 transition-all"><p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Direct Line</p><p className="text-lg font-black text-slate-900">{lead.phone}</p></div><div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-100 transition-all"><p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Vault Email</p><p className="text-lg font-black text-slate-900 truncate">{lead.email || 'N/A'}</p></div><div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-100 transition-all"><p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Origin Country</p><p className="text-lg font-black text-slate-900">{lead.current_location || 'Global Discovery'}</p></div></div></div>
+             <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-emerald-500" /> Contact Intel
+                </h3>
+                <div className="space-y-6">
+                  <a 
+                    href={formatWhatsAppLink(lead.phone)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-500 hover:bg-emerald-50/30 transition-all flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Direct Line</p>
+                      <p className="text-lg font-black text-slate-900">{lead.phone}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                  </a>
+                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-100 transition-all">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Vault Email</p>
+                    <p className="text-lg font-black text-slate-900 truncate">{lead.email || 'N/A'}</p>
+                  </div>
+                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-emerald-100 transition-all">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Origin Country</p>
+                    <p className="text-lg font-black text-slate-900">{lead.current_location || 'Global Discovery'}</p>
+                  </div>
+                </div>
+             </div>
           </div>
         </div>
       </div>

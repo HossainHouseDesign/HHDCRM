@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -8,7 +7,7 @@ import {
   MapPin, Phone, Mail, Banknote, RefreshCw, X, Save, 
   CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown,
   UserCheck, ShieldCheck, User, Map, Home, Zap, Compass, Hammer, Paintbrush,
-  FileText
+  FileText, MessageSquare
 } from 'lucide-react';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { useNotification } from '../App';
@@ -73,6 +72,13 @@ const QuotationDetails = () => {
     }
   };
 
+  const formatWhatsAppLink = (phone: string) => {
+    if (!phone) return '#';
+    const clean = phone.replace(/\D/g, '');
+    const number = clean.startsWith('0') ? `88${clean}` : clean;
+    return `https://wa.me/${number}`;
+  };
+
   const handleConvertToClient = async () => {
     if (!quotation || isConverting) return;
     setIsConverting(true);
@@ -120,9 +126,9 @@ const QuotationDetails = () => {
         }).filter(Boolean);
 
         let specsRows = '';
-        for (let i = 0; i < specs.length; i += 2) {
-          const s1 = specs[i];
-          const s2 = specs[i+1];
+        for (let i = 0; i < (specs as any[]).length; i += 2) {
+          const s1 = (specs as any[])[i];
+          const s2 = (specs as any[])[i+1];
           specsRows += `
             <tr>
               <td style="width: 50%; padding: 4px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
@@ -386,18 +392,50 @@ const QuotationDetails = () => {
           </div>
         </header>
 
-        <div className="bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-xl relative overflow-hidden">
-           <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] mb-12 flex items-center gap-4"><Layout className="w-6 h-6 text-purple-500" /> Technical Proposal Specs</h3>
-           <div className="grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8">
-              {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests' || f.section === 'Financials')).map((f) => (
-                <div key={f.id} className="space-y-2 group">
-                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-purple-500 transition-colors">{f.label}</p>
-                   <div className={`flex items-center gap-3 font-black ${f.db_key === 'asking_fee' ? 'text-purple-700' : 'text-slate-900'}`}>
-                      <Layers className={`w-4 h-4 ${f.db_key === 'asking_fee' ? 'text-purple-500' : 'text-purple-300'}`} />
-                      <span className="text-lg">{getFieldValue(f.db_key) || 'N/A'}</span>
-                   </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+           <div className="lg:col-span-8">
+              <div className="bg-white p-12 md:p-16 rounded-[64px] border border-slate-100 shadow-xl relative overflow-hidden">
+                 <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] mb-12 flex items-center gap-4"><Layout className="w-6 h-6 text-purple-500" /> Technical Proposal Specs</h3>
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8">
+                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests' || f.section === 'Financials')).map((f) => (
+                      <div key={f.id} className="space-y-2 group">
+                         <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-purple-500 transition-colors">{f.label}</p>
+                         <div className={`flex items-center gap-3 font-black ${f.db_key === 'asking_fee' ? 'text-purple-700' : 'text-slate-900'}`}>
+                            <Layers className={`w-4 h-4 ${f.db_key === 'asking_fee' ? 'text-purple-500' : 'text-purple-300'}`} />
+                            <span className="text-lg">{getFieldValue(f.db_key) || 'N/A'}</span>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+
+           <div className="lg:col-span-4">
+              <div className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+                <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-purple-500" /> Contact Intel
+                </h3>
+                <div className="space-y-6">
+                  <a 
+                    href={formatWhatsAppLink(quotation.phone)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-purple-500 hover:bg-purple-50/30 transition-all flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Direct Line</p>
+                      <p className="text-lg font-black text-slate-900">{quotation.phone}</p>
+                    </div>
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                  </a>
+                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-purple-100 transition-all">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Vault Email</p>
+                    <p className="text-lg font-black text-slate-900 truncate">{quotation.email || 'N/A'}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
            </div>
         </div>
       </div>
