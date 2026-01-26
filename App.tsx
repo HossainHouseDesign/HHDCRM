@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -188,7 +189,7 @@ const AppContent = () => {
             <div className="w-9 h-9 bg-[#064e3b] rounded-xl flex items-center justify-center">
               <div className="w-4 h-4 border-[2.5px] border-white rounded-full flex items-center justify-center"><div className="w-1 h-1 bg-white rounded-full"></div></div>
             </div>
-            <span className="font-bold text-lg text-slate-900 tracking-tight">Donezo</span>
+            <span className="font-bold text-lg text-slate-900 tracking-tight">HHD CRM</span>
          </div>
          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg"><Menu className="w-6 h-6" /></button>
       </div>

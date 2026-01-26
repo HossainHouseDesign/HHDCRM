@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -68,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
               <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
-          <span className="font-bold text-xl text-slate-900 tracking-tight">Donezo</span>
+          <span className="font-bold text-xl text-slate-900 tracking-tight">HHD CRM</span>
         </div>
         <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
           <X className="w-5 h-5" />
