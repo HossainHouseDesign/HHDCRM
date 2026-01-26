@@ -8,14 +8,14 @@ import {
   Activity, Target, ArrowRight, ExternalLink,
   Layers, Clock, Layout, UserPlus, Zap, MessageSquare,
   Briefcase, PlusCircle, Command as CommandIcon,
-  Check
+  Check, MapPin, HardHat
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Legend
 } from 'recharts';
 import { supabase } from '../supabaseClient';
-import { Lead, Project, Profile } from '../types';
+import { Lead, Project, Profile, SiteVisit } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { useNotification, useUser } from '../App';
 
@@ -23,6 +23,7 @@ type Timeframe = 'Weekly' | 'Monthly' | 'Yearly';
 
 interface DayMeta {
   followUps: { id: string, name: string }[];
+  siteVisits: { id: string, name: string, location: string }[];
   newLeads: { id: string, name: string }[];
   newClients: { id: string, name: string }[];
   completions: { id: string, name: string }[];
@@ -34,6 +35,7 @@ const Dashboard = () => {
   const { showNotification } = useNotification();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [siteVisits, setSiteVisits] = useState<SiteVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   
@@ -72,13 +74,15 @@ const Dashboard = () => {
       if (isManualSync) setSyncing(true);
       else setLoading(true);
       
-      const [leadsRes, projectsRes] = await Promise.all([
+      const [leadsRes, projectsRes, visitsRes] = await Promise.all([
         supabase.from('leads').select('*, creator:profiles!created_by(full_name)').is('deleted_at', null).order('created_at', { ascending: false }),
-        supabase.from('projects').select('*, client:leads(*)').is('deleted_at', null)
+        supabase.from('projects').select('*, client:leads(*)').is('deleted_at', null),
+        supabase.from('site_visits').select('*, project:projects(*, client:leads(*)), lead:leads(*), creator:profiles!scheduled_by(full_name)').is('deleted_at', null)
       ]);
       
       setLeads(leadsRes.data || []);
       setProjects(projectsRes.data || []);
+      setSiteVisits(visitsRes.data || []);
       
       if (isManualSync) {
         showNotification("Vault synchronization complete.", "success");
@@ -109,7 +113,7 @@ const Dashboard = () => {
   const calendarData = useMemo(() => {
     const data: Record<string, DayMeta> = {};
     const ensureDate = (d: string) => {
-      if (!data[d]) data[d] = { followUps: [], newLeads: [], newClients: [], completions: [] };
+      if (!data[d]) data[d] = { followUps: [], siteVisits: [], newLeads: [], newClients: [], completions: [] };
     };
 
     leads.forEach(l => {
@@ -128,6 +132,15 @@ const Dashboard = () => {
       }
     });
 
+    siteVisits.forEach(v => {
+      ensureDate(v.visit_date);
+      data[v.visit_date].siteVisits.push({ 
+        id: v.id, 
+        name: v.project?.name || v.lead?.client_name || 'Untitled Site Operation', 
+        location: v.location 
+      });
+    });
+
     projects.filter(p => p.status === 'Complete').forEach(p => {
        const completedDate = p.updated_at?.split('T')[0];
        if (completedDate) {
@@ -137,13 +150,18 @@ const Dashboard = () => {
     });
 
     return data;
-  }, [leads, projects]);
+  }, [leads, projects, siteVisits]);
 
-  const todaysFollowUps = useMemo(() => {
+  const todaysAgendaItems = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
-    const initialList = calendarData[todayStr]?.followUps || [];
-    // Filter out dismissed notifications
-    return initialList.filter(f => !dismissedNotifications.includes(f.id));
+    const items = calendarData[todayStr] || { followUps: [], siteVisits: [], newLeads: [], newClients: [], completions: [] };
+    
+    const combined = [
+      ...items.siteVisits.map(v => ({ ...v, type: 'visit' as const })),
+      ...items.followUps.map(f => ({ ...f, type: 'followup' as const }))
+    ];
+
+    return combined.filter(i => !dismissedNotifications.includes(i.id));
   }, [calendarData, dismissedNotifications]);
 
   const dismissNotification = (e: React.MouseEvent, id: string) => {
@@ -272,7 +290,7 @@ const Dashboard = () => {
   }, [leads, projects, timeframe]);
 
   const selectedDayStats = useMemo(() => {
-    return calendarData[selectedDate] || { followUps: [], newLeads: [], newClients: [], completions: [] };
+    return calendarData[selectedDate] || { followUps: [], siteVisits: [], newLeads: [], newClients: [], completions: [] };
   }, [calendarData, selectedDate]);
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -320,7 +338,6 @@ const Dashboard = () => {
                      </div>
                    ) : (
                      <>
-                        {/* PROJECTS CATEGORY */}
                         {searchResults.projects.length > 0 && (
                           <div className="space-y-1 pb-4">
                             <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest px-4 mb-2">Portfolio Projects</p>
@@ -338,7 +355,6 @@ const Dashboard = () => {
                           </div>
                         )}
 
-                        {/* CLIENTS CATEGORY */}
                         {searchResults.clients.length > 0 && (
                           <div className="space-y-1 pb-4">
                             <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest px-4 mb-2">Verified Clients</p>
@@ -356,7 +372,6 @@ const Dashboard = () => {
                           </div>
                         )}
 
-                        {/* LEADS CATEGORY */}
                         {searchResults.leads.length > 0 && (
                           <div className="space-y-1 pb-2">
                             <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest px-4 mb-2">Pipeline Leads</p>
@@ -376,9 +391,6 @@ const Dashboard = () => {
                      </>
                    )}
                 </div>
-                <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center">
-                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Enterprise Search Protocol V2.1</p>
-                </div>
              </div>
            )}
         </div>
@@ -397,10 +409,10 @@ const Dashboard = () => {
               onClick={() => setShowNotificationList(!showNotificationList)}
               className={`p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm relative group ${showNotificationList ? 'ring-2 ring-emerald-500/20 bg-emerald-50/10' : ''}`}
             >
-              <Bell className={`w-6 h-6 transition-colors ${todaysFollowUps.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
-              {todaysFollowUps.length > 0 && (
+              <Bell className={`w-6 h-6 transition-colors ${todaysAgendaItems.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
+              {todaysAgendaItems.length > 0 && (
                 <div className="absolute top-3 right-3 min-w-[20px] h-5 px-1 bg-emerald-600 border-2 border-white rounded-full flex items-center justify-center shadow-md">
-                   <span className="text-[10px] font-black text-white leading-none">{todaysFollowUps.length}</span>
+                   <span className="text-[10px] font-black text-white leading-none">{todaysAgendaItems.length}</span>
                 </div>
               )}
             </button>
@@ -410,38 +422,37 @@ const Dashboard = () => {
               <div className="absolute top-[calc(100%+12px)] right-0 w-80 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Today's Agenda</h5>
-                   <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase">{todaysFollowUps.length} Pending</span>
+                   <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase">{todaysAgendaItems.length} Pending</span>
                 </div>
                 <div className="max-h-80 overflow-y-auto no-scrollbar py-3">
-                   {todaysFollowUps.length === 0 ? (
+                   {todaysAgendaItems.length === 0 ? (
                      <div className="p-10 text-center space-y-4">
                         <Zap className="w-8 h-8 text-slate-200 mx-auto" />
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">System clear. No follow-ups scheduled for today.</p>
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">System clear. No visits or follow-ups for today.</p>
                      </div>
                    ) : (
                      <div className="space-y-2 px-3">
-                        {todaysFollowUps.map(f => (
+                        {todaysAgendaItems.map(i => (
                           <div 
-                            key={f.id} 
-                            onClick={() => { navigate(`/leads/${f.id}`); setShowNotificationList(false); }}
-                            className="w-full flex items-center gap-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all text-left group relative cursor-pointer"
+                            key={i.id} 
+                            onClick={() => { navigate(i.type === 'visit' ? '/site-visits' : `/leads/${i.id}`); setShowNotificationList(false); }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-left group relative cursor-pointer ${i.type === 'visit' ? 'hover:bg-blue-50' : 'hover:bg-emerald-50'}`}
                           >
-                             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-                                <Target className="w-5 h-5" />
+                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 group-hover:text-white transition-all shadow-sm ${i.type === 'visit' ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600'}`}>
+                                {i.type === 'visit' ? <MapPin className="w-5 h-5" /> : <Target className="w-5 h-5" />}
                              </div>
                              <div className="min-w-0 flex-1">
-                                <p className="text-[13px] font-black text-slate-900 truncate">{f.name}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">Engagement Due Today</p>
+                                <p className="text-[13px] font-black text-slate-900 truncate">{i.name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{i.type === 'visit' ? 'Site Visitation' : 'Engagement Due'}</p>
                              </div>
                              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                <button 
-                                 onClick={(e) => dismissNotification(e, f.id)}
-                                 className="p-1.5 bg-white border border-emerald-100 rounded-lg text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                                 title="Clear from list"
+                                 onClick={(e) => dismissNotification(e, i.id)}
+                                 className="p-1.5 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all shadow-sm"
                                >
                                  <Check className="w-3.5 h-3.5" />
                                </button>
-                               <ArrowRight className="w-4 h-4 text-slate-200 group-hover:text-emerald-500 transition-colors" />
+                               <ArrowRight className={`w-4 h-4 text-slate-200 ${i.type === 'visit' ? 'group-hover:text-blue-500' : 'group-hover:text-emerald-500'} transition-colors`} />
                              </div>
                           </div>
                         ))}
@@ -450,13 +461,13 @@ const Dashboard = () => {
                 </div>
                 <div className="p-4 bg-slate-50/30 border-t border-slate-50 text-center flex justify-between items-center px-6">
                    <button 
-                     onClick={() => setDismissedNotifications(leads.map(l => l.id))} 
+                     onClick={() => setDismissedNotifications(todaysAgendaItems.map(i => i.id))} 
                      className="text-[9px] font-black text-slate-300 uppercase tracking-widest hover:text-red-500 transition-colors"
                    >
                       Clear All
                    </button>
-                   <button onClick={() => { navigate('/leads'); setShowNotificationList(false); }} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-colors">
-                      View Pipeline
+                   <button onClick={() => { navigate('/site-visits'); setShowNotificationList(false); }} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-[#064e3b] transition-colors">
+                      View Hub
                    </button>
                 </div>
               </div>
@@ -492,10 +503,10 @@ const Dashboard = () => {
               <PlusCircle className="w-5 h-5" /> Add New Lead
             </button>
             <button 
-              onClick={() => navigate('/clients/add')} 
-              className="flex items-center gap-3 px-10 py-5 bg-indigo-600 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
+              onClick={() => navigate('/site-visits?schedule=true')} 
+              className="flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
             >
-              <Briefcase className="w-5 h-5" /> Add Client
+              <MapPin className="w-5 h-5" /> Schedule Visit
             </button>
             <button 
               onClick={() => navigate('/projects?new=true')} 
@@ -506,7 +517,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {[
             { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'bg-emerald-600' },
@@ -532,13 +542,12 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-          {/* Chart Section */}
           <div className="xl:col-span-8 bg-white p-10 rounded-[56px] border border-slate-100 shadow-sm space-y-12">
             <div className="flex justify-between items-center">
               <div>
                 <h4 className="text-xl font-black text-slate-900 tracking-tight">Portfolio Velocity</h4>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-2 opacity-80 flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> {timeframe.toUpperCase()} PIPELINE PERFORMANCE
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> {timeframe.toUpperCase() + ' PERFORMANCE'}
                 </p>
               </div>
               <div className="bg-slate-100 p-1.5 rounded-[24px] flex gap-2">
@@ -588,6 +597,7 @@ const Dashboard = () => {
                 if (day === null) return <div key={`empty-${i}`} className="h-10" />;
                 const dateKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 const hasFollowUp = (calendarData[dateKey]?.followUps.length || 0) > 0;
+                const hasSiteVisit = (calendarData[dateKey]?.siteVisits.length || 0) > 0;
                 const isSelected = selectedDate === dateKey;
                 return (
                   <button 
@@ -596,7 +606,10 @@ const Dashboard = () => {
                     className={`h-10 relative flex items-center justify-center text-xs font-bold rounded-xl transition-all ${isSelected ? 'bg-[#064e3b] text-white shadow-lg' : 'hover:bg-slate-50 text-slate-600'}`}
                   >
                     {day}
-                    {hasFollowUp && <div className={`absolute bottom-1.5 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />}
+                    <div className="absolute bottom-1.5 flex gap-0.5">
+                      {hasFollowUp && <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-amber-500 animate-pulse'}`} />}
+                      {hasSiteVisit && <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500 animate-pulse'}`} />}
+                    </div>
                   </button>
                 );
               })}
@@ -604,13 +617,25 @@ const Dashboard = () => {
 
             <div className="flex-1 bg-slate-50/50 p-8 rounded-b-[56px] space-y-6 overflow-y-auto no-scrollbar max-h-[300px]">
                <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Day Intel: {selectedDate}</h5>
-               {selectedDayStats.followUps.length === 0 && selectedDayStats.newLeads.length === 0 ? (
+               {selectedDayStats.followUps.length === 0 && selectedDayStats.siteVisits.length === 0 && selectedDayStats.newLeads.length === 0 ? (
                  <div className="py-10 text-center space-y-3">
                     <Zap className="w-8 h-8 text-slate-200 mx-auto" />
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No site visits or follow-ups</p>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No activities scheduled</p>
                  </div>
                ) : (
                  <div className="space-y-4">
+                    {selectedDayStats.siteVisits.map(v => (
+                      <div key={v.id} onClick={() => navigate(`/site-visits`)} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 cursor-pointer hover:border-blue-200 transition-all group shadow-sm">
+                         <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all"><MapPin className="w-5 h-5" /></div>
+                            <div className="min-w-0">
+                               <p className="text-[13px] font-black text-slate-900 truncate max-w-[120px]">{v.name}</p>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase truncate">{v.location}</p>
+                            </div>
+                         </div>
+                         <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 transition-colors" />
+                      </div>
+                    ))}
                     {selectedDayStats.followUps.map(f => (
                       <div key={f.id} onClick={() => navigate(`/leads/${f.id}`)} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 cursor-pointer hover:border-amber-200 transition-all group shadow-sm">
                          <div className="flex items-center gap-4">
@@ -621,18 +646,6 @@ const Dashboard = () => {
                             </div>
                          </div>
                          <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition-colors" />
-                      </div>
-                    ))}
-                    {selectedDayStats.newLeads.map(l => (
-                      <div key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="flex items-center justify-between p-5 bg-white rounded-3xl border border-slate-100 cursor-pointer hover:border-emerald-200 transition-all group shadow-sm">
-                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all"><Plus className="w-5 h-5" /></div>
-                            <div>
-                               <p className="text-[13px] font-black text-slate-900 truncate max-w-[120px]">{l.name}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase">Inquiry Ingested</p>
-                            </div>
-                         </div>
-                         <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors" />
                       </div>
                     ))}
                  </div>

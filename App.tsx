@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -19,6 +18,7 @@ import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import QuotationList from './pages/QuotationList';
 import QuotationDetails from './pages/QuotationDetails';
+import SiteVisitList from './pages/SiteVisitList';
 import Auth from './pages/Auth';
 import { supabase } from './supabaseClient';
 import { Profile } from './types';
@@ -202,6 +202,7 @@ const AppContent = () => {
             <Route path="/leads/new" element={<LeadForm />} />
             <Route path="/leads/edit/:id" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
+            <Route path="/site-visits" element={<SiteVisitList />} />
             <Route path="/quotations" element={<QuotationList />} />
             <Route path="/quotations/add" element={<AddQuotation />} />
             <Route path="/quotations/:id" element={<QuotationDetails />} />

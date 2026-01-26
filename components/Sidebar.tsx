@@ -14,7 +14,8 @@ import {
   History,
   UserCircle,
   Smartphone,
-  Download
+  Download,
+  MapPin
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../App';
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', key: 'dashboard' },
     { name: 'Lead', icon: FileText, path: '/leads', badge: '12+', key: 'leads' },
+    { name: 'Site Visit', icon: MapPin, path: '/site-visits', key: 'projects' },
     { name: 'Quotation', icon: FileSpreadsheet, path: '/quotations', key: 'quotations' },
     { name: 'Client', icon: Users, path: '/clients', key: 'clients' },
     { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },
@@ -106,7 +108,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
       </div>
 
       <div className="p-4 mt-auto border-t border-slate-50 space-y-4">
-        {/* New Profile Widget */}
         <div 
           onClick={() => navigate('/settings')}
           className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all"

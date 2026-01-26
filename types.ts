@@ -1,4 +1,3 @@
-
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
 export type UserRole = 'super_admin' | 'office_admin' | 'staff' | 'admin';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
@@ -15,7 +14,6 @@ export interface Profile {
   deleted_at?: string;
   created_at: string;
   login_password?: string;
-  // Fix: Added office_id property to match database schema requirements
   office_id?: string;
   permissions?: {
     leads?: boolean;
@@ -26,6 +24,23 @@ export interface Profile {
     team?: boolean;
     settings?: boolean;
   };
+}
+
+export interface SiteVisit {
+  id: string;
+  project_id?: string;
+  lead_id?: string;
+  location: string;
+  visit_date: string;
+  notes?: string;
+  scheduled_by: string;
+  office_id?: string;
+  created_at: string;
+  deleted_at?: string;
+  project?: Project;
+  lead?: Lead;
+  creator?: Profile;
+  assignments?: { profile: Profile }[];
 }
 
 export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea' | 'checkbox';
@@ -59,7 +74,6 @@ export interface Lead {
   budget?: string;
   social_media?: string;
   next_calling_date?: string;
-  // Fix: Added follow_up_date to satisfy tracking requirements and resolve type errors
   follow_up_date?: string;
   notes?: string;
   status: LeadStatus;
@@ -77,7 +91,6 @@ export interface Lead {
   metadata?: Record<string, any>; 
   deleted_at?: string;
   created_by?: string;
-  // Fix: Added office_id property to match database schema requirements
   office_id?: string;
   creator?: {
     full_name: string;
