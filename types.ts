@@ -23,6 +23,7 @@ export interface Profile {
     construction?: boolean;
     team?: boolean;
     settings?: boolean;
+    site_visits?: boolean;
   };
 }
 

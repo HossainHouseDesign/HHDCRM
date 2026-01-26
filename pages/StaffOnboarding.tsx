@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, UserCircle, Mail, Briefcase, 
   ShieldCheck, RefreshCw, Building2, Eye, EyeOff, Lock, 
   CheckCircle2, FileText, FileSpreadsheet, Users, Layers, 
-  Hammer, Users2, Settings, Wand2, ShieldAlert
+  Hammer, Users2, Settings, Wand2, ShieldAlert, MapPin
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { UserRole, Profile } from '../types';
@@ -33,6 +32,7 @@ const StaffOnboarding = () => {
 
   const [permissions, setPermissions] = useState<Record<string, boolean>>({
     leads: true,
+    site_visits: true,
     quotations: false,
     clients: false,
     projects: false,
@@ -124,6 +124,7 @@ const StaffOnboarding = () => {
 
   const permissionList = [
     { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management', icon: FileText },
+    { key: 'site_visits', label: 'Site Visit', desc: 'Field operation logs', icon: MapPin },
     { key: 'quotations', label: 'Quotations', desc: 'Proposal management', icon: FileSpreadsheet },
     { key: 'clients', label: 'Client Directory', desc: 'Active contracts', icon: Users },
     { key: 'projects', label: 'Project Vault', desc: 'Design tracking', icon: Layers },

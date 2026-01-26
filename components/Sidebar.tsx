@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -34,7 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', key: 'dashboard' },
     { name: 'Lead', icon: FileText, path: '/leads', badge: '12+', key: 'leads' },
-    { name: 'Site Visit', icon: MapPin, path: '/site-visits', key: 'projects' },
+    { name: 'Site Visit', icon: MapPin, path: '/site-visits', key: 'site_visits' },
     { name: 'Quotation', icon: FileSpreadsheet, path: '/quotations', key: 'quotations' },
     { name: 'Client', icon: Users, path: '/clients', key: 'clients' },
     { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },

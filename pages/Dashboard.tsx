@@ -496,24 +496,30 @@ const Dashboard = () => {
             <p className="text-slate-400 text-sm mt-2 font-medium">Global oversight of pipeline velocity and site operations.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <button 
-              onClick={() => navigate('/leads/new')} 
-              className="flex items-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
-            >
-              <PlusCircle className="w-5 h-5" /> Add New Lead
-            </button>
-            <button 
-              onClick={() => navigate('/site-visits?schedule=true')} 
-              className="flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
-            >
-              <MapPin className="w-5 h-5" /> Schedule Visit
-            </button>
-            <button 
-              onClick={() => navigate('/projects?new=true')} 
-              className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-[#064e3b] hover:scale-105 active:scale-95 transition-all"
-            >
-              <Layers className="w-5 h-5" /> Add Project
-            </button>
+            {(isAdmin || profile?.permissions?.leads) && (
+              <button 
+                onClick={() => navigate('/leads/new')} 
+                className="flex items-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
+              >
+                <PlusCircle className="w-5 h-5" /> Add New Lead
+              </button>
+            )}
+            {(isAdmin || profile?.permissions?.site_visits) && (
+              <button 
+                onClick={() => navigate('/site-visits?schedule=true')} 
+                className="flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-900/20 hover:bg-black hover:scale-105 active:scale-95 transition-all"
+              >
+                <MapPin className="w-5 h-5" /> Schedule Visit
+              </button>
+            )}
+            {(isAdmin || profile?.permissions?.projects) && (
+              <button 
+                onClick={() => navigate('/projects?new=true')} 
+                className="flex items-center gap-3 px-10 py-5 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-[#064e3b] hover:scale-105 active:scale-95 transition-all"
+              >
+                <Layers className="w-5 h-5" /> Add Project
+              </button>
+            )}
           </div>
         </div>
 
