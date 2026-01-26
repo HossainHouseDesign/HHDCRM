@@ -3,22 +3,25 @@ import { supabase } from '../supabaseClient';
 import { Lead, Profile, Project } from '../types';
 import { 
   Trash2, RefreshCw, ArrowLeft, History, 
-  User, Briefcase, FileText, Trash, AlertTriangle, 
-  RotateCcw, Search, CheckCircle2, X, Layers, HardHat
+  User, FileText, Trash, AlertTriangle, 
+  RotateCcw, Search, CheckCircle2, X, Layers, HardHat,
+  MapPin, Briefcase
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../App';
+
+type BinTab = 'leads' | 'clients' | 'team' | 'projects' | 'construction' | 'visits';
 
 const RecycleBin = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'leads' | 'clients' | 'team' | 'projects' | 'construction'>('leads');
-  const [items, setItems] = useState<(Lead | Profile | Project | any)[]>([]);
+  const [activeTab, setActiveTab] = useState<BinTab>('leads');
+  const [items, setItems] = useState<(any)[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [purgeTarget, setPurgeTarget] = useState<Lead | Profile | Project | any | null>(null);
+  const [purgeTarget, setPurgeTarget] = useState<any | null>(null);
 
   useEffect(() => {
     fetchDeletedItems();
@@ -34,6 +37,9 @@ const RecycleBin = () => {
         query = supabase.from('projects').select('*').not('deleted_at', 'is', null);
       } else if (activeTab === 'construction') {
         query = supabase.from('construction_projects').select('*').not('deleted_at', 'is', null);
+      } else if (activeTab === 'visits') {
+        // Fetch visits with related client/project info for display
+        query = supabase.from('site_visits').select('*, project:projects(name), lead:leads(client_name)').not('deleted_at', 'is', null);
       } else {
         const isClient = activeTab === 'clients';
         query = supabase.from('leads').select('*').eq('is_client', isClient).not('deleted_at', 'is', null);
@@ -56,6 +62,7 @@ const RecycleBin = () => {
       if (activeTab === 'team') table = 'profiles';
       if (activeTab === 'projects') table = 'projects';
       if (activeTab === 'construction') table = 'construction_projects';
+      if (activeTab === 'visits') table = 'site_visits';
       
       const { error } = await supabase.from(table).update({ deleted_at: null }).eq('id', id);
       if (error) throw error;
@@ -75,6 +82,7 @@ const RecycleBin = () => {
     if (activeTab === 'team') table = 'profiles';
     if (activeTab === 'projects') table = 'projects';
     if (activeTab === 'construction') table = 'construction_projects';
+    if (activeTab === 'visits') table = 'site_visits';
 
     try {
       const { error } = await supabase.from(table).delete().eq('id', purgeTarget.id);
@@ -89,23 +97,20 @@ const RecycleBin = () => {
     }
   };
 
-  const filteredItems = items.filter(item => {
-    let name = '';
-    if ('client_name' in item) name = item.client_name;
-    else if ('full_name' in item) name = item.full_name;
-    else if ('name' in item) name = item.name;
-    else if ('title' in item) name = item.title;
-    return name?.toLowerCase().includes(searchTerm.toLowerCase());
-  });
-
-  const getTargetName = (item: Lead | Profile | Project | any | null) => {
+  const getTargetName = (item: any) => {
     if (!item) return '';
+    if (activeTab === 'visits') return item.project?.name || item.lead?.client_name || 'Untitled Visit';
     if ('client_name' in item) return item.client_name;
     if ('full_name' in item) return item.full_name;
     if ('name' in item) return item.name;
     if ('title' in item) return item.title;
-    return '';
+    return 'Unknown Record';
   };
+
+  const filteredItems = items.filter(item => {
+    const name = getTargetName(item);
+    return name?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-10 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
@@ -137,9 +142,10 @@ const RecycleBin = () => {
             { id: 'clients', label: 'Clients', icon: Briefcase },
             { id: 'projects', label: 'Projects', icon: Layers },
             { id: 'construction', label: 'Sites', icon: HardHat },
+            { id: 'visits', label: 'Visits', icon: MapPin },
             { id: 'team', label: 'Team', icon: User }
           ].map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`whitespace-nowrap px-8 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20' : 'text-slate-400 hover:bg-slate-50'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as BinTab)} className={`whitespace-nowrap px-8 py-4 rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20' : 'text-slate-400 hover:bg-slate-50'}`}>
               <tab.icon className="w-4 h-4" /> {tab.label}
             </button>
           ))}
@@ -171,11 +177,12 @@ const RecycleBin = () => {
                   const isProcessing = processingId === item.id;
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/30 transition-all group">
-                      <td className="px-12 py-8"><div className="flex items-center gap-5"><div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-2xl flex items-center justify-center font-black group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">{name?.charAt(0)}</div><div><p className="text-sm font-black text-slate-900">{name}</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70">
-                        {activeTab === 'team' ? (item as Profile).role : 
-                         activeTab === 'projects' ? (item as Project).status : 
+                      <td className="px-12 py-8"><div className="flex items-center gap-5"><div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black group-hover:text-white transition-all shadow-sm ${activeTab === 'visits' ? 'bg-blue-50 text-blue-300 group-hover:bg-blue-600' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-900'}`}>{name?.charAt(0)}</div><div><p className="text-sm font-black text-slate-900">{name}</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70">
+                        {activeTab === 'team' ? item.role : 
+                         activeTab === 'projects' ? item.status : 
                          activeTab === 'construction' ? item.current_stage :
-                         (item as Lead).package || 'General Discovery'}
+                         activeTab === 'visits' ? `Visit to ${item.location}` :
+                         item.package || 'General Discovery'}
                       </p></div></div></td>
                       <td className="px-12 py-8 text-slate-500 font-bold text-[11px]">{new Date(item.deleted_at!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                       <td className="px-12 py-8 text-right"><div className="flex items-center justify-end gap-3 opacity-60 group-hover:opacity-100 transition-opacity"><button disabled={isProcessing} onClick={() => handleRestore(item.id)} className="px-6 py-3 bg-white border border-slate-100 text-emerald-600 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all flex items-center gap-2 shadow-sm active:scale-95">{isProcessing && processingId === item.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}Restore</button><button disabled={isProcessing} onClick={() => setPurgeTarget(item)} className="px-6 py-3 bg-red-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-xl shadow-red-900/20 active:scale-95"><Trash2 className="w-3.5 h-3.5" />Purge</button></div></td>

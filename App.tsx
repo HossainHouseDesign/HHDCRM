@@ -19,6 +19,7 @@ import ProjectDetails from './pages/ProjectDetails';
 import QuotationList from './pages/QuotationList';
 import QuotationDetails from './pages/QuotationDetails';
 import SiteVisitList from './pages/SiteVisitList';
+import SiteVisitDetails from './pages/SiteVisitDetails';
 import Auth from './pages/Auth';
 import { supabase } from './supabaseClient';
 import { Profile } from './types';
@@ -203,6 +204,7 @@ const AppContent = () => {
             <Route path="/leads/edit/:id" element={<LeadForm />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
             <Route path="/site-visits" element={<SiteVisitList />} />
+            <Route path="/site-visits/:id" element={<SiteVisitDetails />} />
             <Route path="/quotations" element={<QuotationList />} />
             <Route path="/quotations/add" element={<AddQuotation />} />
             <Route path="/quotations/:id" element={<QuotationDetails />} />

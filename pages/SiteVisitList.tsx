@@ -307,7 +307,7 @@ const SiteVisitList = () => {
            </div>
 
            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-[24px] border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-[24px] border border-slate-50 shadow-sm">
                  {(['All', 'Today', 'Weekly', 'Custom'] as DateFilter[]).map(opt => (
                    <button 
                      key={opt}
@@ -359,7 +359,7 @@ const SiteVisitList = () => {
                   {filteredVisits.map((v) => {
                     const isToday = v.visit_date === new Date().toISOString().split('T')[0];
                     return (
-                      <tr key={v.id} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
+                      <tr key={v.id} onClick={() => navigate(`/site-visits/${v.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
                         <td className="px-10 py-8">
                            <div className="flex items-center gap-5">
                               <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-black group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm ${isToday ? 'bg-blue-600 text-white animate-pulse' : 'bg-slate-50 text-slate-400'}`}>
