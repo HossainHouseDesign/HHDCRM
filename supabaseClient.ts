@@ -18,11 +18,16 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *   location TEXT NOT NULL,
  *   visit_date DATE NOT NULL,
  *   notes TEXT,
+ *   payment_status TEXT DEFAULT 'Free',
+ *   status TEXT DEFAULT 'Upcoming',
  *   scheduled_by UUID REFERENCES public.profiles(id),
  *   office_id UUID,
  *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
  *   deleted_at TIMESTAMP WITH TIME ZONE
  * );
+ * 
+ * ALTER TABLE public.site_visits ADD CONSTRAINT check_payment_status CHECK (payment_status IN ('Pre-paid', 'Post-paid', 'Free'));
+ * ALTER TABLE public.site_visits ADD CONSTRAINT check_visit_status CHECK (status IN ('Upcoming', 'Done', 'Hold'));
  * 
  * -- 2. TEAM ASSIGNMENTS JOIN TABLE
  * CREATE TABLE IF NOT EXISTS public.site_visit_assignments (
@@ -48,4 +53,6 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  * 
  * -- 4. PERFORMANCE INDEXES
  * CREATE INDEX IF NOT EXISTS idx_site_visits_date ON public.site_visits(visit_date);
+ * CREATE INDEX IF NOT EXISTS idx_site_visits_payment_status ON public.site_visits(payment_status);
+ * CREATE INDEX IF NOT EXISTS idx_site_visits_status ON public.site_visits(status);
  */

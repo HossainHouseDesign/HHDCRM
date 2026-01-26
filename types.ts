@@ -1,6 +1,8 @@
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
 export type UserRole = 'super_admin' | 'office_admin' | 'staff' | 'admin';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
+export type PaymentStatus = 'Pre-paid' | 'Post-paid' | 'Free';
+export type VisitStatus = 'Upcoming' | 'Done' | 'Hold';
 
 export interface Profile {
   id: string;
@@ -34,8 +36,10 @@ export interface SiteVisit {
   location: string;
   visit_date: string;
   notes?: string;
+  status: VisitStatus;
   scheduled_by: string;
   office_id?: string;
+  payment_status: PaymentStatus;
   created_at: string;
   deleted_at?: string;
   project?: Project;
