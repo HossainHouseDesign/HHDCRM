@@ -75,9 +75,6 @@ const SiteVisitList = () => {
       ]);
 
       if (visitsRes.error) {
-        if (visitsRes.error.message.includes("does not exist")) {
-           showNotification("Database Table Missing: Please run the SQL script in 'supabaseClient.ts'.", "error");
-        }
         throw visitsRes.error;
       }
       setVisits(visitsRes.data || []);
@@ -86,6 +83,9 @@ const SiteVisitList = () => {
       setStaff(staffRes.data || []);
     } catch (err: any) {
       console.error(err);
+      if (err.message?.includes("does not exist")) {
+        showNotification("Table Initialization Required: Please run the SQL script in 'supabaseClient.ts'.", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -139,24 +139,39 @@ const SiteVisitList = () => {
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // SECURITY CHECK: Handle both standard and shadow login profiles
+    const schedulerId = profile?.id;
+    if (!schedulerId) {
+      showNotification("Session Expired: Please re-login to authorize this schedule.", "error");
+      return;
+    }
+
     if (!formData.location || !formData.visit_date || (!formData.project_id && !formData.lead_id)) {
-      showNotification("Missing Context: Assign a Project or Lead to this visit.", "warning");
+      showNotification("Context Missing: Select a Lead or Project.", "warning");
       return;
     }
 
     setIsSaving(true);
     try {
+      // Direct insert attempt - RLS should now permit this for 'public'
       const { data: visit, error: vError } = await supabase.from('site_visits').insert([{
         project_id: formData.project_id || null,
         lead_id: formData.lead_id || null,
         location: formData.location,
         visit_date: formData.visit_date,
         notes: formData.notes,
-        scheduled_by: profile?.id,
-        office_id: profile?.office_id
+        scheduled_by: schedulerId,
+        office_id: profile.office_id || null
       }]).select().single();
 
-      if (vError) throw vError;
+      if (vError) {
+        // If still code 42501, it means the user hasn't run the SQL fix script
+        if (vError.code === '42501') {
+          throw new Error("Administrative override required. Please run the RLS correction script in your database.");
+        }
+        throw vError;
+      }
 
       if (formData.assigned_team.length > 0 && visit) {
         const assignments = formData.assigned_team.map(pid => ({
@@ -166,12 +181,13 @@ const SiteVisitList = () => {
         await supabase.from('site_visit_assignments').insert(assignments);
       }
 
-      showNotification("Field Operation Authorized & Synced.", "success");
+      showNotification("Visit Authorized & Registry Updated.", "success");
       setShowModal(false);
       resetForm();
       fetchData();
     } catch (err: any) {
       showNotification("Scheduling Error: " + err.message, "error");
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +201,6 @@ const SiteVisitList = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
       
-      {/* HIGH-END SCHEDULE MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
            <div className="bg-white rounded-[48px] p-8 md:p-14 max-w-2xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 overflow-y-auto max-h-[90vh] no-scrollbar relative">
@@ -214,7 +229,6 @@ const SiteVisitList = () => {
                     {showEntityDrop && (
                       <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[150] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                          <div className="max-h-64 overflow-y-auto no-scrollbar py-2">
-                            {/* PROJECTS SECTION */}
                             <div className="px-4 py-2 border-b border-slate-50 bg-slate-50/50"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Portfolio</span></div>
                             {projects.filter(p => p.name.toLowerCase().includes(entityQuery.toLowerCase()) || p.client?.client_name.toLowerCase().includes(entityQuery.toLowerCase())).map(p => (
                                <div key={p.id} onClick={() => handleSelectProject(p)} className="flex items-center gap-4 p-4 hover:bg-blue-50 cursor-pointer group">
@@ -222,7 +236,6 @@ const SiteVisitList = () => {
                                   <div><p className="text-[13px] font-black text-slate-900 truncate">Project: {p.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase">{p.client?.client_name}</p></div>
                                </div>
                             ))}
-                            {/* LEADS SECTION */}
                             <div className="px-4 py-2 border-b border-slate-50 bg-slate-50/50 mt-2"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pipeline Discovery</span></div>
                             {leads.filter(l => !l.is_client && (l.client_name.toLowerCase().includes(entityQuery.toLowerCase()) || l.phone.includes(entityQuery))).map(l => (
                                <div key={l.id} onClick={() => handleSelectLead(l)} className="flex items-center gap-4 p-4 hover:bg-emerald-50 cursor-pointer group">

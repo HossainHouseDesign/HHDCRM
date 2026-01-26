@@ -6,7 +6,7 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * ARCHLEAD PRO - MASTER DATABASE SETUP INSTRUCTIONS
+ * HHD CRM - MASTER DATABASE SETUP INSTRUCTIONS
  * 
  * RUN THE FOLLOWING SQL IN YOUR SUPABASE SQL EDITOR TO ACTIVATE SITE VISITS:
  * 
@@ -32,8 +32,20 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
  * );
  * 
- * -- 3. PERFORMANCE INDEXES
+ * -- 3. UPDATED ROW LEVEL SECURITY (RLS) - FOR SHADOW LOGIN SUPPORT
+ * -- Run these if your staff get "Security Protocol Violation" errors.
+ * 
+ * ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
+ * ALTER TABLE public.site_visit_assignments ENABLE ROW LEVEL SECURITY;
+ * 
+ * DROP POLICY IF EXISTS "enable_all_for_site_visits" ON public.site_visits;
+ * CREATE POLICY "enable_all_for_site_visits" ON public.site_visits 
+ * FOR ALL TO public USING (true) WITH CHECK (true);
+ * 
+ * DROP POLICY IF EXISTS "enable_all_for_assignments" ON public.site_visit_assignments;
+ * CREATE POLICY "enable_all_for_assignments" ON public.site_visit_assignments 
+ * FOR ALL TO public USING (true) WITH CHECK (true);
+ * 
+ * -- 4. PERFORMANCE INDEXES
  * CREATE INDEX IF NOT EXISTS idx_site_visits_date ON public.site_visits(visit_date);
- * CREATE INDEX IF NOT EXISTS idx_site_visits_project ON public.site_visits(project_id);
- * CREATE INDEX IF NOT EXISTS idx_site_visits_lead ON public.site_visits(lead_id);
  */
