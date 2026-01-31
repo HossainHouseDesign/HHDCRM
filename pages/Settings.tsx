@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Fix: Added missing 'Hash' import from lucide-react
 import { 
   Plus, Trash2, RefreshCw, Eye, EyeOff, Lock, ChevronRight, Users, 
   UserCircle, FormInput, ArrowLeft, Save, Shield, RotateCcw, 
@@ -9,7 +8,7 @@ import {
   Image as ImageIcon, ToggleLeft, ToggleRight, AlertTriangle, ListPlus,
   Settings2, CheckCircle2, Palette, Upload, Image as ImageLucide,
   FileCheck, Info, Database, ShieldAlert, ChevronDown, Check,
-  Hash
+  Hash, Link as LinkIcon
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormFieldConfig, FieldType, Profile } from '../types';
@@ -63,7 +62,10 @@ const Settings = () => {
   useEffect(() => {
     if (globalProfile) {
       setLocalProfile(globalProfile);
-      if (!isAdmin) setView('profile');
+      // Auto-navigate staff to profile view
+      if (!isAdmin) {
+        setView('profile');
+      }
       fetchSchema();
       fetchBranding();
       setLoading(false);
@@ -292,17 +294,17 @@ const Settings = () => {
           <p className="text-xs text-slate-400 font-medium leading-relaxed">Manage quotation backgrounds and firm identity.</p>
           <div className="mt-8 flex items-center gap-2 text-purple-600 text-[10px] font-black uppercase tracking-widest">Update Branding <ChevronRight className="w-3 h-3" /></div>
         </button>
-        <Link to="/settings/recycle-bin" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
-          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><History className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">Recycle Bin</h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
-          <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
-        </Link>
-      </div>
-      <div className="mt-12">
-        <button onClick={() => setView('profile')} className="flex items-center gap-4 text-slate-400 hover:text-slate-900 transition-all text-[11px] font-black uppercase tracking-widest">
-           <UserCircle className="w-5 h-5" /> Edit My Profile
+        <button onClick={() => setView('profile')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-blue-500 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><UserCircle className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">My Account</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Update your personal profile, photo and password.</p>
+          <div className="mt-8 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-widest">Edit Profile <ChevronRight className="w-3 h-3" /></div>
         </button>
+      </div>
+      <div className="mt-12 flex justify-between items-center">
+        <Link to="/settings/recycle-bin" className="flex items-center gap-4 text-slate-400 hover:text-red-500 transition-all text-[11px] font-black uppercase tracking-widest">
+           <History className="w-5 h-5" /> Operational Archive (Recycle Bin)
+        </Link>
       </div>
     </div>
   );
@@ -453,8 +455,8 @@ const Settings = () => {
       <header className="mb-12 flex items-center gap-6">
         <button onClick={() => isAdmin ? setView('hub') : navigate('/')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Identity Settings</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">PERSONAL WORKSPACE PREFERENCES</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Account Settings</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">PERSONAL IDENTITY & SECURITY PROTOCOL</p>
         </div>
       </header>
 
@@ -463,8 +465,12 @@ const Settings = () => {
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
             <div className="absolute -bottom-16 left-12">
                <div className="relative group">
-                  <img src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name}`} className="w-40 h-40 rounded-[48px] border-8 border-white bg-white shadow-2xl object-cover" alt="Profile" />
-                  <div className="absolute inset-0 bg-black/40 rounded-[48px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer">
+                  <img 
+                    src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name || 'User'}`} 
+                    className="w-40 h-40 rounded-[48px] border-8 border-white bg-white shadow-2xl object-cover" 
+                    alt="Profile" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 rounded-[48px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-help">
                      <Camera className="w-8 h-8" />
                   </div>
                </div>
@@ -496,6 +502,13 @@ const Settings = () => {
                      </div>
                   </div>
                   <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Avatar Image URL</label>
+                     <div className="relative">
+                        <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <input className="w-full h-16 pl-16 pr-6 bg-slate-50 border border-slate-100 rounded-[24px] font-bold text-slate-700 focus:bg-white transition-all shadow-inner" placeholder="Paste image link here..." value={localProfile.avatar_url || ''} onChange={e => setLocalProfile({...localProfile, avatar_url: e.target.value})} />
+                     </div>
+                  </div>
+                  <div className="space-y-3 md:col-span-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
                      <div className="relative">
                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
@@ -512,11 +525,20 @@ const Settings = () => {
                   <button type="submit" disabled={saving} className="flex-1 py-7 bg-[#064e3b] text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
                     {saving ? <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" /> : <Save className="w-5 h-5 text-emerald-400" />} AUTHORIZE IDENTITY UPDATE
                   </button>
-                  {isAdmin && <button type="button" onClick={() => setView('hub')} className="px-12 py-7 bg-slate-50 text-slate-400 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Cancel</button>}
+                  <button type="button" onClick={() => isAdmin ? setView('hub') : navigate('/')} className="px-12 py-7 bg-slate-50 text-slate-400 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Cancel</button>
                </div>
             </form>
          </div>
       </div>
+
+      {!isAdmin && (
+        <div className="mt-12 p-8 bg-blue-50 border border-blue-100 rounded-[40px] flex items-start gap-4">
+           <Info className="w-6 h-6 text-blue-500 shrink-0 mt-1" />
+           <p className="text-[11px] font-medium text-blue-700 leading-relaxed">
+             Staff Protocol: Profile updates are synchronized across the workspace. Ensure your phone number is valid for automated site visit notifications.
+           </p>
+        </div>
+      )}
     </div>
   );
 
@@ -613,7 +635,6 @@ const Settings = () => {
     </div>
   );
 
-  // Fallback return to prevent white page if somehow none of the above branches are met
   return null;
 };
 
