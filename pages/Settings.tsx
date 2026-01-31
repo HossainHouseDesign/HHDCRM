@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Plus, Trash2, RefreshCw, Eye, EyeOff, Lock, ChevronRight, Users, 
@@ -6,7 +7,8 @@ import {
   Mail, Phone, Briefcase, Camera, Tag, ListFilter, X, History,
   Type as TypeIcon, Wand2, ShieldCheck, User as UserIcon,
   Image as ImageIcon, ToggleLeft, ToggleRight, AlertTriangle, ListPlus,
-  Settings2, CheckCircle2
+  Settings2, CheckCircle2, Palette, Upload, Image as ImageLucide,
+  FileCheck, Info, Database, ShieldAlert
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormFieldConfig, FieldType, Profile } from '../types';
@@ -27,7 +29,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();
   const { isAdmin, profile: globalProfile, refreshUser } = useUser();
-  const [view, setView] = useState<'hub' | 'form' | 'profile'>('hub');
+  const [view, setView] = useState<'hub' | 'form' | 'profile' | 'branding'>('hub');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -39,6 +41,10 @@ const Settings = () => {
   const [formFields, setFormFields] = useState<FormFieldConfig[]>([]);
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   
+  // Branding state
+  const [quotationBgUrl, setQuotationBgUrl] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Tag Management State for Dropdowns
   const [tempOptions, setTempOptions] = useState<string[]>([]);
   const [optionInput, setOptionInput] = useState(''); 
@@ -58,6 +64,7 @@ const Settings = () => {
       setLocalProfile(globalProfile);
       if (!isAdmin) setView('profile');
       fetchSchema();
+      fetchBranding();
       setLoading(false);
     }
   }, [globalProfile, isAdmin]);
@@ -72,6 +79,100 @@ const Settings = () => {
     }
   };
 
+  const fetchBranding = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('key', 'quotation_bg_url').single();
+      if (data && data.value) setQuotationBgUrl(data.value);
+    } catch (err) {
+      console.error("Branding fetch failed:", err);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showNotification("Invalid format. Please upload an image file (JPG/PNG).", "error");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `quotation_bg_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to 'HHDCRM' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('HHDCRM')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        if (uploadError.message.includes('not found')) {
+          throw new Error("Supabase Error: 'HHDCRM' bucket not found. Ensure you created it in Storage Dashboard.");
+        }
+        if (uploadError.message.includes('security policy')) {
+          throw new Error("Security Error: RLS policy violation. Open 'supabaseClient.ts' and run the V30 MASTER SQL fix in your Supabase SQL Editor.");
+        }
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('HHDCRM')
+        .getPublicUrl(filePath);
+
+      // Sync to settings table
+      const { error: updateError } = await supabase.from('settings').upsert({
+        key: 'quotation_bg_url',
+        value: publicUrl,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+
+      if (updateError) {
+        if (updateError.message.includes('security policy')) {
+           throw new Error("Security Error: 'settings' table RLS violation. Run the V30 MASTER SQL fix provided in 'supabaseClient.ts'.");
+        }
+        throw updateError;
+      }
+
+      setQuotationBgUrl(publicUrl);
+      showNotification("Architectural branding layer synchronized.", "success");
+    } catch (err: any) {
+      showNotification(err.message || "File upload protocol failure.", "error");
+    } finally {
+      setSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveBranding = async () => {
+    if (!confirm("Are you sure you want to revert to the default minimal letterhead?")) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('settings').upsert({ 
+        key: 'quotation_bg_url', 
+        value: "", 
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'key' });
+      
+      if (error) {
+        if (error.message.includes('security policy')) {
+          throw new Error("Security Error: RLS violation. Run the V30 SQL fix in 'supabaseClient.ts'.");
+        }
+        throw error;
+      }
+      
+      setQuotationBgUrl("");
+      showNotification("Branding layer detached.", "info");
+    } catch (err: any) {
+      showNotification(`Removal Failed: ${err.message}`, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -79,15 +180,14 @@ const Settings = () => {
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed.");
       
-      // Fix: Ensure all 6 parameters are always sent, even as null, to match the SQL signature exactly.
-      const { error } = await supabase.rpc('update_self_profile_v4', {
-        p_id: userId,
-        p_full_name: localProfile.full_name?.trim() || null,
-        p_designation: localProfile.designation?.trim() || null,
-        p_phone: localProfile.phone?.trim() || null,
-        p_password: localProfile.login_password || null,
-        p_avatar_url: localProfile.avatar_url?.trim() || null
-      });
+      const { error } = await supabase.from('profiles').update({
+        full_name: localProfile.full_name?.trim() || null,
+        designation: localProfile.designation?.trim() || null,
+        phone: localProfile.phone?.trim() || null,
+        login_password: localProfile.login_password || null,
+        avatar_url: localProfile.avatar_url?.trim() || null,
+        updated_at: new Date().toISOString()
+      }).eq('id', userId);
 
       if (error) throw error;
       showNotification("Account information synchronized.", "success");
@@ -108,7 +208,12 @@ const Settings = () => {
         value: updatedFields,
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('security policy')) {
+           throw new Error("Security Error: RLS violation. Run the V30 SQL fix in 'supabaseClient.ts'.");
+        }
+        throw error;
+      }
       setFormFields(updatedFields);
       showNotification("Lead Form Setting updated.", "success");
     } catch (err: any) {
@@ -213,292 +318,160 @@ const Settings = () => {
           <p className="text-xs text-slate-400 font-medium leading-relaxed">Define technical parameters and dropdown choices.</p>
           <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Manage Schema <ChevronRight className="w-3 h-3" /></div>
         </button>
+        <button onClick={() => setView('branding')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-purple-500 transition-all hover:-translate-y-1">
+          <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><Palette className="w-8 h-8" /></div>
+          <h3 className="text-xl font-black text-slate-900 mb-2">Branding & Assets</h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">Manage quotation backgrounds and firm identity.</p>
+          <div className="mt-8 flex items-center gap-2 text-purple-600 text-[10px] font-black uppercase tracking-widest">Update Branding <ChevronRight className="w-3 h-3" /></div>
+        </button>
         <Link to="/settings/recycle-bin" className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm group hover:border-red-500 transition-all hover:-translate-y-1">
           <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><History className="w-8 h-8" /></div>
           <h3 className="text-xl font-black text-slate-900 mb-2">Recycle Bin</h3>
           <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
           <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
         </Link>
-        <button onClick={() => setView('profile')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-slate-900 transition-all hover:-translate-y-1">
-          <div className="w-16 h-16 bg-slate-50 text-slate-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><UserCircle className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">Account Details</h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Update professional bio and security credentials.</p>
-          <div className="mt-8 flex items-center gap-2 text-slate-600 text-[10px] font-black uppercase tracking-widest">Update Profile <ChevronRight className="w-3 h-3" /></div>
-        </button>
       </div>
     </div>
   );
 
-  // 2. LEAD FORM SETTING VIEW
-  if (view === 'form' && isAdmin) return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-5xl mx-auto">
-      <header className="mb-12 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Lead Form Setting</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">ARCHITECTURAL INTAKE SCHEMA</p>
-          </div>
+  // 4. BRANDING VIEW
+  if (view === 'branding' && isAdmin) return (
+    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
+       <header className="mb-12 flex items-center gap-6">
+        <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all active:scale-90"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Branding & Identity</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">DRAFTING OFFICIAL ARCHITECTURAL IDENTITY</p>
         </div>
-        <button onClick={() => { setIsFieldModalOpen(true); setTempOptions([]); setOptionInput(''); }} className="px-8 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-3">
-          <Plus className="w-4 h-4" /> New Field
-        </button>
       </header>
 
-      {isFieldModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[40px] p-10 md:p-14 max-w-xl w-full shadow-2xl animate-in zoom-in-95 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full" />
-            <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">Provision Technical Field</h3>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Label Identifier</label>
-                <input className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border-2 border-transparent focus:border-emerald-500/20" value={newField.label} onChange={e => setNewField({...newField, label: e.target.value})} placeholder="e.g. Roof Material" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Modality</label>
-                  <select className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border-2 border-transparent focus:border-emerald-500/20" value={newField.type} onChange={e => { setNewField({...newField, type: e.target.value as any}); if(e.target.value !== 'select') setTempOptions([]); }}>
-                    <option value="text">Short Text</option>
-                    <option value="number">Numeric</option>
-                    <option value="select">Dropdown Choice</option>
-                    <option value="date">Calendar Date</option>
-                    <option value="textarea">Long Description</option>
-                    <option value="checkbox">Toggle Boolean</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logical Group</label>
-                  <select className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border-2 border-transparent focus:border-emerald-500/20" value={newField.section} onChange={e => setNewField({...newField, section: e.target.value})}>
-                    <option value="Identity">Identity</option>
-                    <option value="Architecture">Architecture</option>
-                    <option value="Logistics">Logistics</option>
-                    <option value="Financials">Financials</option>
-                    <option value="Interests">Interests</option>
-                  </select>
-                </div>
-              </div>
+      <div className="space-y-8">
+        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
+          <div className="flex items-center gap-4 border-b border-slate-50 pb-8 relative z-10">
+             <ImageLucide className="w-6 h-6 text-purple-500" />
+             <div>
+                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Quotation Master Layer</h3>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Direct File Upload • High-Resolution Letterhead (A4)</p>
+             </div>
+          </div>
 
-              {newField.type === 'select' && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                     <ListPlus className="w-3 h-3 text-emerald-500" /> Options Registry
-                   </label>
-                   <div className="flex gap-2">
-                      <input 
-                        className="flex-1 h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none border-2 border-transparent focus:border-emerald-500/20" 
-                        placeholder="Add choice..." 
-                        value={optionInput} 
-                        onChange={e => setOptionInput(e.target.value)}
-                        onKeyDown={handleOptionInputKeyDown}
-                      />
-                      <button onClick={addOptionTag} className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"><Plus className="w-6 h-6" /></button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
+             <div className="space-y-8">
+                <div className="space-y-4">
+                  <h4 className="text-lg font-black text-slate-900 leading-tight">Sync a Custom Letterhead</h4>
+                  <p className="text-sm text-slate-500 leading-relaxed font-medium">This design will be utilized as a full-page background for all generated PDF quotations. Maintain a premium, branded experience.</p>
+                </div>
+
+                <div className="space-y-6 bg-slate-50 p-8 rounded-[32px] border border-slate-100 shadow-inner">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-emerald-500 shadow-sm"><Info className="w-4 h-4" /></div>
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Technical Specifications</p>
                    </div>
-                   <div className="flex flex-wrap gap-2 min-h-[60px] p-4 bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl">
-                      {tempOptions.length === 0 ? (
-                        <p className="text-[10px] text-slate-300 font-bold uppercase mx-auto self-center">No options defined</p>
-                      ) : (
-                        tempOptions.map(tag => (
-                          <div key={tag} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm animate-in zoom-in-90">
-                             <span className="text-xs font-black text-slate-700">{tag}</span>
-                             <button onClick={() => removeOptionTag(tag)} className="text-slate-300 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
-                          </div>
-                        ))
-                      )}
+                   <ul className="space-y-3">
+                      {[
+                        "Standard A4 Aspect Ratio (1:1.414)",
+                        "Recommended Size: 2480 x 3508 PX",
+                        "Format: JPG, PNG or High-Res WebP",
+                        "Policy: Ensure MASTER V30 SQL fix is applied in Supabase"
+                      ].map((spec, i) => (
+                        <li key={i} className="flex items-center gap-3 text-[11px] font-bold text-slate-500">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> {spec}
+                        </li>
+                      ))}
+                   </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                   <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      accept="image/*" 
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={saving}
+                      className="flex-1 flex items-center justify-center gap-4 px-8 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50"
+                    >
+                      {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5 text-emerald-400" />}
+                      {quotationBgUrl ? 'Replace Design' : 'Upload Design'}
+                    </button>
+
+                    {quotationBgUrl && (
+                      <button 
+                        onClick={handleRemoveBranding}
+                        disabled={saving}
+                        className="px-8 py-6 bg-white border border-slate-100 text-red-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-100 transition-all active:scale-95"
+                      >
+                        Detach
+                      </button>
+                    )}
+                </div>
+
+                <div className="p-6 bg-blue-50 rounded-[32px] border border-blue-100 flex items-start gap-4">
+                  <Database className="w-6 h-6 text-blue-500 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Storage Registry</p>
+                    <p className="text-[9px] font-bold text-blue-600/70 leading-relaxed uppercase">Bucket: HHDCRM • Protocol: Unified Public Access Required</p>
+                  </div>
+                </div>
+             </div>
+
+             <div className="relative group">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4 ml-2">Active Preview</p>
+                <div className="aspect-[1/1.414] w-full bg-slate-50 rounded-[40px] border-4 border-dashed border-slate-200 overflow-hidden flex items-center justify-center relative shadow-inner">
+                   {quotationBgUrl ? (
+                     <img src={quotationBgUrl} className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" alt="Preview" />
+                   ) : (
+                     <div className="flex flex-col items-center gap-5 opacity-20">
+                        <ImageLucide className="w-16 h-16" />
+                        <div className="text-center">
+                          <p className="text-[11px] font-black uppercase tracking-[0.3em]">No Branding Layer</p>
+                          <p className="text-[9px] font-bold mt-1">Default Letterhead in Use</p>
+                        </div>
+                     </div>
+                   )}
+                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                      <div className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                        <p className="text-white text-[10px] font-black uppercase tracking-widest">A4 Scale Rendering</p>
+                      </div>
                    </div>
                 </div>
-              )}
-
-              <button onClick={addNewField} className="w-full py-6 bg-[#064e3b] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Commit to Schema
-              </button>
-              <button onClick={() => { setIsFieldModalOpen(false); setTempOptions([]); }} className="w-full py-4 text-slate-400 text-[10px] font-black uppercase tracking-widest">Cancel Induction</button>
-            </div>
+                {saving && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-[40px] flex items-center justify-center z-20">
+                     <div className="flex flex-col items-center gap-4">
+                        <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
+                        <p className="text-[10px] font-black text-[#064e3b] uppercase tracking-widest text-center px-6">Synchronizing Asset & Permissions (V30)...</p>
+                     </div>
+                  </div>
+                )}
+             </div>
           </div>
         </div>
-      )}
 
-      {editingOptionsId && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white rounded-[40px] p-10 md:p-14 max-w-xl w-full shadow-2xl animate-in zoom-in-95 overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[60px] rounded-full" />
-              <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">Configure Choices</h3>
-              <div className="space-y-6">
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Option Item</label>
-                    <div className="flex gap-2">
-                       <input 
-                         className="flex-1 h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white focus:border-emerald-500/20 transition-all shadow-inner" 
-                         placeholder="Type and enter..." 
-                         value={optionInput} 
-                         onChange={e => setOptionInput(e.target.value)} 
-                         onKeyDown={handleOptionInputKeyDown}
-                       />
-                       <button onClick={addOptionTag} className="w-14 h-14 bg-[#064e3b] text-white rounded-2xl flex items-center justify-center hover:bg-black transition-all shadow-lg"><Plus className="w-6 h-6" /></button>
-                    </div>
-                 </div>
-                 
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Live Registry</label>
-                    <div className="flex flex-wrap gap-2 min-h-[120px] max-h-[300px] overflow-y-auto no-scrollbar p-6 bg-slate-50 rounded-[32px] border border-slate-100 shadow-inner">
-                       {tempOptions.length === 0 ? (
-                         <div className="flex flex-col items-center justify-center w-full gap-3 opacity-20 py-8">
-                            <Tag className="w-8 h-8" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">No choices active</p>
-                         </div>
-                       ) : (
-                         tempOptions.map(tag => (
-                           <div key={tag} className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-100 rounded-2xl shadow-sm group hover:border-red-100 transition-all animate-in zoom-in-95">
-                              <span className="text-xs font-black text-slate-700">{tag}</span>
-                              <button onClick={() => removeOptionTag(tag)} className="text-slate-300 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
-                           </div>
-                         ))
-                       )}
-                    </div>
-                 </div>
-
-                 <div className="flex gap-4 pt-4">
-                    <button onClick={() => { setEditingOptionsId(null); setTempOptions([]); }} className="flex-1 py-5 bg-slate-50 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Discard</button>
-                    <button onClick={() => handleUpdateOptions(editingOptionsId)} className="flex-[2] py-5 bg-[#064e3b] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/10 active:scale-95">
-                       <Save className="w-4 h-4 text-emerald-400" /> Synchronize Choices
-                    </button>
-                 </div>
-              </div>
+        <div className="p-10 bg-amber-50 rounded-[48px] border border-amber-100 flex flex-col md:flex-row items-center gap-8 shadow-sm">
+           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0">
+             <ShieldAlert className="w-7 h-7" />
+           </div>
+           <div>
+              <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Unified Permission Protocol (V30)</h4>
+              <p className="text-xs font-medium text-amber-800 leading-relaxed mt-1">Due to the custom staff login system, you must use the <strong>Universal Public Access Policy</strong> in your Supabase SQL Editor. See the setup block in <code>supabaseClient.ts</code> for the specific commands. Also verify the bucket is set to PUBLIC in the storage dashboard.</p>
            </div>
         </div>
-      )}
 
-      <div className="space-y-6">
-        {['Identity', 'Architecture', 'Logistics', 'Financials', 'Interests'].map(section => {
-          const fields = formFields.filter(f => f.section === section);
-          if (fields.length === 0) return null;
-          return (
-            <div key={section} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-               <div className="p-8 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
-                    <FormInput className="w-4 h-4 text-emerald-500" /> {section} Parameters
-                  </h3>
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{fields.length} Fields Active</span>
-               </div>
-               <div className="divide-y divide-slate-50">
-                  {fields.map(f => (
-                    <div key={f.id} className="p-6 md:p-8 flex items-center justify-between group transition-all hover:bg-slate-50/30">
-                       <div className="flex items-center gap-6">
-                          <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm">
-                             <TypeIcon className="w-5 h-5 text-slate-300" />
-                          </div>
-                          <div>
-                             <p className="text-[14px] font-black text-slate-900">{f.label}</p>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-70">
-                                KEY: {f.db_key} • TYPE: {f.type} 
-                                {f.type === 'select' && ` • (${f.options?.length || 0} Options)`}
-                             </p>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-3">
-                          {f.type === 'select' && (
-                             <button onClick={() => { setEditingOptionsId(f.id); setTempOptions(f.options || []); setOptionInput(''); }} className="p-3 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all" title="Manage Options">
-                                <Settings2 className="w-4 h-4" />
-                             </button>
-                          )}
-                          <button onClick={() => toggleFieldVisibility(f.id)} className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border ${f.visible ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                             {f.visible ? <><ToggleRight className="w-4 h-4" /> Visible</> : <><ToggleLeft className="w-4 h-4" /> Hidden</>}
-                          </button>
-                          {!['client_name', 'phone', 'address', 'upazila'].includes(f.db_key) && (
-                            <button onClick={() => deleteField(f.id)} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                               <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                       </div>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // 3. PROFILE VIEW
-  return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
-      <header className="mb-12 flex items-center gap-6">
-         {isAdmin && (
-           <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
-         )}
-         <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isAdmin ? 'My Identity' : 'Account Settings'}</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-80">SECURE PROFILE MANAGEMENT</p>
-         </div>
-      </header>
-      <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-16 space-y-16 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 blur-[80px] rounded-full pointer-events-none" />
-        <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
-          <div className="relative group">
-            <img src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name || 'Arch'}`} className="w-32 h-32 md:w-40 md:h-40 rounded-[40px] bg-slate-50 border-4 border-white shadow-2xl object-cover transition-transform group-hover:scale-105" alt="Avatar" />
-            <div className="absolute inset-0 bg-black/40 rounded-[40px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><Camera className="w-8 h-8 text-white" /></div>
-          </div>
-          <div className="text-center md:text-left space-y-2">
-            <h2 className="text-3xl font-black text-slate-900">{localProfile.full_name || 'System User'}</h2>
-            <p className="text-[#064e3b] font-black uppercase tracking-[0.3em] text-[10px]">{localProfile.designation || 'Architectural Staff'}</p>
-            <div className="flex items-center gap-2 mt-4 justify-center md:justify-start">
-              <span className="px-3 py-1 bg-slate-50 text-slate-400 border border-slate-100 rounded-lg text-[9px] font-black uppercase tracking-widest">{localProfile.role}</span>
-              <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${localProfile.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>{localProfile.status}</span>
-            </div>
-          </div>
+        <div className="p-10 bg-slate-900 rounded-[48px] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+           <div className="flex items-center gap-6 relative z-10">
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-400"><FileCheck className="w-7 h-7" /></div>
+              <div>
+                <h4 className="text-lg font-black text-white">Global Synchronization</h4>
+                <p className="text-white/40 text-xs font-medium">This asset is automatically applied to all PDF exports firm-wide.</p>
+              </div>
+           </div>
+           <button onClick={() => setView('hub')} className="relative z-10 px-8 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">Back to Hub</button>
         </div>
-        <form onSubmit={handleUpdateProfile} className="space-y-12 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-50">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Display Name</label>
-              <div className="relative">
-                <UserIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input required className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" value={localProfile.full_name || ''} onChange={e => setLocalProfile({...localProfile, full_name: e.target.value})} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Job Designation</label>
-              <div className="relative">
-                <Briefcase className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" placeholder="e.g. Senior Architect" value={localProfile.designation || ''} onChange={e => setLocalProfile({...localProfile, designation: e.target.value})} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Phone Link</label>
-              <div className="relative">
-                <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" value={localProfile.phone || ''} onChange={e => setLocalProfile({...localProfile, phone: e.target.value})} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Login Password</label>
-              <div className="relative">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-12 pr-24 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" value={localProfile.login_password || ''} onChange={e => setLocalProfile({...localProfile, login_password: e.target.value})} />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                  <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Profile Image URL</label>
-              <div className="relative">
-                <ImageIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                <input className="w-full h-14 pl-12 pr-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white border border-slate-100 focus:border-emerald-500/20 transition-all shadow-inner" placeholder="https://images.unsplash.com/photo-..." value={localProfile.avatar_url || ''} onChange={e => setLocalProfile({...localProfile, avatar_url: e.target.value})} />
-              </div>
-            </div>
-          </div>
-          <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
-             <ShieldCheck className="w-6 h-6 text-emerald-500 shrink-0" />
-             <p className="text-[10px] text-slate-500 font-medium leading-relaxed uppercase tracking-widest">Identity Guard: Credentials synchronized with firm vault.</p>
-          </div>
-          <button type="submit" disabled={saving} className="w-full py-7 bg-[#064e3b] text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
-            {saving ? <RefreshCw className="animate-spin w-5 h-5" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />} 
-            Finalize My Credentials
-          </button>
-        </form>
       </div>
     </div>
   );

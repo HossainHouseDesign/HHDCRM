@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://vtfooxylfnzyrgdkslms.supabase.co';
@@ -6,53 +7,53 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * HHD CRM - MASTER DATABASE SETUP INSTRUCTIONS
+ * HHD CRM - MASTER DATABASE SETUP (V30 - THE PERMANENT FIX)
  * 
- * RUN THE FOLLOWING SQL IN YOUR SUPABASE SQL EDITOR TO ACTIVATE SITE VISITS:
+ * 1. Open Supabase Dashboard -> SQL Editor
+ * 2. Create bucket 'HHDCRM' in Storage and set it to PUBLIC.
+ * 3. Paste and Run the following script:
  * 
- * -- 1. SITE VISITS CORE TABLE
- * CREATE TABLE IF NOT EXISTS public.site_visits (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
- *   lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
- *   location TEXT NOT NULL,
- *   visit_date DATE NOT NULL,
- *   notes TEXT,
- *   payment_status TEXT DEFAULT 'Free',
- *   status TEXT DEFAULT 'Upcoming',
- *   scheduled_by UUID REFERENCES public.profiles(id),
- *   office_id UUID,
- *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
- *   deleted_at TIMESTAMP WITH TIME ZONE
- * );
+ * -- ==========================================
+ * -- 1. STORAGE ACCESS (BRANDING FIX)
+ * -- ==========================================
+ * DROP POLICY IF EXISTS "HHDCRM_Public_Override" ON storage.objects;
+ * CREATE POLICY "HHDCRM_Public_Override" 
+ * ON storage.objects FOR ALL 
+ * TO public 
+ * USING (bucket_id = 'HHDCRM') 
+ * WITH CHECK (bucket_id = 'HHDCRM');
  * 
- * ALTER TABLE public.site_visits ADD CONSTRAINT check_payment_status CHECK (payment_status IN ('Pre-paid', 'Post-paid', 'Free'));
- * ALTER TABLE public.site_visits ADD CONSTRAINT check_visit_status CHECK (status IN ('Upcoming', 'Done', 'Hold'));
+ * -- ==========================================
+ * -- 2. CORE TABLES & UNIVERSAL RLS
+ * -- ==========================================
+ * -- [Tables: settings, profiles, leads, projects, project_assignments, 
+ * -- site_visits, site_visit_assignments, construction_projects, construction_logs]
  * 
- * -- 2. TEAM ASSIGNMENTS JOIN TABLE
- * CREATE TABLE IF NOT EXISTS public.site_visit_assignments (
- *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
- *   site_visit_id UUID REFERENCES public.site_visits(id) ON DELETE CASCADE,
- *   profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
- *   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
- * );
+ * -- This loop handles RLS for all existing tables in the 'public' schema
+ * DO $$ 
+ * DECLARE 
+ *   t text;
+ * BEGIN
+ *   FOR t IN SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' 
+ *   LOOP
+ *     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+ *     EXECUTE format('DROP POLICY IF EXISTS "Public_CRM_Access" ON public.%I', t);
+ *     EXECUTE format('CREATE POLICY "Public_CRM_Access" ON public.%I FOR ALL TO public USING (true) WITH CHECK (true)', t);
+ *   END LOOP;
+ * END $$;
  * 
- * -- 3. UPDATED ROW LEVEL SECURITY (RLS) - FOR SHADOW LOGIN SUPPORT
- * -- Run these if your staff get "Security Protocol Violation" errors.
- * 
- * ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
- * ALTER TABLE public.site_visit_assignments ENABLE ROW LEVEL SECURITY;
- * 
- * DROP POLICY IF EXISTS "enable_all_for_site_visits" ON public.site_visits;
- * CREATE POLICY "enable_all_for_site_visits" ON public.site_visits 
- * FOR ALL TO public USING (true) WITH CHECK (true);
- * 
- * DROP POLICY IF EXISTS "enable_all_for_assignments" ON public.site_visit_assignments;
- * CREATE POLICY "enable_all_for_assignments" ON public.site_visit_assignments 
- * FOR ALL TO public USING (true) WITH CHECK (true);
- * 
- * -- 4. PERFORMANCE INDEXES
- * CREATE INDEX IF NOT EXISTS idx_site_visits_date ON public.site_visits(visit_date);
- * CREATE INDEX IF NOT EXISTS idx_site_visits_payment_status ON public.site_visits(payment_status);
- * CREATE INDEX IF NOT EXISTS idx_site_visits_status ON public.site_visits(status);
+ * -- ==========================================
+ * -- 3. SHADOW LOGIN SECURITY
+ * -- ==========================================
+ * CREATE OR REPLACE FUNCTION check_staff_login(p_email TEXT, p_password TEXT)
+ * RETURNS SETOF public.profiles AS $$
+ * BEGIN
+ *     RETURN QUERY
+ *     SELECT * FROM public.profiles
+ *     WHERE LOWER(email) = LOWER(p_email)
+ *       AND login_password = p_password
+ *       AND status = 'active'
+ *       AND deleted_at IS NULL;
+ * END;
+ * $$ LANGUAGE plpgsql SECURITY DEFINER;
  */

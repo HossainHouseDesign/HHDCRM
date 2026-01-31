@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -41,6 +42,7 @@ const LeadDetails = () => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [quotationBg, setQuotationBg] = useState<string | null>(null);
   
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -74,9 +76,10 @@ const LeadDetails = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [leadRes, configRes] = await Promise.all([
+      const [leadRes, configRes, brandingRes] = await Promise.all([
         supabase.from('leads').select('*').eq('id', id).single(),
-        supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
+        supabase.from('settings').select('*').eq('key', 'lead_form_config').single(),
+        supabase.from('settings').select('*').eq('key', 'quotation_bg_url').single()
       ]);
 
       if (leadRes.error) throw leadRes.error;
@@ -86,6 +89,7 @@ const LeadDetails = () => {
       setLead(leadData);
       setQuotationDraft({ ...leadData, ...(leadData.metadata || {}) });
       setFormConfig(config);
+      setQuotationBg(brandingRes.data?.value || null);
       
       const initial: Record<string, any> = {};
       config.forEach(f => {
@@ -197,7 +201,7 @@ const LeadDetails = () => {
           margin: 0,
           filename: `Quotation_${quotationDraft.client_name || lead.client_name}.pdf`,
           image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { scale: 3, useCORS: true, letterRendering: true, logging: false },
+          html2canvas: { scale: 4, useCORS: true, letterRendering: true, logging: false },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         // @ts-ignore
@@ -252,18 +256,18 @@ const LeadDetails = () => {
             <meta charset='utf-8'>
             <style>
               @page { size: 8.5in 11in; margin: 0.4in; }
-              body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
+              body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
               .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-              .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 5px 0; }
+              .divider { height: 4px; background-color: #f05a25; width: 100%; margin: 5px 0; }
               .specs-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             </style>
           </head>
           <body>
-            <div style="background-color: #0a2540; height: 10px; width: 100%;"></div>
+            <div style="background-color: #042952; height: 10px; width: 100%;"></div>
             <table class="header-table">
               <tr>
                 <td style="padding: 10px 0;">
-                  <h1 style="font-size: 22pt; margin: 0; color: #000; font-weight: 900;">Hossain House Design</h1>
+                  <h1 style="font-size: 22pt; margin: 0; color: #042952; font-weight: 900;">Hossain House Design</h1>
                   <p style="font-size: 9pt; color: #333; margin: 1px 0;">House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
                   <p style="font-size: 8.5pt; color: #444; margin: 0;">+8801705323220, support@hossainhousedesign.com</p>
                 </td>
@@ -291,7 +295,7 @@ const LeadDetails = () => {
             </div>
 
             <div style="margin-top: 20px;">
-              <div style="font-size: 10pt;">Sincere</div>
+              <div style="font-size: 10pt;">Sincerely</div>
               <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">Marketing Manager</div>
               <div style="font-size: 11pt; font-weight: 900;">Hossain House Design</div>
               <div style="font-size: 9pt;">Ph: +8801705323220</div>
@@ -300,7 +304,7 @@ const LeadDetails = () => {
             <div style="text-align: center; margin-top: 30px; font-size: 8.5pt; color: #333; border-top: 1px solid #f1f5f9; padding-top: 5px;">
               www.hossainhousedesign.com
             </div>
-            <div style="background-color: #0a2540; height: 10px; width: 100%; margin-top: 5px;"></div>
+            <div style="background-color: #042952; height: 10px; width: 100%; margin-top: 5px;"></div>
           </body>
           </html>`;
         
@@ -575,10 +579,10 @@ const LeadDetails = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-4 items-stretch">
                <button onClick={handleDownloadPDF} disabled={isGeneratingPDF} className="flex-1 py-6 bg-slate-900 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50">
-                 {isGeneratingPDF ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 text-emerald-400" />} {isGeneratingPDF ? 'Syncing...' : 'Export PDF'}
+                 {isGeneratingPDF ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5 text-emerald-400" />} Export PDF
                </button>
                <button onClick={handleDownloadDoc} disabled={isGeneratingDoc} className="flex-1 py-6 bg-slate-700 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50">
-                 {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5 text-blue-400" />} {isGeneratingDoc ? 'Syncing...' : 'Export WORD DOC'}
+                 {isGeneratingDoc ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5 text-blue-400" />} Export WORD DOC
                </button>
                <button onClick={() => finalizeQuotation()} disabled={isUpdatingStatus} className="flex-1 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 active:scale-95">
                  {isUpdatingStatus ? <RefreshCw className="w-5 h-5 animate-spin" /> : <FileCheck className="w-5 h-5 text-emerald-400" />} Dispatch & Sync
@@ -590,7 +594,7 @@ const LeadDetails = () => {
 
       {showDeleteModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center"><div className="w-24 h-24 bg-amber-50 text-amber-600 rounded-[32px] flex items-center justify-center mb-10 mx-auto shadow-sm"><Trash2 className="w-10 h-10" /></div><h3 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Archive to Bin?</h3><p className="text-slate-500 leading-relaxed font-medium mb-10 text-sm">You are about to archive <span className="font-black text-slate-800">"{lead.client_name}"</span>.</p><div className="flex gap-4"><button onClick={() => setShowDeleteModal(false)} className="flex-1 py-5 bg-slate-50 text-slate-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Keep Record</button><button onClick={executeSoftDelete} disabled={isUpdatingStatus} className="flex-1 py-5 bg-amber-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-3 active:scale-95">{isUpdatingStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Confirm Archive</button></div></div>
+          <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center"><div className="w-24 h-24 bg-red-50 text-red-600 rounded-[32px] flex items-center justify-center mb-10 mx-auto shadow-sm"><Trash2 className="w-10 h-10" /></div><h3 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Archive to Bin?</h3><p className="text-slate-500 leading-relaxed font-medium mb-10 text-sm">You are about to archive <span className="font-black text-slate-800">"{lead.client_name}"</span>.</p><div className="flex gap-4"><button onClick={() => setShowDeleteModal(false)} className="flex-1 py-5 bg-slate-50 text-slate-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Keep Record</button><button onClick={executeSoftDelete} disabled={isUpdatingStatus} className="flex-1 py-5 bg-amber-600 text-white rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-amber-700 transition-all flex items-center justify-center gap-3 active:scale-95">{isUpdatingStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Confirm Archive</button></div></div>
         </div>
       )}
 
@@ -685,55 +689,80 @@ const LeadDetails = () => {
         </div>
       </div>
       
-      {/* PROFESSIONAL BRANDED PDF TEMPLATE */}
+      {/* FINALIZED PROFESSIONAL PDF TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-           <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
-           <div style={{ padding: '30px 60px 10px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                 <div style={{ width: '80px', height: '80px', backgroundColor: '#0a2540', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', bottom: '15%', width: '60%', height: '50%', backgroundColor: '#ff5a1f', transform: 'skewY(-5deg)' }}></div>
-                    <div style={{ position: 'absolute', top: '15%', width: '40%', height: '40%', border: '4px solid white', borderRadius: '4px', transform: 'rotate(45deg)' }}></div>
-                 </div>
-                 <div>
-                    <h1 style={{ fontSize: '38pt', fontWeight: 900, margin: 0, padding: 0, color: '#000', lineHeight: '1' }}>Hossain House Design</h1>
-                    <p style={{ fontSize: '11pt', margin: '4px 0 0 0', fontWeight: 600, color: '#333' }}>House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
-                 </div>
+           {/* Top bar */}
+           <div style={{ height: '2mm', width: '100%', backgroundColor: '#042952' }}></div>
+           
+           {/* Dynamic Background Layer */}
+           {quotationBg && (
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${quotationBg})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 1, zIndex: 0 }}></div>
+           )}
+
+           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* HEADER SECTION - Conditional display if background is present, might want to hide default logo */}
+              {!quotationBg && (
+                <div style={{ padding: '2mm 20mm 2mm 20mm', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ textAlign: 'center', marginTop: '2mm' }}>
+                    <h1 style={{ fontSize: '28pt', fontWeight: 900, margin: 0, padding: 0, color: '#042952', lineHeight: '1.1', letterSpacing: '-0.01em' }}>Hossain House Design</h1>
+                    <p style={{ fontSize: '10pt', color: '#042952', fontWeight: 700, margin: '1mm 0' }}>www.hossainhousedesign.com, +8801705323220, +8801313199299</p>
+                    <p style={{ fontSize: '9pt', color: '#333', fontWeight: 500, margin: '1mm 0' }}>House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Added top padding if background is used to avoid overlap with letterhead headers */}
+              <div style={{ marginTop: quotationBg ? '45mm' : '2mm' }}>
+                <div style={{ borderTop: quotationBg ? 'none' : '2px solid #f05a25', borderBottom: quotationBg ? 'none' : '2px solid #f05a25', margin: '2mm 0', textAlign: 'center', padding: '10px 0' }}>
+                    <h2 style={{ fontSize: '28pt', fontWeight: 900, color: '#042952', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Quotation</h2>
+                </div>
               </div>
+
+              <div style={{ padding: '4mm 25mm', flex: 1, position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '25px', alignItems: 'flex-start' }}>
+                    <div>
+                        <h3 style={{ fontSize: '12pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
+                        <div style={{ fontSize: '11pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
+                          <p style={{ margin: '1px 0', fontSize: '12pt', fontWeight: 800 }}>{quotationDraft.client_name || lead.client_name}</p>
+                          <p style={{ margin: '1px 0' }}>{quotationDraft.current_location || lead.current_location || 'Local'}</p>
+                          <p style={{ margin: '1px 0' }}>{quotationDraft.address || lead.address}, {quotationDraft.upazila || lead.upazila}</p>
+                        </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '11pt', fontWeight: 800, color: '#042952' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ border: quotationBg ? 'none' : '1px solid #e2e8f0', borderRadius: '30px', padding: '30px', minHeight: '400px', backgroundColor: quotationBg ? 'rgba(255,255,255,0.7)' : 'transparent', backdropFilter: quotationBg ? 'blur(2px)' : 'none' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '8mm' }}>
+                        {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests' || f.section === 'Financials')).map(f => {
+                          const val = quotationDraft[f.db_key] !== undefined ? quotationDraft[f.db_key] : lead.metadata?.[f.db_key];
+                          if (!val || val === 'N/A' || val === 'No' || val === false) return null;
+                          return (
+                              <div key={f.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                                <p style={{ fontSize: '8pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</p>
+                                <p style={{ fontSize: '11pt', fontWeight: 800, color: '#042952' }}>{typeof val === 'boolean' ? 'Yes' : val}</p>
+                              </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '30px' }}>
+                    <p style={{ fontSize: '10pt', color: '#042952', fontWeight: 800, marginBottom: '20px', textAlign: 'center' }}>
+                        Thank you for your inquiry. We look forward to the opportunity to work with you.
+                    </p>
+                    <div style={{ marginTop: '35px' }}>
+                        <p style={{ fontSize: '11pt', fontWeight: 600, margin: 0 }}>Sincerely</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 800, marginTop: '5px', marginBottom: 0, color: '#042952' }}>Marketing Manager</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 900, margin: 0, color: '#042952' }}>Hossain House Design</p>
+                    </div>
+                  </div>
+              </div>
+
+              {!quotationBg && <div style={{ height: '8mm', width: '100%', backgroundColor: '#042952' }}></div>}
            </div>
-           <div style={{ height: '6px', width: '100%', backgroundColor: '#ff5a1f', marginTop: '10px' }}></div>
-           <div style={{ padding: '40px 80px', flex: 1, position: 'relative' }}>
-              <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-                 <p style={{ fontSize: '12pt', fontWeight: 700, color: '#000' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-              </div>
-              <div style={{ marginBottom: '40px' }}>
-                 <h3 style={{ fontSize: '14pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
-                 <div style={{ fontSize: '13pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
-                    <p style={{ margin: '2px 0' }}>{quotationDraft.client_name || lead.client_name}</p>
-                    <p style={{ margin: '2px 0' }}>{quotationDraft.address || lead.address}, {quotationDraft.upazila || lead.upazila}</p>
-                 </div>
-              </div>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '40px', minHeight: '400px', padding: '40px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '10mm' }}>
-                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
-                       const val = quotationDraft[f.db_key] !== undefined ? quotationDraft[f.db_key] : lead.metadata?.[f.db_key];
-                       if (!val || val === 'N/A' || val === 'No' || val === false) return null;
-                       return (
-                          <div key={f.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                             <p style={{ fontSize: '9pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</p>
-                             <p style={{ fontSize: '12pt', fontWeight: 800, color: '#1e293b' }}>{typeof val === 'boolean' ? 'Yes' : val}</p>
-                          </div>
-                       );
-                    })}
-                 </div>
-              </div>
-              <div style={{ marginTop: '50px' }}>
-                 <p style={{ fontSize: '12pt', fontWeight: 600, margin: 0 }}>Sincere</p>
-                 <p style={{ fontSize: '13pt', fontWeight: 800, marginTop: '8px', marginBottom: 0 }}>Marketing Manager</p>
-                 <p style={{ fontSize: '13pt', fontWeight: 900, margin: 0 }}>Hossain House Design</p>
-              </div>
-           </div>
-           <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
         </div>
       </div>
     </div>

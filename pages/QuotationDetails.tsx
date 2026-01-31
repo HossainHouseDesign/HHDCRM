@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Lead, FormFieldConfig } from '../types';
+import { Lead, FormFieldConfig, VisitStatus } from '../types';
 import { 
   ArrowLeft, FileSpreadsheet, Download, Edit3, Trash2, 
   MapPin, Phone, Mail, Banknote, RefreshCw, X, Save, 
   CheckCircle2, Info, Layout, Layers, Ruler, Briefcase, ChevronDown,
   UserCheck, ShieldCheck, User, Map, Home, Zap, Compass, Hammer, Paintbrush,
-  FileText, MessageSquare
+  FileText, MessageSquare, Clock, CheckCheck, PauseCircle
 } from 'lucide-react';
 import { DEFAULT_FORM_CONFIG } from './Settings';
 import { useNotification } from '../App';
@@ -36,6 +37,7 @@ const QuotationDetails = () => {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertFullData, setConvertFullData] = useState<Record<string, any>>({});
+  const [quotationBg, setQuotationBg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -44,9 +46,10 @@ const QuotationDetails = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [leadRes, configRes] = await Promise.all([
+      const [leadRes, configRes, brandingRes] = await Promise.all([
         supabase.from('leads').select('*').eq('id', id).single(),
-        supabase.from('settings').select('*').eq('key', 'lead_form_config').single()
+        supabase.from('settings').select('*').eq('key', 'lead_form_config').single(),
+        supabase.from('settings').select('*').eq('key', 'quotation_bg_url').single()
       ]);
 
       if (leadRes.error) throw leadRes.error;
@@ -56,6 +59,7 @@ const QuotationDetails = () => {
       setQuotation(qData);
       setEditData(qData);
       setFormConfig(config);
+      setQuotationBg(brandingRes.data?.value || null);
       
       const initial: Record<string, any> = {};
       config.forEach(f => {
@@ -148,18 +152,18 @@ const QuotationDetails = () => {
             <meta charset='utf-8'>
             <style>
               @page { size: 8.5in 11in; margin: 0.4in; }
-              body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
+              body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; color: #111; line-height: 1.1; margin: 0; padding: 0; }
               .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-              .divider { height: 4px; background-color: #ff5a1f; width: 100%; margin: 5px 0; }
+              .divider { height: 4px; background-color: #f05a25; width: 100%; margin: 5px 0; }
               .specs-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             </style>
           </head>
           <body>
-            <div style="background-color: #0a2540; height: 10px; width: 100%;"></div>
+            <div style="background-color: #042952; height: 10px; width: 100%;"></div>
             <table class="header-table">
               <tr>
                 <td style="padding: 10px 0;">
-                  <h1 style="font-size: 22pt; margin: 0; color: #000; font-weight: 900;">Hossain House Design</h1>
+                  <h1 style="font-size: 22pt; margin: 0; color: #042952; font-weight: 900;">Hossain House Design</h1>
                   <p style="font-size: 9pt; color: #333; margin: 1px 0;">House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
                   <p style="font-size: 8.5pt; color: #444; margin: 0;">+8801705323220, support@hossainhousedesign.com</p>
                 </td>
@@ -187,7 +191,7 @@ const QuotationDetails = () => {
             </div>
 
             <div style="margin-top: 20px;">
-              <div style="font-size: 10pt;">Sincere</div>
+              <div style="font-size: 10pt;">Sincerely</div>
               <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">Marketing Manager</div>
               <div style="font-size: 11pt; font-weight: 900;">Hossain House Design</div>
               <div style="font-size: 9pt;">Ph: +8801705323220</div>
@@ -196,7 +200,7 @@ const QuotationDetails = () => {
             <div style="text-align: center; margin-top: 30px; font-size: 8.5pt; color: #333; border-top: 1px solid #f1f5f9; padding-top: 5px;">
               www.hossainhousedesign.com
             </div>
-            <div style="background-color: #0a2540; height: 10px; width: 100%; margin-top: 5px;"></div>
+            <div style="background-color: #042952; height: 10px; width: 100%; margin-top: 5px;"></div>
           </body>
           </html>`;
         
@@ -232,7 +236,7 @@ const QuotationDetails = () => {
           margin: 0,
           filename: `Quotation_${quotation.client_name}.pdf`,
           image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { scale: 3, useCORS: true, letterRendering: true, logging: false },
+          html2canvas: { scale: 4, useCORS: true, letterRendering: true, logging: false },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
@@ -284,17 +288,6 @@ const QuotationDetails = () => {
     return val;
   };
 
-  const getSectionIcon = (section: string) => {
-    switch (section) {
-      case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;
-      case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
-      case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
-      case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
-      case 'Interests': return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
-      default: return <Compass className="w-4 h-4 text-emerald-500" />;
-    }
-  };
-
   if (loading || !quotation) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-purple-600 animate-spin" /></div>;
 
   const groupedFields = formConfig.reduce((acc, field) => {
@@ -326,7 +319,7 @@ const QuotationDetails = () => {
                {Object.keys(groupedFields).map(section => (
                  <div key={section} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">{getSectionIcon(section)}</div>
+                       <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600"><Home className="w-4 h-4 text-emerald-500" /></div>
                        <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Final Specs</h4>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -430,7 +423,7 @@ const QuotationDetails = () => {
                       <MessageSquare className="w-5 h-5" />
                     </div>
                   </a>
-                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-50 group hover:border-purple-100 transition-all">
+                  <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 transition-all">
                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Vault Email</p>
                     <p className="text-lg font-black text-slate-900 truncate">{quotation.email || 'N/A'}</p>
                   </div>
@@ -440,53 +433,78 @@ const QuotationDetails = () => {
         </div>
       </div>
       
-      {/* BRANDED PDF TEMPLATE (NO WATERMARK HERE EITHER FOR SAFETY) */}
+      {/* BRANDED PDF TEMPLATE - INCORPORATING CUSTOM BACKGROUND */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
         <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-           <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
-           <div style={{ padding: '30px 60px 10px 60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                 <div style={{ width: '80px', height: '80px', backgroundColor: '#0a2540', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', bottom: '15%', width: '60%', height: '50%', backgroundColor: '#ff5a1f', transform: 'skewY(-5deg)' }}></div>
-                    <div style={{ position: 'absolute', top: '15%', width: '40%', height: '40%', border: '4px solid white', borderRadius: '4px', transform: 'rotate(45deg)' }}></div>
-                    <span style={{ color: 'white', fontSize: '8pt', fontWeight: 900, position: 'absolute', bottom: '8px', width: '100%', textAlign: 'center' }}>Hossain</span>
-                 </div>
-                 <div>
-                    <h1 style={{ fontSize: '38pt', fontWeight: 900, margin: 0, color: '#000', lineHeight: '1' }}>Hossain House Design</h1>
-                    <p style={{ fontSize: '11pt', margin: '4px 0 0 0', fontWeight: 600, color: '#333' }}>House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
-                    <p style={{ fontSize: '10pt', margin: '2px 0 0 0', fontWeight: 500, color: '#444' }}>+8801705323220, support@hossainhousedesign.com</p>
-                 </div>
+           <div style={{ height: '2mm', width: '100%', backgroundColor: '#042952' }}></div>
+           
+           {/* Dynamic Background Layer */}
+           {quotationBg && (
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${quotationBg})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 1, zIndex: 0 }}></div>
+           )}
+
+           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Header logic matches LeadDetails for consistency */}
+              {!quotationBg && (
+                <div style={{ padding: '2mm 20mm 2mm 20mm', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ textAlign: 'center', marginTop: '2mm' }}>
+                    <h1 style={{ fontSize: '28pt', fontWeight: 900, margin: 0, padding: 0, color: '#042952', lineHeight: '1.1', letterSpacing: '-0.01em' }}>Hossain House Design</h1>
+                    <p style={{ fontSize: '10pt', color: '#042952', fontWeight: 700, margin: '1mm 0' }}>www.hossainhousedesign.com, +8801705323220, +8801313199299</p>
+                    <p style={{ fontSize: '9pt', color: '#333', fontWeight: 500, margin: '1mm 0' }}>House 27, Road 14, Block G, Niketon, Gulshan 1, Dhaka</p>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: quotationBg ? '45mm' : '2mm' }}>
+                <div style={{ borderTop: quotationBg ? 'none' : '2px solid #f05a25', borderBottom: quotationBg ? 'none' : '2px solid #f05a25', margin: '2mm 0', textAlign: 'center', padding: '10px 0' }}>
+                    <h2 style={{ fontSize: '28pt', fontWeight: 900, color: '#042952', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Quotation</h2>
+                </div>
               </div>
+
+              <div style={{ padding: '4mm 25mm', flex: 1, position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '25px', alignItems: 'flex-start' }}>
+                    <div>
+                        <h3 style={{ fontSize: '12pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
+                        <div style={{ fontSize: '11pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
+                          <p style={{ margin: '1px 0', fontSize: '12pt', fontWeight: 800 }}>{quotation.client_name}</p>
+                          <p style={{ margin: '1px 0' }}>{quotation.current_location || 'Local'}</p>
+                          <p style={{ margin: '1px 0' }}>{quotation.address}, {quotation.upazila}</p>
+                        </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '11pt', fontWeight: 800, color: '#042952' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ border: quotationBg ? 'none' : '1px solid #e2e8f0', borderRadius: '30px', padding: '30px', minHeight: '400px', backgroundColor: quotationBg ? 'rgba(255,255,255,0.7)' : 'transparent', backdropFilter: quotationBg ? 'blur(2px)' : 'none' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '8mm' }}>
+                        {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests' || f.section === 'Financials')).map(f => {
+                          const val = getFieldValue(f.db_key);
+                          if (!val || val === 'N/A' || val === 'No' || val === false) return null;
+                          return (
+                              <div key={f.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                                <p style={{ fontSize: '8pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</p>
+                                <p style={{ fontSize: '11pt', fontWeight: 800, color: '#042952' }}>{val}</p>
+                              </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '30px' }}>
+                    <p style={{ fontSize: '10pt', color: '#042952', fontWeight: 800, marginBottom: '20px', textAlign: 'center' }}>
+                        Thank you for your inquiry. We look forward to the opportunity to work with you.
+                    </p>
+                    <div style={{ marginTop: '35px' }}>
+                        <p style={{ fontSize: '11pt', fontWeight: 600, margin: 0 }}>Sincerely</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 800, marginTop: '5px', marginBottom: 0, color: '#042952' }}>Marketing Manager</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 900, margin: 0, color: '#042952' }}>Hossain House Design</p>
+                    </div>
+                  </div>
+              </div>
+
+              {!quotationBg && <div style={{ height: '8mm', width: '100%', backgroundColor: '#042952' }}></div>}
            </div>
-           <div style={{ height: '6px', width: '100%', backgroundColor: '#ff5a1f', marginTop: '10px' }}></div>
-           <div style={{ padding: '40px 80px', flex: 1, position: 'relative' }}>
-              <div style={{ textAlign: 'right', marginBottom: '20px' }}><p style={{ fontSize: '12pt', fontWeight: 700, color: '#000' }}>Date: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
-              <div style={{ marginBottom: '40px' }}>
-                 <h3 style={{ fontSize: '14pt', fontWeight: 800, marginBottom: '6px', color: '#000' }}>To,</h3>
-                 <div style={{ fontSize: '13pt', lineHeight: '1.4', fontWeight: 600, color: '#111' }}>
-                    <p style={{ margin: '2px 0' }}>{quotation.client_name}</p>
-                    <p style={{ margin: '2px 0' }}>{quotation.current_location || 'Local Resident'}</p>
-                    <p style={{ margin: '2px 0' }}>{quotation.address}, {quotation.upazila}</p>
-                 </div>
-              </div>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '40px', minHeight: '400px', padding: '40px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '20mm', rowGap: '10mm' }}>
-                    {formConfig.filter(f => f.visible && (f.section === 'Architecture' || f.section === 'Interests')).map(f => {
-                       const val = getFieldValue(f.db_key);
-                       if (!val || val === 'N/A' || val === 'No') return null;
-                       return (
-                          <div key={f.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                             <p style={{ fontSize: '9pt', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</p>
-                             <p style={{ fontSize: '12pt', fontWeight: 800, color: '#1e293b' }}>{val}</p>
-                          </div>
-                       );
-                    })}
-                 </div>
-              </div>
-              <div style={{ marginTop: '50px' }}><p style={{ fontSize: '12pt', fontWeight: 600, margin: 0 }}>Sincere</p><p style={{ fontSize: '13pt', fontWeight: 800, marginTop: '8px', marginBottom: 0 }}>Marketing Manager</p><p style={{ fontSize: '13pt', fontWeight: 900, margin: 0 }}>Hossain House Design</p><p style={{ fontSize: '11pt', fontWeight: 600, marginTop: '4px' }}>Ph: +8801705323220</p></div>
-           </div>
-           <div style={{ textAlign: 'center', padding: '15px 0' }}><p style={{ fontSize: '10pt', fontWeight: 700, color: '#333' }}>www.hossainhousedesign.com</p></div>
-           <div style={{ height: '24px', width: '100%', backgroundColor: '#0a2540' }}></div>
         </div>
       </div>
     </div>
