@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+// Fix: Added missing 'Hash' import from lucide-react
 import { 
   Plus, Trash2, RefreshCw, Eye, EyeOff, Lock, ChevronRight, Users, 
   UserCircle, FormInput, ArrowLeft, Save, Shield, RotateCcw, 
@@ -8,7 +8,8 @@ import {
   Type as TypeIcon, Wand2, ShieldCheck, User as UserIcon,
   Image as ImageIcon, ToggleLeft, ToggleRight, AlertTriangle, ListPlus,
   Settings2, CheckCircle2, Palette, Upload, Image as ImageLucide,
-  FileCheck, Info, Database, ShieldAlert
+  FileCheck, Info, Database, ShieldAlert, ChevronDown, Check,
+  Hash
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { FormFieldConfig, FieldType, Profile } from '../types';
@@ -103,17 +104,13 @@ const Settings = () => {
       const fileName = `quotation_bg_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Upload to 'HHDCRM' bucket
       const { error: uploadError } = await supabase.storage
         .from('HHDCRM')
         .upload(filePath, file);
 
       if (uploadError) {
         if (uploadError.message.includes('not found')) {
-          throw new Error("Supabase Error: 'HHDCRM' bucket not found. Ensure you created it in Storage Dashboard.");
-        }
-        if (uploadError.message.includes('security policy')) {
-          throw new Error("Security Error: RLS policy violation. Open 'supabaseClient.ts' and run the V30 MASTER SQL fix in your Supabase SQL Editor.");
+          throw new Error("Supabase Error: 'HHDCRM' bucket not found.");
         }
         throw uploadError;
       }
@@ -122,19 +119,13 @@ const Settings = () => {
         .from('HHDCRM')
         .getPublicUrl(filePath);
 
-      // Sync to settings table
       const { error: updateError } = await supabase.from('settings').upsert({
         key: 'quotation_bg_url',
         value: publicUrl,
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
 
-      if (updateError) {
-        if (updateError.message.includes('security policy')) {
-           throw new Error("Security Error: 'settings' table RLS violation. Run the V30 MASTER SQL fix provided in 'supabaseClient.ts'.");
-        }
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       setQuotationBgUrl(publicUrl);
       showNotification("Architectural branding layer synchronized.", "success");
@@ -148,7 +139,6 @@ const Settings = () => {
 
   const handleRemoveBranding = async () => {
     if (!confirm("Are you sure you want to revert to the default minimal letterhead?")) return;
-    
     setSaving(true);
     try {
       const { error } = await supabase.from('settings').upsert({ 
@@ -156,14 +146,7 @@ const Settings = () => {
         value: "", 
         updated_at: new Date().toISOString() 
       }, { onConflict: 'key' });
-      
-      if (error) {
-        if (error.message.includes('security policy')) {
-          throw new Error("Security Error: RLS violation. Run the V30 SQL fix in 'supabaseClient.ts'.");
-        }
-        throw error;
-      }
-      
+      if (error) throw error;
       setQuotationBgUrl("");
       showNotification("Branding layer detached.", "info");
     } catch (err: any) {
@@ -179,7 +162,6 @@ const Settings = () => {
     try {
       const userId = globalProfile?.id;
       if (!userId) throw new Error("Security check failed.");
-      
       const { error } = await supabase.from('profiles').update({
         full_name: localProfile.full_name?.trim() || null,
         designation: localProfile.designation?.trim() || null,
@@ -188,7 +170,6 @@ const Settings = () => {
         avatar_url: localProfile.avatar_url?.trim() || null,
         updated_at: new Date().toISOString()
       }).eq('id', userId);
-
       if (error) throw error;
       showNotification("Account information synchronized.", "success");
       await refreshUser();
@@ -208,12 +189,7 @@ const Settings = () => {
         value: updatedFields,
         updated_at: new Date().toISOString()
       }, { onConflict: 'key' });
-      if (error) {
-        if (error.message.includes('security policy')) {
-           throw new Error("Security Error: RLS violation. Run the V30 SQL fix in 'supabaseClient.ts'.");
-        }
-        throw error;
-      }
+      if (error) throw error;
       setFormFields(updatedFields);
       showNotification("Lead Form Setting updated.", "success");
     } catch (err: any) {
@@ -241,9 +217,7 @@ const Settings = () => {
   const addOptionTag = () => {
     if (!optionInput.trim()) return;
     const clean = optionInput.trim();
-    if (!tempOptions.includes(clean)) {
-      setTempOptions([...tempOptions, clean]);
-    }
+    if (!tempOptions.includes(clean)) setTempOptions([...tempOptions, clean]);
     setOptionInput('');
   };
 
@@ -251,17 +225,9 @@ const Settings = () => {
     setTempOptions(tempOptions.filter(t => t !== tag));
   };
 
-  const handleOptionInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addOptionTag();
-    }
-  };
-
   const addNewField = () => {
     if (!newField.label || !newField.section) return;
     const db_key = newField.label.toLowerCase().replace(/\s+/g, '_');
-    
     const field: FormFieldConfig = {
       id: Math.random().toString(36).substr(2, 9),
       label: newField.label,
@@ -275,24 +241,26 @@ const Settings = () => {
     saveSchema([...formFields, field]);
     setIsFieldModalOpen(false);
     setTempOptions([]);
-    setOptionInput('');
     setNewField({ label: '', type: 'text', section: 'Architecture', required: false, visible: true, options: [] });
   };
 
-  const handleUpdateOptions = (id: string) => {
-    const field = formFields.find(f => f.id === id);
-    if (!field) return;
-    const updated = formFields.map(f => f.id === id ? { ...f, options: tempOptions } : f);
+  const openOptionsEditor = (field: FormFieldConfig) => {
+    setEditingOptionsId(field.id);
+    setTempOptions(field.options || []);
+  };
+
+  const handleUpdateOptions = () => {
+    if (!editingOptionsId) return;
+    const updated = formFields.map(f => f.id === editingOptionsId ? { ...f, options: tempOptions } : f);
     saveSchema(updated);
     setEditingOptionsId(null);
     setTempOptions([]);
-    setOptionInput('');
   };
 
   const generatePassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let pass = "";
-    for (let i = 0; i < 12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 10; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
     setLocalProfile(prev => ({ ...prev, login_password: pass }));
     setShowPassword(true);
   };
@@ -330,6 +298,224 @@ const Settings = () => {
           <p className="text-xs text-slate-400 font-medium leading-relaxed">Access soft-deleted records and permanently purge.</p>
           <div className="mt-8 flex items-center gap-2 text-red-600 text-[10px] font-black uppercase tracking-widest">Open Bin <ChevronRight className="w-3 h-3" /></div>
         </Link>
+      </div>
+      <div className="mt-12">
+        <button onClick={() => setView('profile')} className="flex items-center gap-4 text-slate-400 hover:text-slate-900 transition-all text-[11px] font-black uppercase tracking-widest">
+           <UserCircle className="w-5 h-5" /> Edit My Profile
+        </button>
+      </div>
+    </div>
+  );
+
+  // 2. LEAD FORM SETTING VIEW
+  if (view === 'form' && isAdmin) {
+    const sections = Array.from(new Set(formFields.map(f => f.section)));
+    return (
+      <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-5xl mx-auto">
+        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Form Schema</h1>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">TECHNICAL DATA CAPTURE CONFIGURATION</p>
+            </div>
+          </div>
+          <button onClick={() => setIsFieldModalOpen(true)} className="px-8 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3">
+             <Plus className="w-4 h-4" /> Add Parameter
+          </button>
+        </header>
+
+        <div className="space-y-12">
+          {sections.map(section => (
+            <div key={section} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+               <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Module</h3>
+               </div>
+               <div className="divide-y divide-slate-50">
+                  {formFields.filter(f => f.section === section).map(field => (
+                    <div key={field.id} className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:bg-slate-50/50 transition-colors group">
+                       <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-300">
+                             {field.type === 'select' ? <ListFilter className="w-5 h-5" /> : field.type === 'number' ? <Hash className="w-5 h-5" /> : <TypeIcon className="w-5 h-5" />}
+                          </div>
+                          <div>
+                             <p className="text-sm font-black text-slate-900">{field.label}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">DB KEY: {field.db_key} • {field.type.toUpperCase()}</p>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-4">
+                          {field.type === 'select' && (
+                            <button onClick={() => openOptionsEditor(field)} className="px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-100">
+                               {field.options?.length || 0} Options
+                            </button>
+                          )}
+                          <button onClick={() => toggleFieldVisibility(field.id)} className={`p-3 rounded-xl transition-all ${field.visible ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                             {field.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
+                          <button onClick={() => deleteField(field.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors">
+                             <Trash2 className="w-4 h-4" />
+                          </button>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          ))}
+        </div>
+
+        {/* New Field Modal */}
+        {isFieldModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+             <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between items-start mb-10">
+                   <h3 className="text-2xl font-black text-slate-900">New Parameter</h3>
+                   <button onClick={() => setIsFieldModalOpen(false)} className="p-2 text-slate-300 hover:text-slate-900"><X className="w-6 h-6" /></button>
+                </div>
+                <div className="space-y-6">
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Display Label</label>
+                      <input className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white" value={newField.label} onChange={e => setNewField({...newField, label: e.target.value})} />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Type</label>
+                         <select className="w-full h-14 px-4 bg-slate-50 rounded-2xl font-bold" value={newField.type} onChange={e => setNewField({...newField, type: e.target.value as FieldType})}>
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="select">Select</option>
+                            <option value="textarea">Large Text</option>
+                            <option value="checkbox">Checkbox</option>
+                         </select>
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Section</label>
+                         <select className="w-full h-14 px-4 bg-slate-50 rounded-2xl font-bold" value={newField.section} onChange={e => setNewField({...newField, section: e.target.value})}>
+                            <option value="Identity">Identity</option>
+                            <option value="Architecture">Architecture</option>
+                            <option value="Logistics">Logistics</option>
+                            <option value="Financials">Financials</option>
+                            <option value="Interests">Interests</option>
+                         </select>
+                      </div>
+                   </div>
+                   {newField.type === 'select' && (
+                      <div className="p-6 bg-slate-50 rounded-3xl space-y-4">
+                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Options Management</p>
+                         <div className="flex gap-2">
+                            <input className="flex-1 h-12 px-4 bg-white rounded-xl text-sm font-bold" placeholder="New option..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
+                            <button onClick={addOptionTag} className="p-3 bg-emerald-600 text-white rounded-xl"><Plus className="w-5 h-5" /></button>
+                         </div>
+                         <div className="flex flex-wrap gap-2">
+                            {tempOptions.map(t => <span key={t} className="px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[10px] font-bold flex items-center gap-2">{t} <button onClick={() => removeOptionTag(t)}><X className="w-3 h-3 text-red-400" /></button></span>)}
+                         </div>
+                      </div>
+                   )}
+                   <button onClick={addNewField} className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] font-black uppercase tracking-widest shadow-xl">Commit Parameter</button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Options Editor Modal */}
+        {editingOptionsId && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+             <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl">
+                <h3 className="text-xl font-black text-slate-900 mb-8">Manage Selection Options</h3>
+                <div className="space-y-6">
+                   <div className="flex gap-2">
+                      <input className="flex-1 h-14 px-6 bg-slate-50 rounded-2xl font-bold" placeholder="Add entry..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
+                      <button onClick={addOptionTag} className="px-6 bg-slate-900 text-white rounded-2xl"><Plus className="w-5 h-5" /></button>
+                   </div>
+                   <div className="max-h-64 overflow-y-auto no-scrollbar space-y-2">
+                      {tempOptions.map(t => (
+                        <div key={t} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl group">
+                           <span className="text-sm font-bold text-slate-700">{t}</span>
+                           <button onClick={() => removeOptionTag(t)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4" /></button>
+                        </div>
+                      ))}
+                   </div>
+                   <div className="flex gap-4">
+                      <button onClick={() => setEditingOptionsId(null)} className="flex-1 py-5 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
+                      <button onClick={handleUpdateOptions} className="flex-1 py-5 bg-[#064e3b] text-white rounded-2xl font-black uppercase text-[10px]">Save Changes</button>
+                   </div>
+                </div>
+             </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 3. PROFILE VIEW
+  if (view === 'profile') return (
+    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-bottom-6 duration-500 max-w-4xl mx-auto">
+      <header className="mb-12 flex items-center gap-6">
+        <button onClick={() => isAdmin ? setView('hub') : navigate('/')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Identity Settings</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">PERSONAL WORKSPACE PREFERENCES</p>
+        </div>
+      </header>
+
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl overflow-hidden">
+         <div className="h-48 bg-[#064e3b] relative">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div className="absolute -bottom-16 left-12">
+               <div className="relative group">
+                  <img src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name}`} className="w-40 h-40 rounded-[48px] border-8 border-white bg-white shadow-2xl object-cover" alt="Profile" />
+                  <div className="absolute inset-0 bg-black/40 rounded-[48px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer">
+                     <Camera className="w-8 h-8" />
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div className="pt-24 pb-14 px-12">
+            <form onSubmit={handleUpdateProfile} className="space-y-12">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                     <div className="relative">
+                        <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <input className="w-full h-16 pl-16 pr-6 bg-slate-50 border border-slate-100 rounded-[24px] font-bold text-slate-700 focus:bg-white transition-all shadow-inner" value={localProfile.full_name || ''} onChange={e => setLocalProfile({...localProfile, full_name: e.target.value})} />
+                     </div>
+                  </div>
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Designation</label>
+                     <div className="relative">
+                        <Briefcase className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <input className="w-full h-16 pl-16 pr-6 bg-slate-50 border border-slate-100 rounded-[24px] font-bold text-slate-700 focus:bg-white transition-all shadow-inner" value={localProfile.designation || ''} onChange={e => setLocalProfile({...localProfile, designation: e.target.value})} />
+                     </div>
+                  </div>
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                     <div className="relative">
+                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <input className="w-full h-16 pl-16 pr-6 bg-slate-50 border border-slate-100 rounded-[24px] font-bold text-slate-700 focus:bg-white transition-all shadow-inner" value={localProfile.phone || ''} onChange={e => setLocalProfile({...localProfile, phone: e.target.value})} />
+                     </div>
+                  </div>
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
+                     <div className="relative">
+                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <input type={showPassword ? 'text' : 'password'} className="w-full h-16 pl-16 pr-24 bg-slate-50 border border-slate-100 rounded-[24px] font-bold text-slate-700 focus:bg-white transition-all shadow-inner" value={localProfile.login_password || ''} onChange={e => setLocalProfile({...localProfile, login_password: e.target.value})} />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                           <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><RefreshCw className="w-4 h-4" /></button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex flex-col sm:flex-row gap-6 pt-6">
+                  <button type="submit" disabled={saving} className="flex-1 py-7 bg-[#064e3b] text-white rounded-[28px] text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
+                    {saving ? <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" /> : <Save className="w-5 h-5 text-emerald-400" />} AUTHORIZE IDENTITY UPDATE
+                  </button>
+                  {isAdmin && <button type="button" onClick={() => setView('hub')} className="px-12 py-7 bg-slate-50 text-slate-400 rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Cancel</button>}
+               </div>
+            </form>
+         </div>
       </div>
     </div>
   );
@@ -383,31 +569,12 @@ const Settings = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-                   <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
-                      accept="image/*" 
-                    />
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={saving}
-                      className="flex-1 flex items-center justify-center gap-4 px-8 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50"
-                    >
+                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+                    <button onClick={() => fileInputRef.current?.click()} disabled={saving} className="flex-1 flex items-center justify-center gap-4 px-8 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50">
                       {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5 text-emerald-400" />}
                       {quotationBgUrl ? 'Replace Design' : 'Upload Design'}
                     </button>
-
-                    {quotationBgUrl && (
-                      <button 
-                        onClick={handleRemoveBranding}
-                        disabled={saving}
-                        className="px-8 py-6 bg-white border border-slate-100 text-red-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-100 transition-all active:scale-95"
-                      >
-                        Detach
-                      </button>
-                    )}
+                    {quotationBgUrl && <button onClick={handleRemoveBranding} disabled={saving} className="px-8 py-6 bg-white border border-slate-100 text-red-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-100 transition-all active:scale-95">Detach</button>}
                 </div>
 
                 <div className="p-6 bg-blue-50 rounded-[32px] border border-blue-100 flex items-start gap-4">
@@ -439,42 +606,15 @@ const Settings = () => {
                       </div>
                    </div>
                 </div>
-                {saving && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm rounded-[40px] flex items-center justify-center z-20">
-                     <div className="flex flex-col items-center gap-4">
-                        <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
-                        <p className="text-[10px] font-black text-[#064e3b] uppercase tracking-widest text-center px-6">Synchronizing Asset & Permissions (V30)...</p>
-                     </div>
-                  </div>
-                )}
              </div>
           </div>
-        </div>
-
-        <div className="p-10 bg-amber-50 rounded-[48px] border border-amber-100 flex flex-col md:flex-row items-center gap-8 shadow-sm">
-           <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-amber-500 shadow-sm shrink-0">
-             <ShieldAlert className="w-7 h-7" />
-           </div>
-           <div>
-              <h4 className="text-sm font-black text-amber-900 uppercase tracking-widest">Unified Permission Protocol (V30)</h4>
-              <p className="text-xs font-medium text-amber-800 leading-relaxed mt-1">Due to the custom staff login system, you must use the <strong>Universal Public Access Policy</strong> in your Supabase SQL Editor. See the setup block in <code>supabaseClient.ts</code> for the specific commands. Also verify the bucket is set to PUBLIC in the storage dashboard.</p>
-           </div>
-        </div>
-
-        <div className="p-10 bg-slate-900 rounded-[48px] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
-           <div className="flex items-center gap-6 relative z-10">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-400"><FileCheck className="w-7 h-7" /></div>
-              <div>
-                <h4 className="text-lg font-black text-white">Global Synchronization</h4>
-                <p className="text-white/40 text-xs font-medium">This asset is automatically applied to all PDF exports firm-wide.</p>
-              </div>
-           </div>
-           <button onClick={() => setView('hub')} className="relative z-10 px-8 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">Back to Hub</button>
         </div>
       </div>
     </div>
   );
+
+  // Fallback return to prevent white page if somehow none of the above branches are met
+  return null;
 };
 
 export default Settings;
