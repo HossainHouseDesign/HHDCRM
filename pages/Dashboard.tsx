@@ -480,8 +480,8 @@ const Dashboard = () => {
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">{isAdmin ? 'Executive Admin' : 'Design Staff'}</p>
             </div>
             <img 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'Arch1'}`} 
-              className="w-12 h-12 rounded-2xl border-2 border-white shadow-lg bg-white cursor-pointer hover:scale-105 transition-transform"
+              src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.email || profile?.full_name || 'Arch1'}`} 
+              className="w-12 h-12 rounded-2xl border-2 border-white shadow-lg bg-white cursor-pointer hover:scale-105 transition-transform object-cover"
               alt="Avatar"
               onClick={() => navigate('/settings')}
             />

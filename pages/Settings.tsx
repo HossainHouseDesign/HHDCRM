@@ -466,7 +466,7 @@ const Settings = () => {
             <div className="absolute -bottom-16 left-12">
                <div className="relative group">
                   <img 
-                    src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.full_name || 'User'}`} 
+                    src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.email || localProfile.full_name || 'User'}`} 
                     className="w-40 h-40 rounded-[48px] border-8 border-white bg-white shadow-2xl object-cover" 
                     alt="Profile" 
                   />

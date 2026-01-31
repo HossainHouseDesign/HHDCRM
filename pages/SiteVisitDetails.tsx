@@ -272,7 +272,7 @@ const SiteVisitDetails = () => {
                        const active = formData.assigned_team.includes(s.id);
                        return (
                          <button key={s.id} type="button" onClick={() => setFormData(prev => ({ ...prev, assigned_team: active ? prev.assigned_team.filter(i => i !== s.id) : [...prev.assigned_team, s.id] }))} className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${active ? 'bg-[#064e3b] text-white shadow-lg' : 'bg-white border-slate-100 text-slate-600 hover:border-emerald-200'}`}>
-                            <img src={s.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.full_name}`} className="w-8 h-8 rounded-lg bg-white p-0.5 object-cover shrink-0" alt={s.full_name} />
+                            <img src={s.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.email || s.full_name}`} className="w-8 h-8 rounded-lg bg-white p-0.5 object-cover shrink-0" alt={s.full_name} />
                             <p className="text-[10px] font-black truncate leading-none">{s.full_name}</p>
                          </button>
                        );
@@ -388,7 +388,7 @@ const SiteVisitDetails = () => {
                   {visit.assignments && visit.assignments.length > 0 ? visit.assignments.map((assignment: any, idx: number) => (
                     assignment.profile && (
                       <div key={idx} className="flex items-center gap-5 p-6 bg-slate-50/50 rounded-[32px] border border-transparent hover:border-emerald-100 hover:bg-white transition-all group">
-                         <img src={assignment.profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform object-cover" alt={assignment.profile.full_name} />
+                         <img src={assignment.profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.email || assignment.profile.full_name}`} className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform object-cover" alt={assignment.profile.full_name} />
                          <div><p className="text-sm font-black text-slate-900 tracking-tight">{assignment.profile.full_name}</p><p className="text-[10px] font-black text-slate-400 uppercase mt-1">{assignment.profile.designation || 'Staff'}</p><div className="flex items-center gap-3 mt-3"><a href={`tel:${assignment.profile.phone}`} className="p-1.5 bg-white text-slate-300 hover:text-emerald-500 rounded-lg transition-colors"><PhoneCall className="w-3.5 h-3.5" /></a><a href={`mailto:${assignment.profile.email}`} className="p-1.5 bg-white text-slate-300 hover:text-blue-500 rounded-lg transition-colors"><Mail className="w-3.5 h-3.5" /></a></div></div>
                       </div>
                     )

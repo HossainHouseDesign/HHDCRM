@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -286,7 +285,7 @@ const ProjectDetails = () => {
                     const isSelected = editFormData.assigned_team?.includes(tm.id);
                     return (
                       <button key={tm.id} type="button" onClick={() => setEditFormData({ ...editFormData, assigned_team: isSelected ? editFormData.assigned_team.filter((id: string) => id !== tm.id) : [...(editFormData.assigned_team || []), tm.id] })} className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all ${isSelected ? 'bg-[#064e3b] border-[#064e3b] text-white shadow-xl' : 'bg-white border-white text-slate-500'}`}>
-                         <img src={tm.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5 object-cover" alt={tm.full_name} />
+                         <img src={tm.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.email || tm.full_name}`} className="w-10 h-10 rounded-xl bg-white p-0.5 object-cover" alt={tm.full_name} />
                          <div className="text-left"><p className="text-[12px] font-black leading-tight">{tm.full_name}</p><p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-60">{tm.designation || 'Staff Architect'}</p></div>
                       </button>
                     );
@@ -372,7 +371,7 @@ const ProjectDetails = () => {
                          {assignment.profile && (
                            <>
                              <img 
-                               src={assignment.profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.full_name}`} 
+                               src={assignment.profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${assignment.profile.email || assignment.profile.full_name}`} 
                                className="w-16 h-16 rounded-[22px] bg-white shadow-md border border-slate-100 group-hover:scale-110 transition-transform object-cover" 
                                alt={assignment.profile.full_name} 
                              />

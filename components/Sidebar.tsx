@@ -113,7 +113,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
           className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all"
         >
            <img 
-             src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || 'User'}`} 
+             src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.email || profile?.full_name || 'User'}`} 
              className="w-10 h-10 rounded-xl bg-white shadow-sm object-cover" 
              alt="Avatar" 
            />
