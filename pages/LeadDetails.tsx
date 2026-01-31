@@ -296,7 +296,8 @@ const LeadDetails = () => {
 
             <div style="margin-top: 20px;">
               <div style="font-size: 10pt;">Sincerely</div>
-              <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">Marketing Manager</div>
+              <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">${profile?.full_name || 'Marketing Manager'}</div>
+              <div style="font-size: 10pt; font-weight: bold; color: #64748b;">${profile?.designation || 'Hossain House Design'}</div>
               <div style="font-size: 11pt; font-weight: 900;">Hossain House Design</div>
               <div style="font-size: 9pt;">Ph: +8801705323220</div>
             </div>
@@ -691,7 +692,7 @@ const LeadDetails = () => {
       
       {/* FINALIZED PROFESSIONAL PDF TEMPLATE */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: '#fff', zIndex: -1 }}>
-        <div ref={pdfTemplateRef} style={{ width: '210mm', height: '297mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div ref={pdfTemplateRef} style={{ width: '210mm', height: '296.5mm', padding: '0', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a', backgroundColor: '#fff', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
            {/* Top bar */}
            <div style={{ height: '2mm', width: '100%', backgroundColor: '#042952' }}></div>
            
@@ -755,8 +756,9 @@ const LeadDetails = () => {
                     </p>
                     <div style={{ marginTop: '35px' }}>
                         <p style={{ fontSize: '11pt', fontWeight: 600, margin: 0 }}>Sincerely</p>
-                        <p style={{ fontSize: '12pt', fontWeight: 800, marginTop: '5px', marginBottom: 0, color: '#042952' }}>Marketing Manager</p>
-                        <p style={{ fontSize: '12pt', fontWeight: 900, margin: 0, color: '#042952' }}>Hossain House Design</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 800, marginTop: '5px', marginBottom: 0, color: '#042952' }}>{profile?.full_name || 'Marketing Manager'}</p>
+                        <p style={{ fontSize: '10pt', fontWeight: 700, margin: 0, color: '#64748b' }}>{profile?.designation || 'HHD Team Member'}</p>
+                        <p style={{ fontSize: '12pt', fontWeight: 900, margin: '2px 0 0 0', color: '#042952' }}>Hossain House Design</p>
                     </div>
                   </div>
               </div>
