@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -23,8 +22,8 @@ import SiteVisitList from './pages/SiteVisitList';
 import SiteVisitDetails from './pages/SiteVisitDetails';
 import Auth from './pages/Auth';
 import { supabase } from './supabaseClient';
-import { Profile } from './types';
-import { Menu, X, CheckCircle2, AlertCircle, Info, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Profile, SiteVisit, Lead } from './types';
+import { Menu, X, CheckCircle2, AlertCircle, Info, ShieldAlert, RefreshCw, Bell, MapPin, Target } from 'lucide-react';
 
 // --- User Context ---
 interface UserContextType {
@@ -45,11 +44,26 @@ export const useUser = () => {
 // --- Notification System ---
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 interface Notification { id: string; message: string; type: NotificationType; }
-interface NotificationContextType { showNotification: (message: string, type?: NotificationType) => void; }
+interface NotificationContextType { 
+  showNotification: (message: string, type?: NotificationType) => void;
+}
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 export const useNotification = () => {
   const context = useContext(NotificationContext);
   if (!context) throw new Error("useNotification must be used within a NotificationProvider");
+  return context;
+};
+
+// --- App State Context (Sync & Agenda) ---
+interface AppStateContextType {
+  isSyncing: boolean;
+  triggerSync: () => Promise<void>;
+  agendaItems: any[];
+}
+const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
+export const useAppState = () => {
+  const context = useContext(AppStateContext);
+  if (!context) throw new Error("useAppState must be used within a AppStateProvider");
   return context;
 };
 
@@ -125,6 +139,42 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   );
 };
 
+const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [agendaItems, setAgendaItems] = useState<any[]>([]);
+  const { session } = useUser();
+
+  const triggerSync = useCallback(async () => {
+    if (!session) return;
+    setIsSyncing(true);
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const [leadsRes, visitsRes] = await Promise.all([
+        supabase.from('leads').select('*').eq('follow_up_date', todayStr).is('deleted_at', null),
+        supabase.from('site_visits').select('*, project:projects(name), lead:leads(client_name)').eq('visit_date', todayStr).is('deleted_at', null)
+      ]);
+      
+      const combined = [
+        ...(leadsRes.data || []).map((l: Lead) => ({ id: l.id, name: l.client_name, type: 'followup' })),
+        ...(visitsRes.data || []).map((v: SiteVisit) => ({ id: v.id, name: v.project?.name || v.lead?.client_name || 'Site Operation', type: 'visit' }))
+      ];
+      setAgendaItems(combined);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (session) triggerSync();
+  }, [session, triggerSync]);
+
+  return (
+    <AppStateContext.Provider value={{ isSyncing, triggerSync, agendaItems }}>
+      {children}
+    </AppStateContext.Provider>
+  );
+};
+
 const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const showNotification = useCallback((message: string, type: NotificationType = 'info') => {
@@ -162,10 +212,17 @@ const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showAgendaPopup, setShowAgendaPopup] = useState(false);
   const { session, logout, loading, refreshUser } = useUser();
+  const { isSyncing, triggerSync, agendaItems } = useAppState();
   const { showNotification } = useNotification();
 
   useEffect(() => { setIsSidebarOpen(false); }, [location.pathname]);
+
+  const handleManualSync = async () => {
+    await triggerSync();
+    showNotification("Vault synchronization complete.", "success");
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -183,21 +240,63 @@ const AppContent = () => {
   if (!session) return <Auth onLogin={refreshUser} />;
 
   return (
-    <div className="flex bg-[#f8fafc] min-h-screen text-slate-900 antialiased">
+    <div className="flex bg-[#f8fafc] min-h-screen text-slate-900 antialiased relative overflow-x-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] lg:hidden animate-in fade-in duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Header - Unified with Sync/Agenda */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-100 z-[60] px-4 flex items-center justify-between shadow-sm">
          <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-[#064e3b] rounded-xl flex items-center justify-center">
               <div className="w-4 h-4 border-[2.5px] border-white rounded-full flex items-center justify-center"><div className="w-1 h-1 bg-white rounded-full"></div></div>
             </div>
-            <span className="font-bold text-lg text-slate-900 tracking-tight">HHD CRM</span>
+            <span className="font-bold text-lg text-slate-900 tracking-tight">HHD</span>
          </div>
-         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg"><Menu className="w-6 h-6" /></button>
+
+         <div className="flex items-center gap-2">
+           <button onClick={handleManualSync} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
+             <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
+           </button>
+           <div className="relative">
+             <button onClick={() => setShowAgendaPopup(!showAgendaPopup)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg relative">
+               <Bell className={`w-5 h-5 ${agendaItems.length > 0 ? 'text-emerald-600' : ''}`} />
+               {agendaItems.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>}
+             </button>
+             {showAgendaPopup && (
+               <div className="absolute top-12 right-0 w-64 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2">
+                 <div className="p-3 bg-slate-50 border-b rounded-t-2xl text-[9px] font-black uppercase text-slate-400">Today's Agenda</div>
+                 <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                   {agendaItems.length === 0 ? <p className="p-4 text-center text-xs text-slate-300 font-bold uppercase">Clear for today</p> : 
+                    agendaItems.map(item => (
+                      <div key={item.id} onClick={() => { setShowAgendaPopup(false); navigate(item.type === 'visit' ? `/site-visits/${item.id}` : `/leads/${item.id}`); }} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.type === 'visit' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          {item.type === 'visit' ? <MapPin className="w-4 h-4" /> : <Target className="w-4 h-4" />}
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 truncate">{item.name}</span>
+                      </div>
+                    ))
+                   }
+                 </div>
+               </div>
+             )}
+           </div>
+           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors ml-1">
+             {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+           </button>
+         </div>
       </div>
-      <div className={`fixed inset-y-0 left-0 z-[70] transition-all duration-500 lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:block ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-500 ease-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:block ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
       </div>
-      <main className="flex-1 relative pt-16 lg:pt-0 min-w-0">
-        <div className="max-w-[1600px] mx-auto min-h-full">
+
+      <main className="flex-1 relative pt-16 lg:pt-0 min-w-0 flex flex-col">
+        <div className="flex-1 w-full max-w-[1600px] mx-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/leads" element={<LeadsList />} />
@@ -231,9 +330,11 @@ const AppContent = () => {
 const App: React.FC = () => (
   <NotificationProvider>
     <UserProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <AppStateProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AppStateProvider>
     </UserProvider>
   </NotificationProvider>
 );

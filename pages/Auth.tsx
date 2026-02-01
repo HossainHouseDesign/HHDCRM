@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNotification } from '../App';
@@ -120,10 +119,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 sm:p-12 md:p-20 bg-[#f8fafc]">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 md:p-20 bg-[#f8fafc]">
         <div className="w-full max-w-md space-y-12">
+          {/* Mobile Brand Visual */}
+          <div className="md:hidden flex flex-col items-center gap-4 mb-8">
+            <div className="w-16 h-16 bg-[#064e3b] rounded-[24px] flex items-center justify-center shadow-xl">
+               <Building2 className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">HHD CRM</h1>
+          </div>
+
           <div className="space-y-4 text-center md:text-left">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
               {isLogin ? 'Authorized Access' : 'Register Firm'}
             </h2>
             <p className="text-slate-400 font-medium">
