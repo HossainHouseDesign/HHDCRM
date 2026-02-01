@@ -20,6 +20,8 @@ import QuotationList from './pages/QuotationList';
 import QuotationDetails from './pages/QuotationDetails';
 import SiteVisitList from './pages/SiteVisitList';
 import SiteVisitDetails from './pages/SiteVisitDetails';
+import Finance from './pages/Finance';
+import CashbookDetails from './pages/CashbookDetails';
 import Auth from './pages/Auth';
 import { supabase } from './supabaseClient';
 import { Profile, SiteVisit, Lead } from './types';
@@ -240,7 +242,7 @@ const AppContent = () => {
   if (!session) return <Auth onLogin={refreshUser} />;
 
   return (
-    <div className="flex bg-[#f8fafc] min-h-screen text-slate-900 antialiased relative overflow-x-hidden">
+    <div className="flex bg-[#f8fafc] min-h-screen text-slate-900 antialiased relative">
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
         <div 
@@ -291,11 +293,12 @@ const AppContent = () => {
          </div>
       </div>
 
-      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-500 ease-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:block ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* STICKY SIDEBAR CONTAINER */}
+      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-500 ease-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:flex lg:flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar onClose={() => setIsSidebarOpen(false)} onLogout={handleLogout} />
       </div>
 
-      <main className="flex-1 relative pt-16 lg:pt-0 min-w-0 flex flex-col">
+      <main className="flex-1 min-w-0 flex flex-col relative pt-16 lg:pt-0">
         <div className="flex-1 w-full max-w-[1600px] mx-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -314,6 +317,8 @@ const AppContent = () => {
             <Route path="/construction/:id" element={<ConstructionDetails />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
+            <Route path="/finance" element={<Finance />} />
+            <Route path="/finance/:id" element={<CashbookDetails />} />
             <Route path="/team" element={<TeamList />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/recycle-bin" element={<RecycleBin />} />

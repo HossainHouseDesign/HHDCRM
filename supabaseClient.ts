@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://vtfooxylfnzyrgdkslms.supabase.co';
@@ -7,53 +6,76 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * HHD CRM - MASTER DATABASE SETUP (V30 - THE PERMANENT FIX)
+ * HHD CRM - MASTER DATABASE REPAIR SCRIPT (V72)
  * 
- * 1. Open Supabase Dashboard -> SQL Editor
- * 2. Create bucket 'HHDCRM' in Storage and set it to PUBLIC.
- * 3. Paste and Run the following script:
+ * INSTRUCTIONS:
+ * 1. Log in to your Supabase Dashboard.
+ * 2. Navigate to "SQL Editor" -> "+ New Query".
+ * 3. Copy and Paste the ENTIRE block below.
+ * 4. Click "Run".
  * 
- * -- ==========================================
- * -- 1. STORAGE ACCESS (BRANDING FIX)
- * -- ==========================================
- * DROP POLICY IF EXISTS "HHDCRM_Public_Override" ON storage.objects;
- * CREATE POLICY "HHDCRM_Public_Override" 
- * ON storage.objects FOR ALL 
- * TO public 
- * USING (bucket_id = 'HHDCRM') 
- * WITH CHECK (bucket_id = 'HHDCRM');
- * 
- * -- ==========================================
- * -- 2. CORE TABLES & UNIVERSAL RLS
- * -- ==========================================
- * -- [Tables: settings, profiles, leads, projects, project_assignments, 
- * -- site_visits, site_visit_assignments, construction_projects, construction_logs]
- * 
- * -- This loop handles RLS for all existing tables in the 'public' schema
- * DO $$ 
- * DECLARE 
- *   t text;
- * BEGIN
- *   FOR t IN SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' 
- *   LOOP
- *     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
- *     EXECUTE format('DROP POLICY IF EXISTS "Public_CRM_Access" ON public.%I', t);
- *     EXECUTE format('CREATE POLICY "Public_CRM_Access" ON public.%I FOR ALL TO public USING (true) WITH CHECK (true)', t);
- *   END LOOP;
- * END $$;
- * 
- * -- ==========================================
- * -- 3. SHADOW LOGIN SECURITY
- * -- ==========================================
- * CREATE OR REPLACE FUNCTION check_staff_login(p_email TEXT, p_password TEXT)
- * RETURNS SETOF public.profiles AS $$
- * BEGIN
- *     RETURN QUERY
- *     SELECT * FROM public.profiles
- *     WHERE LOWER(email) = LOWER(p_email)
- *       AND login_password = p_password
- *       AND status = 'active'
- *       AND deleted_at IS NULL;
- * END;
- * $$ LANGUAGE plpgsql SECURITY DEFINER;
+ * This script fixes:
+ * - Missing 'project_id' in finance_cashbooks
+ * - Missing 'deleted_at' for archiving logic
+ * - Missing 'finance_cashbook_permissions' for team management
+ * - PostgREST Schema Cache refresh
  */
+
+/*
+-- START SQL --
+
+-- 1. Repair finance_cashbooks table
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='finance_cashbooks' AND column_name='project_id') THEN
+    ALTER TABLE public.finance_cashbooks ADD COLUMN project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL;
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='finance_cashbooks' AND column_name='deleted_at') THEN
+    ALTER TABLE public.finance_cashbooks ADD COLUMN deleted_at TIMESTAMPTZ;
+  END IF;
+END $$;
+
+-- 2. Create permissions table for granular cashbook access
+CREATE TABLE IF NOT EXISTS public.finance_cashbook_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cashbook_id UUID REFERENCES public.finance_cashbooks(id) ON DELETE CASCADE,
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(cashbook_id, profile_id)
+);
+
+-- 3. Ensure the 'finance_transactions' table and its columns exist
+CREATE TABLE IF NOT EXISTS public.finance_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cashbook_id UUID REFERENCES public.finance_cashbooks(id) ON DELETE CASCADE,
+    type TEXT CHECK (type IN ('Income', 'Expense')), 
+    amount NUMERIC NOT NULL,
+    category TEXT DEFAULT 'General',
+    description TEXT,
+    date DATE DEFAULT CURRENT_DATE,
+    office_id UUID,
+    created_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
+    lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL
+);
+
+-- 4. Repair transactions if missing specific link columns
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='finance_transactions' AND column_name='project_id') THEN
+    ALTER TABLE public.finance_transactions ADD COLUMN project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='finance_transactions' AND column_name='lead_id') THEN
+    ALTER TABLE public.finance_transactions ADD COLUMN lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+-- 5. CRITICAL: RELOAD SCHEMA CACHE
+-- This command fixes the error "Could not find the column in the schema cache"
+NOTIFY pgrst, 'reload schema';
+
+-- END SQL --
+*/

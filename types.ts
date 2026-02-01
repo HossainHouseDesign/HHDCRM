@@ -1,3 +1,4 @@
+
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
 export type UserRole = 'super_admin' | 'office_admin' | 'staff' | 'admin';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
@@ -26,6 +27,7 @@ export interface Profile {
     team?: boolean;
     settings?: boolean;
     site_visits?: boolean;
+    finance?: boolean;
   };
 }
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -75,7 +76,7 @@ const Settings = () => {
   const fetchSchema = async () => {
     try {
       const { data } = await supabase.from('settings').select('*').eq('key', 'lead_form_config').single();
-      if (data) setFormFields(data.value);
+      if (data && Array.isArray(data.value)) setFormFields(data.value);
       else setFormFields(DEFAULT_FORM_CONFIG);
     } catch (err) {
       setFormFields(DEFAULT_FORM_CONFIG);
@@ -110,12 +111,7 @@ const Settings = () => {
         .from('HHDCRM')
         .upload(filePath, file);
 
-      if (uploadError) {
-        if (uploadError.message.includes('not found')) {
-          throw new Error("Supabase Error: 'HHDCRM' bucket not found.");
-        }
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('HHDCRM')
@@ -311,7 +307,7 @@ const Settings = () => {
 
   // 2. LEAD FORM SETTING VIEW
   if (view === 'form' && isAdmin) {
-    const sections = Array.from(new Set(formFields.map(f => f.section)));
+    const sections = Array.from(new Set(formFields.filter(f => f && f.section).map(f => f.section)));
     return (
       <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-5xl mx-auto">
         <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
@@ -329,13 +325,13 @@ const Settings = () => {
 
         <div className="space-y-12">
           {sections.map(section => (
-            <div key={section} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+            <div key={section || 'general'} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
                <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Module</h3>
                </div>
                <div className="divide-y divide-slate-50">
-                  {formFields.filter(f => f.section === section).map(field => (
+                  {formFields.filter(f => f && f.section === section).map(field => (
                     <div key={field.id} className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:bg-slate-50/50 transition-colors group">
                        <div className="flex items-center gap-6">
                           <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-300">
@@ -343,7 +339,7 @@ const Settings = () => {
                           </div>
                           <div>
                              <p className="text-sm font-black text-slate-900">{field.label}</p>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">DB KEY: {field.db_key} • {field.type.toUpperCase()}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">DB KEY: {field.db_key} • {field.type?.toUpperCase() || 'TEXT'}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-4">
@@ -366,7 +362,7 @@ const Settings = () => {
           ))}
         </div>
 
-        {/* New Field Modal */}
+        {/* Modal components remain the same */}
         {isFieldModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
              <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in-95">
@@ -419,7 +415,6 @@ const Settings = () => {
           </div>
         )}
 
-        {/* Options Editor Modal */}
         {editingOptionsId && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
              <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl">
@@ -449,8 +444,8 @@ const Settings = () => {
     );
   }
 
-  // 3. PROFILE VIEW
-  if (view === 'profile') return (
+  // Fallback to Profile view if not an admin or if view state is invalid
+  return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-bottom-6 duration-500 max-w-4xl mx-auto">
       <header className="mb-12 flex items-center gap-6">
         <button onClick={() => isAdmin ? setView('hub') : navigate('/')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
@@ -530,112 +525,8 @@ const Settings = () => {
             </form>
          </div>
       </div>
-
-      {!isAdmin && (
-        <div className="mt-12 p-8 bg-blue-50 border border-blue-100 rounded-[40px] flex items-start gap-4">
-           <Info className="w-6 h-6 text-blue-500 shrink-0 mt-1" />
-           <p className="text-[11px] font-medium text-blue-700 leading-relaxed">
-             Staff Protocol: Profile updates are synchronized across the workspace. Ensure your phone number is valid for automated site visit notifications.
-           </p>
-        </div>
-      )}
     </div>
   );
-
-  // 4. BRANDING VIEW
-  if (view === 'branding' && isAdmin) return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
-       <header className="mb-12 flex items-center gap-6">
-        <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all active:scale-90"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Branding & Identity</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">DRAFTING OFFICIAL ARCHITECTURAL IDENTITY</p>
-        </div>
-      </header>
-
-      <div className="space-y-8">
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
-          <div className="flex items-center gap-4 border-b border-slate-50 pb-8 relative z-10">
-             <ImageLucide className="w-6 h-6 text-purple-500" />
-             <div>
-                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Quotation Master Layer</h3>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Direct File Upload • High-Resolution Letterhead (A4)</p>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
-             <div className="space-y-8">
-                <div className="space-y-4">
-                  <h4 className="text-lg font-black text-slate-900 leading-tight">Sync a Custom Letterhead</h4>
-                  <p className="text-sm text-slate-500 leading-relaxed font-medium">This design will be utilized as a full-page background for all generated PDF quotations. Maintain a premium, branded experience.</p>
-                </div>
-
-                <div className="space-y-6 bg-slate-50 p-8 rounded-[32px] border border-slate-100 shadow-inner">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-emerald-500 shadow-sm"><Info className="w-4 h-4" /></div>
-                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Technical Specifications</p>
-                   </div>
-                   <ul className="space-y-3">
-                      {[
-                        "Standard A4 Aspect Ratio (1:1.414)",
-                        "Recommended Size: 2480 x 3508 PX",
-                        "Format: JPG, PNG or High-Res WebP",
-                        "Policy: Ensure MASTER V30 SQL fix is applied in Supabase"
-                      ].map((spec, i) => (
-                        <li key={i} className="flex items-center gap-3 text-[11px] font-bold text-slate-500">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> {spec}
-                        </li>
-                      ))}
-                   </ul>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={saving} className="flex-1 flex items-center justify-center gap-4 px-8 py-6 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50">
-                      {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5 text-emerald-400" />}
-                      {quotationBgUrl ? 'Replace Design' : 'Upload Design'}
-                    </button>
-                    {quotationBgUrl && <button onClick={handleRemoveBranding} disabled={saving} className="px-8 py-6 bg-white border border-slate-100 text-red-500 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-red-50 hover:border-red-100 transition-all active:scale-95">Detach</button>}
-                </div>
-
-                <div className="p-6 bg-blue-50 rounded-[32px] border border-blue-100 flex items-start gap-4">
-                  <Database className="w-6 h-6 text-blue-500 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Storage Registry</p>
-                    <p className="text-[9px] font-bold text-blue-600/70 leading-relaxed uppercase">Bucket: HHDCRM • Protocol: Unified Public Access Required</p>
-                  </div>
-                </div>
-             </div>
-
-             <div className="relative group">
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4 ml-2">Active Preview</p>
-                <div className="aspect-[1/1.414] w-full bg-slate-50 rounded-[40px] border-4 border-dashed border-slate-200 overflow-hidden flex items-center justify-center relative shadow-inner">
-                   {quotationBgUrl ? (
-                     <img src={quotationBgUrl} className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" alt="Preview" />
-                   ) : (
-                     <div className="flex flex-col items-center gap-5 opacity-20">
-                        <ImageLucide className="w-16 h-16" />
-                        <div className="text-center">
-                          <p className="text-[11px] font-black uppercase tracking-[0.3em]">No Branding Layer</p>
-                          <p className="text-[9px] font-bold mt-1">Default Letterhead in Use</p>
-                        </div>
-                     </div>
-                   )}
-                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                      <div className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-                        <p className="text-white text-[10px] font-black uppercase tracking-widest">A4 Scale Rendering</p>
-                      </div>
-                   </div>
-                </div>
-             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  return null;
 };
 
 export default Settings;

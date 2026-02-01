@@ -15,7 +15,8 @@ import {
   UserCircle,
   Smartphone,
   Download,
-  MapPin
+  MapPin,
+  Banknote
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../App';
@@ -32,12 +33,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/', key: 'dashboard' },
-    { name: 'Lead', icon: FileText, path: '/leads', badge: '12+', key: 'leads' },
+    { name: 'Lead', icon: FileText, path: '/leads', key: 'leads' },
     { name: 'Site Visit', icon: MapPin, path: '/site-visits', key: 'site_visits' },
     { name: 'Quotation', icon: FileSpreadsheet, path: '/quotations', key: 'quotations' },
     { name: 'Client', icon: Users, path: '/clients', key: 'clients' },
     { name: 'Project', icon: Layers, path: '/projects', key: 'projects' },
     { name: 'Construction', icon: Hammer, path: '/construction', key: 'construction' },
+    { name: 'Finance', icon: Banknote, path: '/finance', key: 'finance' },
     { name: 'Team', icon: Users2, path: '/team', key: 'team' },
     { name: 'Recycle Bin', icon: History, path: '/settings/recycle-bin', key: 'settings', adminOnly: true },
     { 
@@ -60,8 +62,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <aside className="w-64 bg-white h-full flex flex-col border-r border-slate-100/50">
-      <div className="p-8 pb-4 flex items-center justify-between">
+    <aside className="w-64 bg-white h-full flex flex-col border-r border-slate-100/50 shadow-sm">
+      <div className="p-8 pb-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#064e3b] rounded-xl flex items-center justify-center">
             <div className="w-5 h-5 border-[2.5px] border-white rounded-full flex items-center justify-center">
@@ -107,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
         </nav>
       </div>
 
-      <div className="p-4 mt-auto border-t border-slate-50 space-y-4">
+      <div className="p-4 mt-auto border-t border-slate-50 space-y-4 shrink-0">
         <div 
           onClick={() => navigate('/settings')}
           className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all"

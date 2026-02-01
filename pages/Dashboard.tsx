@@ -8,7 +8,8 @@ import {
   Activity, Target, ArrowRight, ExternalLink,
   Layers, Clock, Layout, UserPlus, Zap, MessageSquare,
   Briefcase, PlusCircle, Command as CommandIcon,
-  Check, MapPin, HardHat, LayoutDashboard, Users2, Settings, History
+  Check, MapPin, HardHat, LayoutDashboard, Users2, Settings, History,
+  Banknote
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -105,6 +106,7 @@ const Dashboard = () => {
       { name: 'Quote', icon: FileSpreadsheet, path: '/quotations', key: 'quotations', color: 'bg-purple-50 text-purple-600' },
       { name: 'Clients', icon: Users, path: '/clients', key: 'clients', color: 'bg-indigo-50 text-indigo-600' },
       { name: 'Projects', icon: Layers, path: '/projects', key: 'projects', color: 'bg-slate-100 text-slate-800' },
+      { name: 'Finance', icon: Banknote, path: '/finance', key: 'finance', color: 'bg-amber-50 text-amber-600' },
       { name: 'Site', icon: Hammer, path: '/construction', key: 'construction', color: 'bg-orange-50 text-orange-600' },
       { name: 'Team', icon: Users2, path: '/team', key: 'team', color: 'bg-rose-50 text-rose-600' },
       { name: 'Vault', icon: History, path: '/settings/recycle-bin', key: 'settings', color: 'bg-slate-100 text-slate-400', adminOnly: true },
@@ -377,12 +379,12 @@ const Dashboard = () => {
         <div className="hidden lg:flex items-center justify-between w-full lg:w-auto gap-4 lg:gap-6">
           <div className="flex items-center gap-3">
             <button onClick={() => fetchDashboardData(true)} className="p-3 lg:p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
-              <RefreshCw className={`w-5 lg:w-6 h-5 lg:h-6 text-slate-400 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
+              <RefreshCw className={`w-5 lg:w-6 h-5 lg:h-5 text-slate-400 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
             </button>
 
             <div className="relative" ref={notificationRef}>
               <button onClick={() => setShowNotificationList(!showNotificationList)} className="p-3 lg:p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 shadow-sm relative">
-                <Bell className={`w-5 lg:w-6 h-5 lg:h-6 ${agendaItems.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
+                <Bell className={`w-5 lg:w-6 h-5 lg:h-5 ${agendaItems.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
                 {agendaItems.length > 0 && <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-600 rounded-full border-2 border-white" />}
               </button>
               {showNotificationList && (
