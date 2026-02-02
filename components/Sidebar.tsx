@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -71,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
               <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
-          <span className="font-bold text-xl text-slate-900 tracking-tight">HHD CRM</span>
+          <span className="font-bold text-xl text-slate-900 tracking-tight">HHD ERP</span>
         </div>
         <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
           <X className="w-5 h-5" />
@@ -137,7 +136,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
             {isAdmin ? "Master Access Active." : "Provisioned Access Active."}
           </p>
           <a 
-            href="https://drive.google.com/file/d/1az-OYspmmDQz2UkwbH14_ohn89zoIpd9/view?usp=sharing" 
+            href="https://drive.google.com/file/d/16rIV8n9VaH4f_a5MGG5WFq3hvyMNa0NY/view?usp=sharing" 
             target="_blank" 
             rel="noopener noreferrer"
             className="w-full bg-emerald-900 text-emerald-100 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-white hover:text-[#064e3b] transition-all shadow-sm flex items-center justify-center gap-2"

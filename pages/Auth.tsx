@@ -126,7 +126,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="w-16 h-16 bg-[#064e3b] rounded-[24px] flex items-center justify-center shadow-xl">
                <Building2 className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">HHD CRM</h1>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">HHD ERP</h1>
           </div>
 
           <div className="space-y-4 text-center md:text-left">
