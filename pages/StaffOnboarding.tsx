@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  ArrowLeft, UserCircle, Mail, Briefcase, 
-  ShieldCheck, RefreshCw, Building2, Eye, EyeOff, Lock, 
-  CheckCircle2, FileText, FileSpreadsheet, Users, Layers, 
+  ArrowLeft, UserCircle, RefreshCw, Eye, EyeOff, Lock, 
+  FileText, FileSpreadsheet, Users, Layers, 
   Hammer, Users2, Settings, Wand2, ShieldAlert, MapPin,
-  Banknote, BookOpen, Search, Check, ChevronRight
+  Banknote, BookOpen, Search, Check, ChevronRight,
+  Shield, UserPlus, Trash2, Edit3, Contact, ShieldCheck
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { UserRole, Profile } from '../types';
+import { UserRole, ModulePermissions } from '../types';
 import { useNotification, useUser } from '../App';
 
 interface Cashbook {
@@ -16,6 +17,14 @@ interface Cashbook {
   name: string;
   description: string;
 }
+
+const DEFAULT_MODULE_PERMS: ModulePermissions = {
+  view: true,
+  create: true,
+  edit: true,
+  delete: true,
+  see_contact: true
+};
 
 const StaffOnboarding = () => {
   const navigate = useNavigate();
@@ -28,7 +37,6 @@ const StaffOnboarding = () => {
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   
-  // Data for granular permissions
   const [availableCashbooks, setAvailableCashbooks] = useState<Cashbook[]>([]);
   const [selectedCashbooks, setSelectedCashbooks] = useState<string[]>([]);
   const [cashbookSearch, setCashbookSearch] = useState('');
@@ -42,16 +50,16 @@ const StaffOnboarding = () => {
     role: 'staff' as UserRole
   });
 
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({
-    leads: true,
-    site_visits: true,
-    quotations: false,
-    clients: false,
-    projects: false,
-    construction: false,
-    finance: false,
-    team: false,
-    settings: false
+  const [permissions, setPermissions] = useState<any>({
+    leads: { ...DEFAULT_MODULE_PERMS },
+    site_visits: { ...DEFAULT_MODULE_PERMS },
+    quotations: { ...DEFAULT_MODULE_PERMS },
+    clients: { ...DEFAULT_MODULE_PERMS },
+    projects: { ...DEFAULT_MODULE_PERMS },
+    construction: { ...DEFAULT_MODULE_PERMS },
+    finance: { ...DEFAULT_MODULE_PERMS },
+    team: { ...DEFAULT_MODULE_PERMS },
+    settings: { access: true }
   });
 
   useEffect(() => {
@@ -66,8 +74,6 @@ const StaffOnboarding = () => {
 
     try {
       setLoading(true);
-      
-      // Fetch available cashbooks for the assignment section
       const { data: cbData } = await supabase.from('finance_cashbooks').select('id, name, description').is('deleted_at', null);
       setAvailableCashbooks(cbData || []);
 
@@ -90,7 +96,7 @@ const StaffOnboarding = () => {
         });
         
         if (data.permissions) {
-          setPermissions(prev => ({ ...prev, ...data.permissions }));
+          setPermissions(data.permissions);
         }
 
         if (permsRes.data) {
@@ -105,8 +111,44 @@ const StaffOnboarding = () => {
     }
   };
 
-  const handleTogglePermission = (key: string) => {
-    setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleToggleModuleAction = (module: string, action: string) => {
+    setPermissions(prev => {
+      const currentMod = prev[module] || { view: false, create: false, edit: false, delete: false, see_contact: false };
+      return {
+        ...prev,
+        [module]: {
+          ...currentMod,
+          [action]: !currentMod[action]
+        }
+      };
+    });
+  };
+
+  const handleMasterToggle = (module: string) => {
+    setPermissions(prev => {
+      const currentMod = prev[module] || { view: false, create: false, edit: false, delete: false, see_contact: false };
+      const isAnyOn = currentMod.view || currentMod.create || currentMod.edit || currentMod.delete || currentMod.see_contact;
+      
+      // If anything is on, turn everything off. If everything is off, turn everything on.
+      const newState = !isAnyOn;
+      return {
+        ...prev,
+        [module]: {
+          view: newState,
+          create: newState,
+          edit: newState,
+          delete: newState,
+          see_contact: newState
+        }
+      };
+    });
+  };
+
+  const toggleSettingsAccess = () => {
+    setPermissions(prev => ({
+      ...prev,
+      settings: { ...prev.settings, access: !prev.settings?.access }
+    }));
   };
 
   const toggleCashbook = (cbId: string) => {
@@ -151,13 +193,16 @@ const StaffOnboarding = () => {
         targetId = newProfile.id;
       }
       
-      // Update Cashbook granular permissions
       if (targetId) {
         await supabase.from('finance_cashbook_permissions').delete().eq('profile_id', targetId);
-        if (permissions.finance && selectedCashbooks.length > 0) {
+        if (permissions.finance?.view && selectedCashbooks.length > 0) {
           const perms = selectedCashbooks.map(cbId => ({
             profile_id: targetId,
-            cashbook_id: cbId
+            cashbook_id: cbId,
+            can_input: true,
+            can_edit: true,
+            can_delete: true,
+            can_archive: true
           }));
           await supabase.from('finance_cashbook_permissions').insert(perms);
         }
@@ -172,16 +217,15 @@ const StaffOnboarding = () => {
     }
   };
 
-  const permissionList = [
-    { key: 'leads', label: 'Lead Portfolio', desc: 'Inquiry management', icon: FileText },
-    { key: 'site_visits', label: 'Site Visit', desc: 'Field operation logs', icon: MapPin },
-    { key: 'quotations', label: 'Quotations', desc: 'Proposal management', icon: FileSpreadsheet },
-    { key: 'clients', label: 'Client Directory', desc: 'Active contracts', icon: Users },
-    { key: 'projects', label: 'Project Vault', desc: 'Design tracking', icon: Layers },
-    { key: 'construction', label: 'Construction', desc: 'Site execution logs', icon: Hammer },
-    { key: 'finance', label: 'Finance Command', desc: 'Fiscal ledger access', icon: Banknote },
-    { key: 'team', label: 'Team Directory', desc: 'Personnel visibility', icon: Users2 },
-    { key: 'settings', label: 'Setting', desc: 'System configuration', icon: Settings },
+  const modules = [
+    { key: 'leads', label: 'Lead Portfolio', icon: FileText, hasContact: true },
+    { key: 'site_visits', label: 'Site Visit', icon: MapPin, hasContact: false },
+    { key: 'quotations', label: 'Quotations', icon: FileSpreadsheet, hasContact: false },
+    { key: 'clients', label: 'Client Directory', icon: Users, hasContact: true },
+    { key: 'projects', label: 'Project Vault', icon: Layers, hasContact: false },
+    { key: 'construction', label: 'Construction', icon: Hammer, hasContact: false },
+    { key: 'finance', label: 'Finance Command', icon: Banknote, hasContact: false },
+    { key: 'team', label: 'Team Directory', icon: Users2, hasContact: false },
   ] as const;
 
   const filteredCashbooks = availableCashbooks.filter(cb => 
@@ -196,7 +240,7 @@ const StaffOnboarding = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
+    <div className="max-w-7xl mx-auto px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
       <header className="flex items-center gap-6 mb-12">
         <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
         <div>
@@ -206,76 +250,133 @@ const StaffOnboarding = () => {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-12">
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-16 relative overflow-hidden">
-          <div className="space-y-10 relative z-10">
-            <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Credentials</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
-                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Senior Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Password</label>
-                <div className="relative">
-                  <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-6 pr-24 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                    <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
-                  </div>
+        {/* IDENTITY SECTION */}
+        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-10 relative overflow-hidden">
+          <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Credentials</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+              <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+              <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+              <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Senior Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Password</label>
+              <div className="relative">
+                <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-6 pr-24 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                  <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* GRANULAR PERMISSIONS MATRIX */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12">
           <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
              <ShieldCheck className="w-6 h-6 text-emerald-500" />
              <div>
                 <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Access Control Protocol</h3>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Authorized Navigation Provisioning</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Authorized Navigation & Action Rights Provisioning</p>
              </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {permissionList.map((perm) => {
-               const isActive = permissions[perm.key] === true;
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+             {modules.map((m) => {
+               const modPerms = permissions[m.key] || { view: false, create: false, edit: false, delete: false, see_contact: false };
+               const isAnyEnabled = modPerms.view || modPerms.create || modPerms.edit || modPerms.delete || modPerms.see_contact;
+
                return (
-                 <button 
-                   key={perm.key}
-                   type="button"
-                   onClick={() => handleTogglePermission(perm.key)}
-                   className={`w-full h-28 px-6 bg-white border rounded-[32px] transition-all flex items-center justify-between group/cb shadow-sm relative overflow-hidden ${isActive ? 'border-emerald-500 bg-emerald-50/20 ring-4 ring-emerald-500/5' : 'border-slate-100 hover:border-slate-200'}`}
-                 >
-                    <div className="flex items-center gap-4 relative z-10">
-                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-[#064e3b] text-white shadow-lg' : 'bg-slate-50 text-slate-300'}`}>
-                          <perm.icon className="w-5 h-5" />
+                 <div key={m.key} className={`p-8 rounded-[40px] border transition-all space-y-6 ${isAnyEnabled ? 'bg-white border-emerald-500/30 shadow-xl ring-4 ring-emerald-500/5' : 'bg-slate-50/20 border-slate-100'}`}>
+                    <div 
+                      onClick={() => handleMasterToggle(m.key)}
+                      className="flex items-center gap-4 border-b border-slate-50 pb-4 cursor-pointer group/header"
+                    >
+                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isAnyEnabled ? 'bg-[#064e3b] text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover/header:bg-slate-200'}`}>
+                          <m.icon className="w-6 h-6" />
                        </div>
-                       <div className="text-left">
-                          <span className={`text-[14px] font-black block leading-none ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>{perm.label}</span>
-                          <p className={`text-[9px] font-black mt-2 uppercase tracking-widest ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
-                            {isActive ? 'Authorized' : 'Restricted'}
-                          </p>
+                       <div className="text-left flex-1 min-w-0">
+                          <span className={`text-[15px] font-black block leading-tight truncate transition-colors ${isAnyEnabled ? 'text-slate-900' : 'text-slate-400'}`}>{m.label}</span>
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${isAnyEnabled ? 'text-emerald-600' : 'text-slate-300'}`}>{isAnyEnabled ? 'Module Authorized' : 'Module Restricted'}</span>
                        </div>
+                       <button 
+                         type="button"
+                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isAnyEnabled ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/header:border-emerald-300'}`}
+                       >
+                          <Check className="w-3.5 h-3.5" />
+                       </button>
                     </div>
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${isActive ? 'bg-emerald-500 border-emerald-400 shadow-md' : 'bg-white border-slate-100'}`}>
-                       {isActive ? <CheckCircle2 className="w-5 h-5 text-white" /> : <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />}
+
+                    <div className="grid grid-cols-2 gap-3">
+                       {[
+                         { key: 'view', label: 'Only View', icon: Eye },
+                         { key: 'create', label: 'Can Create', icon: UserPlus },
+                         { key: 'edit', label: 'Can Edit', icon: Edit3 },
+                         { key: 'delete', label: 'Can Delete', icon: Trash2 },
+                       ].map(action => (
+                         <button
+                           key={action.key}
+                           type="button"
+                           onClick={() => handleToggleModuleAction(m.key, action.key)}
+                           className={`flex items-center gap-2.5 p-3 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${modPerms[action.key] ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:border-emerald-100 hover:text-emerald-400'}`}
+                         >
+                            <action.icon className="w-3.5 h-3.5" />
+                            {action.label}
+                         </button>
+                       ))}
+                       {m.hasContact && (
+                         <button
+                           type="button"
+                           onClick={() => handleToggleModuleAction(m.key, 'see_contact')}
+                           className={`col-span-2 flex items-center justify-center gap-2.5 p-3 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${modPerms.see_contact ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:border-blue-100 hover:text-blue-400'}`}
+                         >
+                            <Contact className="w-3.5 h-3.5" />
+                            Client Contact Information
+                         </button>
+                       )}
                     </div>
-                 </button>
+                 </div>
                );
              })}
+
+             {/* SETTINGS CARD */}
+             <div className={`p-8 rounded-[40px] border transition-all flex flex-col justify-between ${permissions.settings?.access ? 'bg-white border-amber-500/30 shadow-xl ring-4 ring-amber-500/5' : 'bg-slate-50/20 border-slate-100'}`}>
+                <div 
+                  onClick={toggleSettingsAccess}
+                  className="flex items-center gap-4 border-b border-slate-50 pb-4 cursor-pointer group/settings"
+                >
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover/settings:bg-slate-200'}`}>
+                       <Settings className="w-6 h-6" />
+                    </div>
+                    <div className="text-left flex-1">
+                       <span className={`text-[15px] font-black block leading-tight transition-colors ${permissions.settings?.access ? 'text-slate-900' : 'text-slate-400'}`}>System Settings</span>
+                       <span className={`text-[8px] font-black uppercase tracking-widest ${permissions.settings?.access ? 'text-amber-600' : 'text-slate-300'}`}>Configuration Authority</span>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/settings:border-amber-300'}`}>
+                        <Check className="w-3.5 h-3.5" />
+                    </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSettingsAccess}
+                  className={`w-full flex items-center justify-center gap-3 p-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all mt-6 ${permissions.settings?.access ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:text-amber-500'}`}
+                >
+                   <Shield className="w-4 h-4" />
+                   {permissions.settings?.access ? 'Access Authorized' : 'Access Restricted'}
+                </button>
+             </div>
           </div>
 
           {/* Granular Cashbook Permissions Section */}
-          {permissions.finance && (
+          {permissions.finance?.view && (
             <div className="pt-12 mt-12 border-t border-slate-100 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div>
@@ -332,7 +433,7 @@ const StaffOnboarding = () => {
           <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
              <ShieldAlert className="w-6 h-6 text-slate-300 shrink-0" />
              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-               Module Integrity: The login credentials and permissions defined here will take immediate effect upon the next staff login. Administrators have automatic access to all ledgers.
+               Module Integrity: Detailed action permissions define exactly what this user can do within each sector. Administrators have automatic full master access to all modules and ledgers. Click the module header or icon to toggle all module permissions at once.
              </p>
           </div>
         </div>

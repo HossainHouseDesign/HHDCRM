@@ -6,7 +6,7 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * HHD CRM - MASTER DATABASE SCHEMA & REPAIR SCRIPT (V105 - RECOVERY & FEATURE SYNC)
+ * HHD CRM - MASTER DATABASE SCHEMA & REPAIR SCRIPT (V106 - GRANULAR FINANCE PERMISSIONS)
  * 
  * INSTRUCTIONS:
  * 1. Open Supabase Dashboard -> SQL Editor -> "+ New Query".
@@ -41,7 +41,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *     created_at TIMESTAMPTZ DEFAULT NOW()
  * );
  * 
- * -- 2. SURGICAL SCHEMA REPAIR (Adds missing relationship columns safely)
+ * -- 2. SURGICAL SCHEMA REPAIR
  * DO $$ 
  * BEGIN 
  *   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='finance_transactions' AND column_name='cashbook_id') THEN
@@ -57,11 +57,15 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *   END IF;
  * END $$;
  * 
- * -- 3. FINANCE PERMISSIONS TABLE (Access Control)
+ * -- 3. FINANCE PERMISSIONS TABLE (Access Control with Granular Rights)
  * CREATE TABLE IF NOT EXISTS public.finance_cashbook_permissions (
  *     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
  *     cashbook_id UUID REFERENCES public.finance_cashbooks(id) ON DELETE CASCADE,
  *     profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+ *     can_input BOOLEAN DEFAULT TRUE,
+ *     can_edit BOOLEAN DEFAULT TRUE,
+ *     can_delete BOOLEAN DEFAULT TRUE,
+ *     can_archive BOOLEAN DEFAULT TRUE,
  *     created_at TIMESTAMPTZ DEFAULT NOW(),
  *     UNIQUE(cashbook_id, profile_id)
  * );

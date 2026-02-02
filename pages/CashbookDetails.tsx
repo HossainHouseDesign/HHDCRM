@@ -6,8 +6,7 @@ import {
   Users2, Search, ArrowRightLeft, Tag, Plus, 
   Coins, ShieldCheck, User, AlertTriangle, Archive,
   CheckCircle2, Clock,
-  // Added LogIn icon to imports
-  LogIn
+  LogIn, Shield
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useNotification, useUser } from '../App';
@@ -22,7 +21,7 @@ interface Cashbook {
   initial_balance: number;
   project_id?: string;
   deleted_at?: string | null;
-  assigned_team?: string[];
+  assigned_team?: Record<string, ActionPermissions>;
 }
 
 interface Transaction {
@@ -38,6 +37,13 @@ interface Transaction {
   creator?: {
     full_name: string;
   };
+}
+
+interface ActionPermissions {
+  can_input: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_archive: boolean;
 }
 
 const CashbookDetails = () => {
@@ -58,7 +64,6 @@ const CashbookDetails = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  // Added missing dropdownPos state for dynamic positioning
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -84,7 +89,7 @@ const CashbookDetails = () => {
     type: 'Project' as CashbookType,
     initial_balance: 0,
     project_id: '',
-    assigned_team: [] as string[]
+    assigned_team: {} as Record<string, ActionPermissions>
   });
 
   const [cbProjectQuery, setCbProjectQuery] = useState('');
@@ -111,13 +116,21 @@ const CashbookDetails = () => {
         supabase.from('finance_transactions').select('*, creator:profiles(full_name)').eq('cashbook_id', id).order('date', { ascending: false }),
         supabase.from('projects').select('*, client:leads(*)').is('deleted_at', null),
         supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active'),
-        supabase.from('finance_cashbook_permissions').select('profile_id').eq('cashbook_id', id)
+        supabase.from('finance_cashbook_permissions').select('*').eq('cashbook_id', id)
       ]);
 
       if (cbRes.error) throw cbRes.error;
       
       const cb = cbRes.data;
-      const assigned = permRes.data?.map(p => p.profile_id) || [];
+      const assigned: Record<string, ActionPermissions> = {};
+      permRes.data?.forEach(p => {
+        assigned[p.profile_id] = {
+          can_input: p.can_input,
+          can_edit: p.can_edit,
+          can_delete: p.can_delete,
+          can_archive: p.can_archive
+        };
+      });
       
       setCashbook({ ...cb, type: (cb.description || 'Other') as CashbookType, assigned_team: assigned });
       setTransactions(transRes.data || []);
@@ -150,7 +163,6 @@ const CashbookDetails = () => {
     } catch (err: any) { showNotification(err.message, "error"); } finally { setIsSaving(false); }
   };
 
-  // Added missing toggleStatusDropdown function
   const toggleStatusDropdown = (e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDropdownPos({ top: rect.bottom + 8, left: rect.left });
@@ -238,8 +250,13 @@ const CashbookDetails = () => {
       if (error) throw error;
 
       await supabase.from('finance_cashbook_permissions').delete().eq('cashbook_id', cashbook.id);
-      if (editForm.assigned_team.length > 0) {
-        const assignments = editForm.assigned_team.map(pid => ({ cashbook_id: cashbook.id, profile_id: pid }));
+      const teamIds = Object.keys(editForm.assigned_team);
+      if (teamIds.length > 0) {
+        const assignments = teamIds.map(pid => ({ 
+          cashbook_id: cashbook.id, 
+          profile_id: pid,
+          ...editForm.assigned_team[pid]
+        }));
         await supabase.from('finance_cashbook_permissions').insert(assignments);
       }
 
@@ -247,6 +264,32 @@ const CashbookDetails = () => {
       setShowEditModal(false);
       fetchData();
     } catch (err: any) { showNotification(err.message, "error"); } finally { setIsSaving(false); }
+  };
+
+  const toggleStaffAssignment = (staffId: string) => {
+    setEditForm(prev => {
+      const next = { ...prev.assigned_team };
+      if (next[staffId]) {
+        delete next[staffId];
+      } else {
+        next[staffId] = { can_input: true, can_edit: true, can_delete: true, can_archive: true };
+      }
+      return { ...prev, assigned_team: next };
+    });
+  };
+
+  const togglePermission = (staffId: string, permission: keyof ActionPermissions) => {
+    setEditForm(prev => {
+      const staffPerms = prev.assigned_team[staffId];
+      if (!staffPerms) return prev;
+      return {
+        ...prev,
+        assigned_team: {
+          ...prev.assigned_team,
+          [staffId]: { ...staffPerms, [permission]: !staffPerms[permission] }
+        }
+      };
+    });
   };
 
   if (loading || !cashbook) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">ACCESSING LEDGER...</p></div>;
@@ -313,7 +356,7 @@ const CashbookDetails = () => {
       {/* CASHBOOK EDIT MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white rounded-[48px] p-10 md:p-14 max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[90vh] no-scrollbar">
+           <div className="bg-white rounded-[48px] p-10 md:p-14 max-w-3xl w-full shadow-2xl relative overflow-y-auto max-h-[95vh] no-scrollbar">
               <div className="flex justify-between items-start mb-12">
                  <div>
                     <h3 className="text-3xl font-black text-slate-900">Ledger Registry Override</h3>
@@ -341,20 +384,61 @@ const CashbookDetails = () => {
                        <input type="number" className="w-full h-16 px-8 bg-slate-50 border border-slate-100 rounded-[24px] font-bold" value={editForm.initial_balance} onChange={e => setEditForm({...editForm, initial_balance: Number(e.target.value)})} />
                     </div>
                  </div>
+
+                 {/* TEAM ASSIGNMENT GRID WITH GRANULAR PERMISSIONS */}
                  <div className="space-y-6">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Authorized Access ({editForm.assigned_team.length})</label>
-                    <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-[32px] border border-slate-100 max-h-48 overflow-y-auto no-scrollbar">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                       <Users2 className="w-4 h-4" /> Authorized Personnel & Rights ({Object.keys(editForm.assigned_team).length})
+                    </label>
+                    <div className="grid grid-cols-1 gap-3 p-4 bg-slate-50 rounded-[32px] border border-slate-100 max-h-64 overflow-y-auto no-scrollbar shadow-inner">
                        {staff.map(s => {
-                          const active = editForm.assigned_team.includes(s.id);
+                          const active = !!editForm.assigned_team[s.id];
+                          const perms = editForm.assigned_team[s.id];
                           return (
-                             <button key={s.id} type="button" onClick={() => setEditForm(prev => ({ ...prev, assigned_team: active ? prev.assigned_team.filter(i => i !== s.id) : [...prev.assigned_team, s.id] }))} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${active ? 'bg-[#064e3b] text-white' : 'bg-white border-slate-100 text-slate-600'}`}>
-                                <img src={s.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.email}`} className="w-8 h-8 rounded-lg object-cover" alt="Staff" />
-                                <span className="text-[10px] font-black truncate">{s.full_name}</span>
-                             </button>
+                             <div 
+                               key={s.id} 
+                               className={`flex flex-col md:flex-row items-stretch md:items-center gap-4 p-4 rounded-3xl border transition-all ${active ? 'bg-white border-emerald-500 shadow-xl' : 'bg-slate-50/50 border-slate-200 opacity-60'}`}
+                             >
+                                <button 
+                                  type="button" 
+                                  onClick={() => toggleStaffAssignment(s.id)}
+                                  className="flex items-center gap-3 flex-1 text-left"
+                                >
+                                   <div className="relative">
+                                      <img src={s.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.email}`} className="w-10 h-10 rounded-xl object-cover border border-slate-100" alt="Staff" />
+                                      {active && <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white"><CheckCircle2 className="w-3 h-3" /></div>}
+                                   </div>
+                                   <div className="min-w-0">
+                                      <p className="text-[12px] font-black truncate leading-tight">{s.full_name}</p>
+                                      <p className={`text-[8px] font-bold uppercase mt-1 text-slate-400`}>{s.designation || 'Staff Member'}</p>
+                                   </div>
+                                </button>
+
+                                {active && (
+                                  <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-100 animate-in slide-in-from-right-2 duration-300">
+                                     {[
+                                       { key: 'can_input', label: 'Input' },
+                                       { key: 'can_edit', label: 'Edit' },
+                                       { key: 'can_delete', label: 'Delete' },
+                                       { key: 'can_archive', label: 'Archive' }
+                                     ].map(p => (
+                                       <button
+                                         key={p.key}
+                                         type="button"
+                                         onClick={() => togglePermission(s.id, p.key as keyof ActionPermissions)}
+                                         className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${perms?.[p.key as keyof ActionPermissions] ? 'bg-[#064e3b] text-white border-transparent' : 'bg-white text-slate-300 border-slate-100'}`}
+                                       >
+                                         {p.label}
+                                       </button>
+                                     ))}
+                                  </div>
+                                )}
+                             </div>
                           );
                        })}
                     </div>
                  </div>
+
                  <button type="submit" disabled={isSaving} className="w-full py-8 bg-[#064e3b] text-white rounded-[32px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-4">
                     {isSaving ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <Save className="w-6 h-6 text-emerald-400" />} AUTHORIZE CHANGES
                  </button>
@@ -414,7 +498,7 @@ const CashbookDetails = () => {
                   <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold" placeholder="e.g. Project Installment, Material Purchase..." value={entryForm.description} onChange={e => setEntryForm({...entryForm, description: e.target.value})} />
                 </div>
                 <button type="submit" disabled={isSaving} className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">
-                   {isSaving ? <RefreshCw className="w-6 h-6 animate-spin" /> : <LogIn className="w-5 h-5" />} Record Entry
+                   {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />} Record Entry
                 </button>
              </form>
           </div>
@@ -459,7 +543,6 @@ const CashbookDetails = () => {
                 <div className="flex items-center gap-4">
                    <div className="w-12 h-12 md:w-16 md:h-16 bg-white/5 border border-white/10 rounded-[18px] md:rounded-[24px] flex items-center justify-center text-emerald-400 shadow-2xl backdrop-blur-md"><Banknote className="w-6 h-6 md:w-8 md:h-8" /></div>
                    <div className="relative" ref={statusMenuRef}>
-                     {/* Added missing toggleStatusDropdown function call */}
                      <button onClick={(e) => isAdmin && toggleStatusDropdown(e)} className={`px-5 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${cashbook.deleted_at ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                        {cashbook.deleted_at ? <Clock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                        {cashbook.deleted_at ? 'Archived' : 'Active'}

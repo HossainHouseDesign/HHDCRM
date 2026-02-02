@@ -5,6 +5,14 @@ export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
 export type PaymentStatus = 'Pre-paid' | 'Post-paid' | 'Free';
 export type VisitStatus = 'Upcoming' | 'Done' | 'Hold';
 
+export interface ModulePermissions {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+  see_contact?: boolean;
+}
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -19,15 +27,15 @@ export interface Profile {
   login_password?: string;
   office_id?: string;
   permissions?: {
-    leads?: boolean;
-    quotations?: boolean;
-    clients?: boolean;
-    projects?: boolean;
-    construction?: boolean;
-    team?: boolean;
-    settings?: boolean;
-    site_visits?: boolean;
-    finance?: boolean;
+    leads?: ModulePermissions;
+    quotations?: ModulePermissions;
+    clients?: ModulePermissions;
+    projects?: ModulePermissions;
+    construction?: ModulePermissions;
+    team?: ModulePermissions;
+    settings?: { access: boolean };
+    site_visits?: ModulePermissions;
+    finance?: ModulePermissions;
   };
 }
 
