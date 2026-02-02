@@ -27,12 +27,12 @@ const AIChatBot: React.FC = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "HHD System Intelligence Online. I have full knowledge of the Dashboard, Leads, Projects, Site Visits, Construction progress, and the Team Directory. I can even help you find items in the Recycle Bin. How can I assist you?" }
+    { role: 'model', text: "HHD System Intelligence Online. I've synced the latest Dashboard stats, Site Logs, and Project records. (Finance restricted). How can I assist?" }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // App Context Data (Everything except Finance)
+  // App Context Data
   const [appContext, setAppContext] = useState<any>(null);
 
   useEffect(() => {
@@ -51,13 +51,13 @@ const AIChatBot: React.FC = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Multi-module fetch for comprehensive app knowledge
+      // Fetch data surgicaly - limiting counts to prevent token overflow (429 prevention)
       const [leadsRes, projectsRes, visitsRes, constRes, profilesRes] = await Promise.all([
-        supabase.from('leads').select('id, client_name, status, created_at, is_client, deleted_at').order('created_at', { ascending: false }).limit(100),
-        supabase.from('projects').select('id, name, status, start_date, created_at, deleted_at').order('created_at', { ascending: false }),
-        supabase.from('site_visits').select('id, visit_date, location, status, project:projects(name), lead:leads(client_name), created_at, deleted_at').order('visit_date', { ascending: false }).limit(60),
-        supabase.from('construction_projects').select('id, title, current_stage, progress, status, created_at, deleted_at').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('id, full_name, designation, role, created_at, deleted_at').order('full_name', { ascending: true })
+        supabase.from('leads').select('id, client_name, status, created_at, is_client, deleted_at').order('created_at', { ascending: false }).limit(40),
+        supabase.from('projects').select('id, name, status, created_at, deleted_at').order('created_at', { ascending: false }).limit(30),
+        supabase.from('site_visits').select('id, visit_date, location, status, project:projects(name), lead:leads(client_name), deleted_at').order('visit_date', { ascending: false }).limit(20),
+        supabase.from('construction_projects').select('id, title, current_stage, progress, status, deleted_at').order('created_at', { ascending: false }).limit(20),
+        supabase.from('profiles').select('id, full_name, designation, role, deleted_at').order('full_name', { ascending: true })
       ]);
 
       const leads = leadsRes.data || [];
@@ -66,38 +66,29 @@ const AIChatBot: React.FC = () => {
       const construction = constRes.data || [];
       const team = profilesRes.data || [];
 
-      // Consolidate "Dashboard" style statistics for AI reasoning
-      const dashboardStats = {
-        totalLeads: leads.filter(l => !l.deleted_at && !l.is_client).length,
-        totalClients: leads.filter(l => !l.deleted_at && l.is_client).length,
-        activeProjects: projects.filter(p => !p.deleted_at && p.status === 'Running').length,
-        ongoingConstruction: construction.filter(c => !c.deleted_at && c.status === 'Active').length,
-        teamSize: team.filter(t => !t.deleted_at).length
-      };
-
-      // Compact payload for AI consumption (minimizing tokens for Flash model)
+      // Highly compressed summary for AI consumption
       const summary = {
-        todayDate: today,
-        dashboard: dashboardStats,
-        active: {
-          leads: leads.filter(l => !l.deleted_at).map(l => ({ id: l.id, n: l.client_name, s: l.status, c: l.created_at?.split('T')[0] })),
-          projects: projects.filter(p => !p.deleted_at).map(p => ({ id: p.id, n: p.name, s: p.status, c: p.created_at?.split('T')[0] })),
-          visits: visits.filter(v => !v.deleted_at).map(v => ({ id: v.id, d: v.visit_date, s: v.status, n: v.project?.name || v.lead?.client_name })),
-          construction: construction.filter(c => !c.deleted_at).map(c => ({ id: c.id, t: c.title, st: c.current_stage, pr: c.progress, s: c.status })),
-          team: team.filter(t => !t.deleted_at).map(t => ({ id: t.id, n: t.full_name, r: t.role, d: t.designation }))
+        date: today,
+        stats: {
+          leads: leads.filter(l => !l.deleted_at && !l.is_client).length,
+          clients: leads.filter(l => !l.deleted_at && l.is_client).length,
+          projects: projects.filter(p => !p.deleted_at).length,
+          activeSites: construction.filter(c => !c.deleted_at && c.status === 'Active').length,
+          binCount: [...leads, ...projects, ...visits, ...construction].filter(x => !!x.deleted_at).length
         },
-        recycleBin: {
-          leads: leads.filter(l => !!l.deleted_at).map(l => ({ n: l.client_name, d: l.deleted_at?.split('T')[0] })),
-          projects: projects.filter(p => !!p.deleted_at).map(p => ({ n: p.name, d: p.deleted_at?.split('T')[0] })),
-          visits: visits.filter(v => !!v.deleted_at).map(v => ({ n: v.project?.name || v.lead?.client_name, d: v.deleted_at?.split('T')[0] })),
-          construction: construction.filter(c => !!c.deleted_at).map(c => ({ n: c.title, d: c.deleted_at?.split('T')[0] })),
-          team: team.filter(t => !!t.deleted_at).map(t => ({ n: t.full_name, d: t.deleted_at?.split('T')[0] }))
+        // Only send essential fields to save tokens
+        recent: {
+          leads: leads.filter(l => !l.deleted_at).slice(0, 15).map(l => ({ id: l.id, n: l.client_name, s: l.status, c: l.created_at?.split('T')[0] })),
+          projects: projects.filter(p => !p.deleted_at).slice(0, 15).map(p => ({ id: p.id, n: p.name, s: p.status })),
+          sites: construction.filter(c => !c.deleted_at).slice(0, 10).map(c => ({ id: c.id, t: c.title, st: c.current_stage, pr: c.progress })),
+          team: team.filter(t => !t.deleted_at).map(t => ({ id: t.id, n: t.full_name, r: t.role })),
+          bin: [...leads, ...projects, ...construction].filter(x => !!x.deleted_at).slice(0, 5).map((x: any) => ({ n: x.client_name || x.name || x.title, d: x.deleted_at?.split('T')[0] }))
         }
       };
       
       setAppContext(summary);
     } catch (err) {
-      console.error("AI Context Refresh Failed", err);
+      console.error("AI Context Sync Failure", err);
     }
   };
 
@@ -112,10 +103,10 @@ const AIChatBot: React.FC = () => {
           let Icon = ExternalLink;
           
           if (type === 'project') { path = `/projects/${id}`; Icon = Layout; }
-          if (type === 'lead') { path = `/leads/${id}`; Icon = User; }
-          if (type === 'visit') { path = `/site-visits/${id}`; Icon = MapPin; }
-          if (type === 'construction') { path = `/construction/${id}`; Icon = Hammer; }
-          if (type === 'team') { path = `/settings/staff/edit/${id}`; Icon = Users2; }
+          else if (type === 'lead') { path = `/leads/${id}`; Icon = User; }
+          else if (type === 'visit') { path = `/site-visits/${id}`; Icon = MapPin; }
+          else if (type === 'construction') { path = `/construction/${id}`; Icon = Hammer; }
+          else if (type === 'team') { path = `/settings/staff/edit/${id}`; Icon = Users2; }
 
           return (
             <button 
@@ -157,39 +148,31 @@ const AIChatBot: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const systemInstruction = `
-        Role: HHD Architectural System Intelligence.
-        Scope: Full knowledge of Dashboard stats, Lead pipeline, Project vault, Site Visits, Construction status, Team directory, and the Recycle Bin.
-        Restriction: You have NO access to finance, money, or payroll. Politely decline if asked.
+        Role: HHD Intelligence Agent. 
+        Scope: Knowledge of Leads, Projects, Site Visits, Construction, Team, and Recycle Bin.
+        Restriction: NO access to finance/cashbooks. Decline politely if asked.
 
-        REAL-TIME CONTEXT:
-        Current Date (Today): ${appContext?.todayDate}
-        System Stats: ${JSON.stringify(appContext?.dashboard)}
-
-        KNOWLEDGE BASE:
-        - LEADS/CLIENTS: ${JSON.stringify(appContext?.active?.leads)}
-        - PROJECTS: ${JSON.stringify(appContext?.active?.projects)}
-        - VISITS: ${JSON.stringify(appContext?.active?.visits)}
-        - CONSTRUCTION: ${JSON.stringify(appContext?.active?.construction)}
-        - TEAM: ${JSON.stringify(appContext?.active?.team)}
-        - RECYCLE BIN (Deleted Items): ${JSON.stringify(appContext?.recycleBin)}
+        CONTEXT (TODAY: ${appContext?.date}):
+        STATS: ${JSON.stringify(appContext?.stats)}
+        ACTIVE_RECORDS: ${JSON.stringify(appContext?.recent)}
 
         RULES:
-        1. Use 'c' (created date) in leads/projects to answer "how many were added today/this week".
-        2. Construction Analysis: You know the exact milestone (st) and progress percentage (pr) for sites.
-        3. Bin Awareness: If a user asks for something not in active lists, check recycleBin.
-        4. NAVIGATION: Only provide [[LINK:type:id:label]] if requested or if identifying one specific record clearly.
+        1. Use 'c' date to answer "how many added today/this week".
+        2. Construction: Track stage (st) and progress (pr).
+        3. Bin: You see deleted items in 'bin' list.
+        4. NAVIGATION: ONLY use [[LINK:type:id:label]] if user asks for a link or if identifying one specific record clearly.
 
-        TONE: Professional, Concise, Architect-led intelligence.
+        TONE: Architect-led, concise, efficient.
       `;
 
-      // Optimized history for flash model
-      const history = messages.slice(-6).map(m => ({
+      // Limit history to 5 items to keep request small and prevent 429
+      const history = messages.slice(-5).map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
       }));
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview', // Switched to Flash to resolve 429 quota issues
+        model: 'gemini-3-flash-preview',
         contents: [
           ...history,
           { role: 'user', parts: [{ text: userText }] }
@@ -197,21 +180,24 @@ const AIChatBot: React.FC = () => {
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.1,
-          topP: 0.8
+          thinkingConfig: { thinkingBudget: 0 } // Disable thinking to save tokens and speed up response
         }
       });
 
-      const responseText = response.text || "Synchronizing with the neural engine... please retry your request.";
+      const responseText = response.text || "Synchronizing... please retry your inquiry.";
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (err: any) {
-      console.error("Neural Sync Error:", err);
+      console.error("AI Core Error:", err);
+      let errorMsg = "The intelligence core is currently recalibrating. Please provide a more specific name or ID for your request.";
+      
       if (err.message?.includes('429')) {
-        showNotification("Neural Engine Quota Exhausted. Cooling down...", "warning");
-        setMessages(prev => [...prev, { role: 'model', text: "I've hit a processing rate limit. Please allow me 60 seconds to reset my intelligence core before your next inquiry." }]);
+        errorMsg = "Neural capacity reached. Please wait 60 seconds before your next request to allow the core to cool down.";
+        showNotification("Neural Engine Quota Exhausted.", "warning");
       } else {
         showNotification("AI Core disconnected.", "error");
-        setMessages(prev => [...prev, { role: 'model', text: "Connectivity with the intelligence core was interrupted. Please re-establish the connection." }]);
       }
+      
+      setMessages(prev => [...prev, { role: 'model', text: errorMsg }]);
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +228,7 @@ const AIChatBot: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-sm font-black tracking-tight leading-none uppercase">HHD Intelligence</h4>
-                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Full System Access</p>
+                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">High-Throughput Node</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -292,10 +278,9 @@ const AIChatBot: React.FC = () => {
 
               <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar border-t border-slate-50 bg-white">
                 {[
-                  { label: "Construction Status", icon: Hammer },
                   { label: "New Leads Today", icon: Target },
-                  { label: "Active Designs", icon: Layout },
-                  { label: "Staff Directory", icon: Users2 },
+                  { label: "Construction Hub", icon: Hammer },
+                  { label: "Staff List", icon: Users2 },
                   { label: "Recycle Bin", icon: Trash2 }
                 ].map((s, i) => (
                   <button 
@@ -313,7 +298,7 @@ const AIChatBot: React.FC = () => {
                 <div className="relative group">
                   <input 
                     type="text"
-                    placeholder="Search sites, team, or history..."
+                    placeholder="Search records or ask about status..."
                     className="w-full h-14 pl-6 pr-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500/20 transition-all"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -327,7 +312,7 @@ const AIChatBot: React.FC = () => {
                   </button>
                 </div>
                 <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest text-center mt-3 flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> High-Throughput Neural Engine
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> Payload Optimization Active
                 </p>
               </form>
             </>
