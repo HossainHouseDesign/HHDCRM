@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -158,7 +159,7 @@ const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children })
       
       const combined = [
         ...(leadsRes.data || []).map((l: Lead) => ({ id: l.id, name: l.client_name, type: 'followup' })),
-        ...(visitsRes.data || []).map((v: SiteVisit) => ({ id: v.id, name: v.project?.name || v.lead?.client_name || 'Site Operation', type: 'visit' }))
+        ...(visitsRes.data || []).map((v: SiteVisit) => ({ id: v.id, name: v.project?.name || v.lead?.client_name || 'Site Visit', type: 'visit' }))
       ];
       setAgendaItems(combined);
     } finally {
@@ -199,7 +200,7 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {n.type === 'info' && <Info className="w-6 h-6 text-blue-400" />}
             </div>
             <div className="flex-1 space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-50">System Insight</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-50">Notice</p>
               <p className="text-[15px] font-black leading-snug tracking-tight">{n.message}</p>
             </div>
             <button onClick={() => removeNotification(n.id)} className="p-1.5 hover:bg-white/10 rounded-xl transition-all"><X className="w-4 h-4 opacity-40" /></button>
@@ -223,19 +224,19 @@ const AppContent = () => {
 
   const handleManualSync = async () => {
     await triggerSync();
-    showNotification("Vault synchronization complete.", "success");
+    showNotification("Workspace updated.", "success");
   };
 
   const handleLogout = async () => {
     await logout();
-    showNotification("Identity detached. Session finalized.", "info");
+    showNotification("Logged out successfully.", "info");
     navigate('/');
   };
 
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center gap-6 bg-[#f8fafc]">
       <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Syncing Workspace...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Loading Workspace...</p>
     </div>
   );
 
@@ -271,9 +272,9 @@ const AppContent = () => {
              </button>
              {showAgendaPopup && (
                <div className="absolute top-12 right-0 w-64 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2">
-                 <div className="p-3 bg-slate-50 border-b rounded-t-2xl text-[9px] font-black uppercase text-slate-400">Today's Agenda</div>
+                 <div className="p-3 bg-slate-50 border-b rounded-t-2xl text-[9px] font-black uppercase text-slate-400">Today's Tasks</div>
                  <div className="max-h-60 overflow-y-auto p-2 space-y-1">
-                   {agendaItems.length === 0 ? <p className="p-4 text-center text-xs text-slate-300 font-bold uppercase">Clear for today</p> : 
+                   {agendaItems.length === 0 ? <p className="p-4 text-center text-xs text-slate-300 font-bold uppercase">No tasks for today</p> : 
                     agendaItems.map(item => (
                       <div key={item.id} onClick={() => { setShowAgendaPopup(false); navigate(item.type === 'visit' ? `/site-visits/${item.id}` : `/leads/${item.id}`); }} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.type === 'visit' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>

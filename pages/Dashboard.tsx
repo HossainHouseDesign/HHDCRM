@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, CheckCircle2, RefreshCw, 
@@ -87,11 +88,11 @@ const Dashboard = () => {
       setSiteVisits(visitsRes.data || []);
       
       if (isManualSync) {
-        showNotification("Vault synchronization complete.", "success");
+        showNotification("Workspace updated.", "success");
       }
     } catch (err) {
       console.error(err);
-      showNotification("Failed to sync with architectural vault.", "error");
+      showNotification("Failed to connect to the archive.", "error");
     } finally {
       setLoading(false);
       setSyncing(false);
@@ -109,7 +110,7 @@ const Dashboard = () => {
       { name: 'Finance', icon: Banknote, path: '/finance', key: 'finance', color: 'bg-amber-50 text-amber-600' },
       { name: 'Site', icon: Hammer, path: '/construction', key: 'construction', color: 'bg-orange-50 text-orange-600' },
       { name: 'Team', icon: Users2, path: '/team', key: 'team', color: 'bg-rose-50 text-rose-600' },
-      { name: 'Vault', icon: History, path: '/settings/recycle-bin', key: 'settings', color: 'bg-slate-100 text-slate-400', adminOnly: true },
+      { name: 'Trash', icon: History, path: '/settings/recycle-bin', key: 'settings', color: 'bg-slate-100 text-slate-400', adminOnly: true },
       { name: 'Setting', icon: Settings, path: '/settings', key: 'settings', color: 'bg-slate-50 text-slate-500' },
     ];
 
@@ -160,7 +161,7 @@ const Dashboard = () => {
       ensureDate(v.visit_date);
       data[v.visit_date].siteVisits.push({ 
         id: v.id, 
-        name: v.project?.name || v.lead?.client_name || 'Untitled Site Operation', 
+        name: v.project?.name || v.lead?.client_name || 'Site Visit', 
         location: v.location 
       });
     });
@@ -176,7 +177,6 @@ const Dashboard = () => {
     return data;
   }, [leads, projects, siteVisits]);
 
-  // FIX: Added missing calendarDays memo to calculate days for the current month grid
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -184,11 +184,9 @@ const Dashboard = () => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     
     const days: (number | null)[] = [];
-    // Padding for the start of the week
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push(null);
     }
-    // Days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i);
     }
@@ -314,7 +312,7 @@ const Dashboard = () => {
   if (loading) return (
     <div className="h-[70vh] flex flex-col items-center justify-center gap-6 px-6 text-center">
       <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
-      <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em]">Syncing Architectural Workspace...</p>
+      <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em]">Loading Workspace...</p>
     </div>
   );
 
@@ -326,7 +324,7 @@ const Dashboard = () => {
            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
            <input 
              type="text" 
-             placeholder="Secure Command Search..." 
+             placeholder="Search Leads or Projects..." 
              className="w-full bg-white border border-slate-100 rounded-[24px] h-12 lg:h-14 pl-14 pr-12 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/5 transition-all shadow-sm" 
              value={searchQuery} 
              onFocus={() => setShowSearchResults(true)}
@@ -340,14 +338,14 @@ const Dashboard = () => {
              <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[100] overflow-hidden">
                 <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                    <h5 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-2">
-                     <CommandIcon className="w-3 h-3" /> Command Results
+                     <CommandIcon className="w-3 h-3" /> Search Results
                    </h5>
                    <button onClick={() => setShowSearchResults(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-300"><X className="w-3.5 h-3.5" /></button>
                 </div>
                 
                 <div className="max-h-[350px] overflow-y-auto no-scrollbar p-2 space-y-1">
                    {!hasAnyResults ? (
-                     <div className="py-12 text-center text-slate-300 uppercase text-[10px] font-black tracking-widest">No results</div>
+                     <div className="py-12 text-center text-slate-300 uppercase text-[10px] font-black tracking-widest">No results found</div>
                    ) : (
                      <>
                         {searchResults.projects.map(p => (
@@ -375,7 +373,7 @@ const Dashboard = () => {
            )}
         </div>
         
-        {/* Desktop Header Actions (Hidden on Mobile as they moved to global header) */}
+        {/* Desktop Header Actions */}
         <div className="hidden lg:flex items-center justify-between w-full lg:w-auto gap-4 lg:gap-6">
           <div className="flex items-center gap-3">
             <button onClick={() => fetchDashboardData(true)} className="p-3 lg:p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
@@ -389,9 +387,9 @@ const Dashboard = () => {
               </button>
               {showNotificationList && (
                 <div className="absolute top-[calc(100%+8px)] right-0 w-72 lg:w-80 bg-white border border-slate-100 rounded-[28px] shadow-2xl z-[100] overflow-hidden">
-                   <div className="p-4 bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-500">Today's Agenda</div>
+                   <div className="p-4 bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-500">Today's Tasks</div>
                    <div className="max-h-64 overflow-y-auto no-scrollbar p-2">
-                     {agendaItems.length === 0 ? <p className="p-8 text-center text-xs text-slate-300 uppercase font-black tracking-widest">No tasks</p> : 
+                     {agendaItems.length === 0 ? <p className="p-8 text-center text-xs text-slate-300 uppercase font-black tracking-widest">No tasks today</p> : 
                       agendaItems.map(i => (
                         <div key={i.id} onClick={() => navigate(i.type === 'visit' ? `/site-visits/${i.id}` : `/leads/${i.id}`)} className="p-3 hover:bg-slate-50 rounded-2xl cursor-pointer flex items-center gap-3">
                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${i.type === 'visit' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>{i.type === 'visit' ? <MapPin className="w-5 h-5" /> : <Target className="w-5 h-5" />}</div>
@@ -408,7 +406,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3 pl-4 lg:pl-6 border-l border-slate-200">
             <div className="text-right hidden sm:block">
               <p className="text-[13px] lg:text-[14px] font-black text-slate-900 leading-none">{profile?.full_name || 'Member'}</p>
-              <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Workspace</p>
+              <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Staff Access</p>
             </div>
             <img 
               src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.email || 'Arch'}`} 
@@ -419,15 +417,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mobile Spacer (for UI alignment when the search bar is full width) */}
         <div className="lg:hidden w-full h-2"></div>
       </header>
 
       <div className="pt-8 space-y-12">
-        {/* MOBILE ICON NAVIGATION GRID - VISIBLE ONLY ON MOBILE */}
+        {/* MOBILE ICON NAVIGATION GRID */}
         <section className="lg:hidden animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Quick Navigation</h2>
+            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Quick Links</h2>
             <div className="h-px flex-1 bg-slate-100 ml-4"></div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
@@ -446,11 +443,11 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Main Actions Stacked on Mobile */}
+        {/* Main Actions */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Executive Control</h1>
-            <p className="text-slate-400 text-xs lg:text-sm font-medium">Pipeline velocity and site operation status.</p>
+            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Main Dashboard</h1>
+            <p className="text-slate-400 text-xs lg:text-sm font-medium">Business overview and current status.</p>
           </div>
           <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
             <button onClick={() => navigate('/leads/new')} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
@@ -462,13 +459,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid responsive tiers */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {[
-            { label: 'Pipeline Leads', val: stats.totalLeads, icon: FileText, color: 'bg-emerald-600' },
+            { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'bg-emerald-600' },
             { label: 'Active Projects', val: stats.activeProjects, icon: Layers, color: 'bg-blue-600' },
-            { label: 'Validated Clients', val: stats.validatedClients, icon: Users, color: 'bg-indigo-600' },
-            { label: 'Project Completions', val: stats.completed, icon: CheckCircle2, color: 'bg-slate-900' }
+            { label: 'Total Clients', val: stats.validatedClients, icon: Users, color: 'bg-indigo-600' },
+            { label: 'Completed Projects', val: stats.completed, icon: CheckCircle2, color: 'bg-slate-900' }
           ].map((s, i) => (
             <div key={i} className="bg-white p-6 lg:p-8 rounded-[32px] lg:rounded-[44px] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
               <div className="flex justify-between items-start mb-6 lg:mb-8">
@@ -488,8 +485,8 @@ const Dashboard = () => {
           <div className="xl:col-span-8 bg-white p-6 lg:p-10 rounded-[40px] lg:rounded-[56px] border border-slate-100 shadow-sm space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h4 className="text-lg lg:text-xl font-black text-slate-900">Portfolio Performance</h4>
-                <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase mt-1">Synced Pipeline Metrics</p>
+                <h4 className="text-lg lg:text-xl font-black text-slate-900">Performance Chart</h4>
+                <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase mt-1">Overview of business growth</p>
               </div>
               <div className="bg-slate-50 p-1 rounded-2xl flex w-full sm:w-auto">
                   {['Weekly', 'Monthly', 'Yearly'].map(v => (
@@ -518,7 +515,7 @@ const Dashboard = () => {
           <div className="xl:col-span-4 bg-white rounded-[40px] lg:rounded-[56px] border border-slate-100 shadow-sm flex flex-col overflow-hidden">
             <div className="p-8 lg:p-10 border-b border-slate-50 flex justify-between items-center">
               <div>
-                <h4 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight">Vault Calendar</h4>
+                <h4 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight">Project Calendar</h4>
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mt-1">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
               </div>
               <div className="flex gap-1">
@@ -548,7 +545,7 @@ const Dashboard = () => {
 
             <div className="flex-1 bg-slate-50/50 p-6 lg:p-8 space-y-4 overflow-y-auto max-h-[250px] no-scrollbar">
                {selectedDayStats.followUps.length === 0 && selectedDayStats.siteVisits.length === 0 ? (
-                 <p className="text-[10px] text-center text-slate-300 font-black uppercase tracking-widest py-8">System clear for this date</p>
+                 <p className="text-[10px] text-center text-slate-300 font-black uppercase tracking-widest py-8">No tasks for this date</p>
                ) : (
                  <div className="space-y-3">
                     {selectedDayStats.siteVisits.map(v => (

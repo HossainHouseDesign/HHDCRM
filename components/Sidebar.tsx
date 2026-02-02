@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -130,19 +131,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
             <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center">
                <Compass className="w-4 h-4 text-emerald-400" />
             </div>
-            <p className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest leading-none">V 3.4.0 Core</p>
+            <p className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest leading-none">V 3.4.0 CORE</p>
           </div>
           <p className="text-[11px] font-medium text-white/50 leading-relaxed mb-4">
             {isAdmin ? "Master Access Active." : "Provisioned Access Active."}
           </p>
           <a 
-            href="https://drive.google.com/file/d/1A5yAWReHTPUKM4o5MQVBffr1tw-YcEcg/view?usp=sharing" 
+            href="https://drive.google.com/file/d/1az-OYspmmDQz2UkwbH14_ohn89zoIpd9/view?usp=sharing" 
             target="_blank" 
             rel="noopener noreferrer"
             className="w-full bg-emerald-900 text-emerald-100 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-white hover:text-[#064e3b] transition-all shadow-sm flex items-center justify-center gap-2"
           >
             <Smartphone className="w-3.5 h-3.5" />
-            Download App
+            DOWNLOAD APP
           </a>
         </div>
       </div>

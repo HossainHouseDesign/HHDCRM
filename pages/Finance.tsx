@@ -58,19 +58,16 @@ const Finance = () => {
   const [activeTab, setActiveTab] = useState<FinanceTab>('active');
   const [typeFilter, setTypeFilter] = useState<CashbookType | 'All'>('All');
   
-  // Data State
   const [cashbooks, setCashbooks] = useState<Cashbook[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
 
-  // Modal State
   const [showCashbookModal, setShowCashbookModal] = useState(false);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form State - Cashbook
   const [cashbookForm, setCashbookForm] = useState({ 
     name: '', 
     initial_balance: 0,
@@ -79,7 +76,6 @@ const Finance = () => {
     assigned_team: {} as Record<string, ActionPermissions>
   });
   
-  // Form State - Entry
   const [entryForm, setEntryForm] = useState({
     cashbook_id: '',
     type: 'Income' as 'Income' | 'Expense',
@@ -91,7 +87,6 @@ const Finance = () => {
     lead_id: ''
   });
 
-  // Search/Autocomplete States
   const [searchQuery, setSearchQuery] = useState('');
   const [cbProjectQuery, setCbProjectQuery] = useState('');
   const [showCbProjectDrop, setShowCbProjectDrop] = useState(false);
@@ -167,7 +162,7 @@ const Finance = () => {
     } catch (err: any) {
       console.error("Finance Sync Failure:", err);
       if (err.code === '42703') setSetupRequired('outdated');
-      else showNotification(`Vault connectivity issue: ${err.message}`, "error");
+      else showNotification(`Failed to load financial records.`, "error");
     } finally {
       setLoading(false);
     }
@@ -179,7 +174,7 @@ const Finance = () => {
     try {
       const { error } = await supabase.from('finance_cashbooks').update({ deleted_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
-      showNotification("Ledger archived.", "info");
+      showNotification("Cashbook archived.", "info");
       fetchFinancials();
     } catch (err: any) { showNotification(err.message, "error"); }
   };
@@ -189,7 +184,7 @@ const Finance = () => {
     try {
       const { error } = await supabase.from('finance_cashbooks').update({ deleted_at: null }).eq('id', id);
       if (error) throw error;
-      showNotification("Ledger restored.", "success");
+      showNotification("Cashbook restored.", "success");
       fetchFinancials();
     } catch (err: any) { showNotification(err.message, "error"); }
   };
@@ -220,7 +215,7 @@ const Finance = () => {
         await supabase.from('finance_cashbook_permissions').insert(assignments);
       }
 
-      showNotification("Cashbook authorized.", "success");
+      showNotification("New cashbook added.", "success");
       setShowCashbookModal(false);
       setCashbookForm({ name: '', initial_balance: 0, type: 'Project', project_id: '', assigned_team: {} });
       setCbProjectQuery('');
@@ -250,7 +245,7 @@ const Finance = () => {
         office_id: profile?.office_id
       }]);
       if (error) throw error;
-      showNotification("Transaction synchronized.", "success");
+      showNotification("Entry saved successfully.", "success");
       setShowEntryModal(false);
       setEntryForm({ cashbook_id: '', type: 'Income', amount: 0, category: 'General', description: '', date: new Date().toISOString().split('T')[0], project_id: '', lead_id: '' });
       fetchFinancials();
@@ -314,16 +309,16 @@ const Finance = () => {
           {setupRequired === 'missing' ? <Layers className="w-12 h-12" /> : <RefreshCw className="w-12 h-12" />}
        </div>
        <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
-         {setupRequired === 'missing' ? 'Database Setup Required' : 'Schema Repair Required'}
+         {setupRequired === 'missing' ? 'Accounts Setup Required' : 'Database Update Required'}
        </h2>
        <p className="text-slate-500 max-w-xl leading-relaxed mb-12 text-sm font-medium">
          {setupRequired === 'missing' 
-           ? "The architectural finance tables are missing from the vault. Please run the SQL initialization script found in the 'supabaseClient.ts' instructions."
-           : "A structural mismatch was detected in the finance ledger columns. Please run the Master Recovery SQL script in 'supabaseClient.ts' to synchronize the schema."}
+           ? "The business finance tables are missing from your storage. Please run the provided SQL script to initialize your accounts."
+           : "A structural update is needed for your financial records. Please run the master repair script to update your database."}
        </p>
        <div className="flex flex-col sm:flex-row gap-4">
          <button onClick={handleRetry} className="px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 active:scale-95 transition-all flex items-center gap-3">
-            <RefreshCw className="w-5 h-5" /> Retry Connection
+            <RefreshCw className="w-5 h-5" /> Refresh Connection
          </button>
        </div>
     </div>
@@ -332,32 +327,32 @@ const Finance = () => {
   if (loading) return (
     <div className="h-[70vh] flex flex-col items-center justify-center gap-6 px-6 text-center">
       <RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">SYNCING FIRM VAULTS...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Loading Accounts...</p>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
       
-      {/* NEW LEDGER MODAL */}
+      {/* NEW CASHBOOK MODAL */}
       {showCashbookModal && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 md:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[32px] md:rounded-[48px] p-6 md:p-12 max-w-3xl w-full shadow-2xl animate-in zoom-in-95 overflow-y-auto max-h-[90vh] md:max-h-[95vh] no-scrollbar">
              <div className="flex justify-between items-start mb-8 md:mb-10">
                 <div>
-                   <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">New Ledger</h3>
-                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-2">FISCAL SECTOR PROVISIONING</p>
+                   <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">New Cashbook</h3>
+                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-2">FISCAL SECTOR SETUP</p>
                 </div>
                 <button onClick={() => setShowCashbookModal(false)} className="p-2 md:p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-5 h-5 md:w-6 md:h-6" /></button>
              </div>
              <form onSubmit={handleAddCashbook} className="space-y-6 md:space-y-8">
                 <div className="space-y-2">
-                   <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ledger Name</label>
-                   <input required className="w-full h-14 md:h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Project X - Main Fund" value={cashbookForm.name} onChange={e => setCashbookForm({...cashbookForm, name: e.target.value})} />
+                   <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cashbook Name</label>
+                   <input required className="w-full h-14 md:h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Project X - Operating Fund" value={cashbookForm.name} onChange={e => setCashbookForm({...cashbookForm, name: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registry Type</label>
+                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cashbook Type</label>
                     <div className="relative">
                       <select required className="w-full h-14 md:h-16 px-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none appearance-none" value={cashbookForm.type} onChange={e => setCashbookForm({...cashbookForm, type: e.target.value as CashbookType})}>
                         <option value="Project">Project</option>
@@ -370,19 +365,19 @@ const Finance = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Opening Inject (BDT)</label>
+                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Opening Balance (BDT)</label>
                     <input type="number" className="w-full h-14 md:h-16 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-emerald-700" value={cashbookForm.initial_balance} onChange={e => setCashbookForm({...cashbookForm, initial_balance: Number(e.target.value)})} />
                   </div>
                 </div>
                 
                 {cashbookForm.type === 'Project' && (
                   <div className="space-y-2 relative" ref={cbProjRef}>
-                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link to Project</label>
+                    <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link to Design Project</label>
                     <div className="relative group">
                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                        <input 
                          className="w-full h-14 md:h-16 pl-12 pr-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white" 
-                         placeholder="Find active design..." 
+                         placeholder="Search active designs..." 
                          value={cbProjectQuery} 
                          onFocus={() => setShowCbProjectDrop(true)}
                          onChange={e => { setCbProjectQuery(e.target.value); setShowCbProjectDrop(true); }}
@@ -391,7 +386,7 @@ const Finance = () => {
                     {showCbProjectDrop && (
                       <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[24px] md:rounded-[28px] shadow-2xl z-[300] max-h-48 overflow-y-auto no-scrollbar py-2">
                         {projects.filter(p => p.name.toLowerCase().includes(cbProjectQuery.toLowerCase())).map(p => (
-                          <div key={p.id} onClick={() => { setCashbookForm({...cashbookForm, project_id: p.id, name: `${p.name} Ledger`}); setCbProjectQuery(p.name); setShowCbProjectDrop(false); }} className="px-5 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3"><Building2 className="w-4 h-4 text-slate-300" /><span className="text-xs font-bold">{p.name}</span></div>
+                          <div key={p.id} onClick={() => { setCashbookForm({...cashbookForm, project_id: p.id, name: `${p.name} Fund`}); setCbProjectQuery(p.name); setShowCbProjectDrop(false); }} className="px-5 py-3 hover:bg-slate-50 cursor-pointer flex items-center gap-3"><Building2 className="w-4 h-4 text-slate-300" /><span className="text-xs font-bold">{p.name}</span></div>
                         ))}
                       </div>
                     )}
@@ -400,7 +395,7 @@ const Finance = () => {
 
                 <div className="space-y-4">
                   <label className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <Users2 className="w-4 h-4" /> Authorized Access & Rights ({Object.keys(cashbookForm.assigned_team).length})
+                    <Users2 className="w-4 h-4" /> Authorized Team Access ({Object.keys(cashbookForm.assigned_team).length})
                   </label>
                   <div className="grid grid-cols-1 gap-3 p-3 md:p-4 bg-slate-50 rounded-[24px] md:rounded-[32px] border border-slate-100 max-h-[250px] md:max-h-[300px] overflow-y-auto no-scrollbar">
                      {staff.map(s => {
@@ -422,7 +417,7 @@ const Finance = () => {
                                  </div>
                                  <div className="min-w-0">
                                    <p className="text-[12px] font-black truncate">{s.full_name}</p>
-                                   <p className="text-[9px] font-bold text-slate-400 uppercase">{s.designation || 'Member'}</p>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase">{s.designation || 'Staff'}</p>
                                  </div>
                               </button>
 
@@ -431,8 +426,8 @@ const Finance = () => {
                                    {[
                                      { key: 'can_input', label: 'Input' },
                                      { key: 'can_edit', label: 'Edit' },
-                                     { key: 'can_delete', label: 'Del' },
-                                     { key: 'can_archive', label: 'Arch' }
+                                     { key: 'can_delete', label: 'Delete' },
+                                     { key: 'can_archive', label: 'Archive' }
                                    ].map(p => (
                                      <button
                                        key={p.key}
@@ -452,7 +447,7 @@ const Finance = () => {
                 </div>
 
                 <button type="submit" disabled={isSaving} className="w-full py-6 md:py-7 bg-[#064e3b] text-white rounded-[20px] md:rounded-[28px] text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] hover:bg-black transition-all flex items-center justify-center gap-4 shadow-xl active:scale-95 disabled:opacity-50">
-                  {isSaving ? <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />} AUTHORIZE LEDGER
+                  {isSaving ? <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />} Save Cashbook
                 </button>
              </form>
           </div>
@@ -465,8 +460,8 @@ const Finance = () => {
           <div className="bg-white rounded-[48px] p-8 md:p-14 max-w-2xl w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 relative overflow-y-auto max-h-[90vh] no-scrollbar">
             <div className="flex justify-between items-start mb-10">
               <div>
-                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Record Entry</h3>
-                <p className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mt-2">LEDGER RECONCILIATION</p>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Add Record</h3>
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em] mt-2">CASHBOOK UPDATE</p>
               </div>
               <button onClick={() => setShowEntryModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 transition-all"><X className="w-6 h-6" /></button>
             </div>
@@ -475,14 +470,14 @@ const Finance = () => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</label>
                   <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-[20px]">
-                    <button type="button" onClick={() => setEntryForm({...entryForm, type: 'Income'})} className={`py-3 rounded-[16px] text-[9px] font-black uppercase tracking-widest transition-all ${entryForm.type === 'Income' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>Income (In)</button>
-                    <button type="button" onClick={() => setEntryForm({...entryForm, type: 'Expense'})} className={`py-3 rounded-[16px] text-[9px] font-black uppercase tracking-widest transition-all ${entryForm.type === 'Expense' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400'}`}>Expense (Out)</button>
+                    <button type="button" onClick={() => setEntryForm({...entryForm, type: 'Income'})} className={`py-3 rounded-[16px] text-[9px] font-black uppercase tracking-widest transition-all ${entryForm.type === 'Income' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>Inflow</button>
+                    <button type="button" onClick={() => setEntryForm({...entryForm, type: 'Expense'})} className={`py-3 rounded-[16px] text-[9px] font-black uppercase tracking-widest transition-all ${entryForm.type === 'Expense' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400'}`}>Outflow</button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Ledger</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Cashbook</label>
                   <select required className="w-full h-14 px-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm" value={entryForm.cashbook_id} onChange={e => setEntryForm({...entryForm, cashbook_id: e.target.value})}>
-                    <option value="">Choose registry...</option>
+                    <option value="">Choose cashbook...</option>
                     {cashbooks.filter(c => !c.deleted_at).map(cb => <option key={cb.id} value={cb.id}>{cb.name} (Tk. {cb.balance.toLocaleString()})</option>)}
                   </select>
                 </div>
@@ -500,12 +495,12 @@ const Finance = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Narrative Description</label>
-                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700" placeholder="Transaction notes..." value={entryForm.description} onChange={e => setEntryForm({...entryForm, description: e.target.value})} />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes / Description</label>
+                <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700" placeholder="Transaction details..." value={entryForm.description} onChange={e => setEntryForm({...entryForm, description: e.target.value})} />
               </div>
 
               <button type="submit" disabled={isSaving} className="w-full py-7 bg-slate-900 text-white rounded-[28px] text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 shadow-xl active:scale-95">
-                 {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />} COMMIT LEDGER ENTRY
+                 {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5 text-emerald-400" />} Save Entry
               </button>
             </form>
           </div>
@@ -522,7 +517,7 @@ const Finance = () => {
             <div>
               <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">Finance Command</h1>
               <p className="text-slate-400 text-[8px] md:text-[10px] font-black uppercase tracking-[0.25em] mt-2 md:mt-3 flex items-center gap-3">
-                <Banknote className="w-4 h-4 text-amber-500" /> INTEGRATED FIRM FISCAL REPOSITORY
+                <Banknote className="w-4 h-4 text-emerald-500" /> INTEGRATED FIRM FISCAL REPOSITORY
               </p>
             </div>
           </div>
@@ -532,7 +527,7 @@ const Finance = () => {
               onClick={() => setShowCashbookModal(true)}
               className="flex-1 md:flex-none px-4 md:px-8 py-4 md:py-5 bg-white border border-slate-100 text-slate-900 rounded-[18px] md:rounded-[24px] text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
             >
-              <Plus className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" /> New Ledger
+              <Plus className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" /> New Cashbook
             </button>
             <button 
               onClick={() => setShowEntryModal(true)}
@@ -543,7 +538,6 @@ const Finance = () => {
           </div>
         </header>
 
-        {/* 3-IN-A-ROW SUMMARY CARDS */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8">
              <div className="bg-white p-3 sm:p-6 md:p-10 rounded-2xl sm:rounded-[32px] md:rounded-[56px] border border-slate-100 shadow-lg relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
@@ -588,12 +582,11 @@ const Finance = () => {
              </div>
         </div>
 
-        {/* LEDGER DIRECTORY */}
         <div className="space-y-6 md:space-y-8">
              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
                 <div>
                    <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                     <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-emerald-600" /> Ledgers Portfolio
+                     <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-emerald-600" /> Cashbooks Portfolio
                    </h2>
                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 ml-8 md:ml-9">ACTIVE FIRM FISCAL SECTORS</p>
                 </div>
@@ -618,7 +611,7 @@ const Finance = () => {
                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
                    <input 
                      type="text" 
-                     placeholder="Search ledgers..."
+                     placeholder="Search cashbooks..."
                      className="w-full h-14 md:h-16 pl-16 pr-6 bg-white border border-slate-100 rounded-[20px] md:rounded-[28px] text-[13px] md:text-[14px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
                      value={searchQuery}
                      onChange={e => setSearchQuery(e.target.value)}
@@ -636,16 +629,16 @@ const Finance = () => {
                    <table className="w-full text-left border-separate border-spacing-0">
                       <thead>
                          <tr className="bg-slate-50/30 text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100">Sector Name</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">Inflow</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">Outflow</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">Net Liquidity</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">Actions</th>
+                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100">SECTOR NAME</th>
+                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">INFLOW</th>
+                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">OUTFLOW</th>
+                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">NET LIQUIDITY</th>
+                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">ACTIONS</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                          {displayedCashbooks.length === 0 ? (
-                            <tr><td colSpan={5} className="py-24 text-center opacity-30 text-[11px] font-black uppercase tracking-widest">No matching ledgers found</td></tr>
+                            <tr><td colSpan={5} className="py-24 text-center opacity-30 text-[11px] font-black uppercase tracking-widest">No matching cashbooks found</td></tr>
                          ) : displayedCashbooks.map(cb => (
                             <tr key={cb.id} onClick={() => navigate(`/finance/${cb.id}`)} className="group hover:bg-slate-50/80 transition-colors cursor-pointer">
                                <td className="px-8 md:px-10 py-6 md:py-8">
@@ -655,7 +648,7 @@ const Finance = () => {
                                      </div>
                                      <div>
                                         <p className="text-[13px] md:text-[15px] font-black text-slate-900 group-hover:text-emerald-700 transition-colors">{cb.name}</p>
-                                        <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{cb.type} Ledger</p>
+                                        <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{cb.type} Cashbook</p>
                                      </div>
                                   </div>
                                </td>

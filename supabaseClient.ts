@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://vtfooxylfnzyrgdkslms.supabase.co';
@@ -6,7 +7,7 @@ const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * HHD CRM - MASTER DATABASE SCHEMA & REPAIR SCRIPT (V106 - GRANULAR FINANCE PERMISSIONS)
+ * HHD CRM - MASTER DATABASE SCHEMA & REPAIR SCRIPT (V107 - STORAGE POLICIES)
  * 
  * INSTRUCTIONS:
  * 1. Open Supabase Dashboard -> SQL Editor -> "+ New Query".
@@ -57,7 +58,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *   END IF;
  * END $$;
  * 
- * -- 3. FINANCE PERMISSIONS TABLE (Access Control with Granular Rights)
+ * -- 3. FINANCE PERMISSIONS TABLE (Access Control)
  * CREATE TABLE IF NOT EXISTS public.finance_cashbook_permissions (
  *     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
  *     cashbook_id UUID REFERENCES public.finance_cashbooks(id) ON DELETE CASCADE,
@@ -70,7 +71,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  *     UNIQUE(cashbook_id, profile_id)
  * );
  * 
- * -- 4. REFRESH SECURITY POLICIES
+ * -- 4. REFRESH SECURITY POLICIES (DATABASE)
  * ALTER TABLE public.finance_cashbooks ENABLE ROW LEVEL SECURITY;
  * ALTER TABLE public.finance_transactions ENABLE ROW LEVEL SECURITY;
  * ALTER TABLE public.finance_cashbook_permissions ENABLE ROW LEVEL SECURITY;
@@ -84,7 +85,22 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  * DROP POLICY IF EXISTS "Public_CRM_Access" ON public.finance_cashbook_permissions;
  * CREATE POLICY "Public_CRM_Access" ON public.finance_cashbook_permissions FOR ALL TO public USING (true) WITH CHECK (true);
  * 
- * -- 5. CRITICAL: RELOAD POSTGREST CACHE
+ * -- 5. STORAGE POLICIES (Required for UserImage bucket)
+ * -- Ensure bucket is public
+ * INSERT INTO storage.buckets (id, name, public) 
+ * VALUES ('UserImage', 'UserImage', true)
+ * ON CONFLICT (id) DO UPDATE SET public = true;
+ * 
+ * -- Drop existing to avoid conflicts
+ * DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+ * 
+ * CREATE POLICY "Public Access" 
+ * ON storage.objects FOR ALL 
+ * TO public 
+ * USING ( bucket_id = 'UserImage' ) 
+ * WITH CHECK ( bucket_id = 'UserImage' );
+ * 
+ * -- 6. CRITICAL: RELOAD POSTGREST CACHE
  * NOTIFY pgrst, 'reload schema';
  * 
  * -- END SQL --

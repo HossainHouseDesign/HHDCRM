@@ -68,7 +68,7 @@ const StaffOnboarding = () => {
 
   const validateAccess = async () => {
     if (!isAdmin) {
-      showNotification("Security Protocol: Administrative clearance required.", "error");
+      showNotification("Account Alert: Admin access required.", "error");
       return navigate('/');
     }
 
@@ -104,7 +104,7 @@ const StaffOnboarding = () => {
         }
       }
     } catch (err: any) {
-      showNotification("Record Access Error: " + err.message, "error");
+      showNotification("Failed to access personnel records.", "error");
       navigate('/team');
     } finally {
       setLoading(false);
@@ -129,7 +129,6 @@ const StaffOnboarding = () => {
       const currentMod = prev[module] || { view: false, create: false, edit: false, delete: false, see_contact: false };
       const isAnyOn = currentMod.view || currentMod.create || currentMod.edit || currentMod.delete || currentMod.see_contact;
       
-      // If anything is on, turn everything off. If everything is off, turn everything on.
       const newState = !isAnyOn;
       return {
         ...prev,
@@ -171,7 +170,7 @@ const StaffOnboarding = () => {
     setSaving(true);
     try {
       const payload: any = {
-        full_name: formData.full_name.trim() || 'Unknown Staff',
+        full_name: formData.full_name.trim() || 'Staff Member',
         email: formData.email.toLowerCase().trim(),
         phone: formData.phone.trim(),
         designation: formData.designation.trim() || 'Architectural Staff',
@@ -208,22 +207,22 @@ const StaffOnboarding = () => {
         }
       }
       
-      showNotification("Staff registry synchronized.", "success");
+      showNotification("Staff member saved successfully.", "success");
       navigate('/team');
     } catch (err: any) {
-      showNotification("Provisioning Failed: " + err.message, "error");
+      showNotification("Failed to save personnel details: " + err.message, "error");
     } finally {
       setSaving(false);
     }
   };
 
   const modules = [
-    { key: 'leads', label: 'Lead Portfolio', icon: FileText, hasContact: true },
-    { key: 'site_visits', label: 'Site Visit', icon: MapPin, hasContact: false },
-    { key: 'quotations', label: 'Quotations', icon: FileSpreadsheet, hasContact: false },
+    { key: 'leads', label: 'Leads Portfolio', icon: FileText, hasContact: true },
+    { key: 'site_visits', label: 'Site Visit Logs', icon: MapPin, hasContact: false },
+    { key: 'quotations', label: 'Proposals', icon: FileSpreadsheet, hasContact: false },
     { key: 'clients', label: 'Client Directory', icon: Users, hasContact: true },
     { key: 'projects', label: 'Project Vault', icon: Layers, hasContact: false },
-    { key: 'construction', label: 'Construction', icon: Hammer, hasContact: false },
+    { key: 'construction', label: 'Construction Hub', icon: Hammer, hasContact: false },
     { key: 'finance', label: 'Finance Command', icon: Banknote, hasContact: false },
     { key: 'team', label: 'Team Directory', icon: Users2, hasContact: false },
   ] as const;
@@ -235,7 +234,7 @@ const StaffOnboarding = () => {
   if (loading || contextLoading) return (
     <div className="h-screen flex flex-col items-center justify-center gap-6 bg-[#f8fafc]">
       <RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verifying Security Clearances...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Account Details...</p>
     </div>
   );
 
@@ -244,15 +243,14 @@ const StaffOnboarding = () => {
       <header className="flex items-center gap-6 mb-12">
         <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Modify Personnel' : 'Provision Staff'}</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Firm Security Protocol</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Update Member' : 'Add New Member'}</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">FIRM ACCOUNT SETUP</p>
         </div>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-12">
-        {/* IDENTITY SECTION */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-10 relative overflow-hidden">
-          <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Credentials</h3>
+          <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Access</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
@@ -263,29 +261,28 @@ const StaffOnboarding = () => {
               <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Title</label>
               <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Senior Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Login Password</label>
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Password</label>
               <div className="relative">
                 <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-6 pr-24 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                  <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate Secure Password"><Wand2 className="w-4 h-4" /></button>
+                  <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Create New Password"><Wand2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* GRANULAR PERMISSIONS MATRIX */}
         <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12">
           <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
              <ShieldCheck className="w-6 h-6 text-emerald-500" />
              <div>
-                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Access Control Protocol</h3>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">Authorized Navigation & Action Rights Provisioning</p>
+                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Access Control</h3>
+                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">SELECT FEATURES THIS MEMBER CAN ACCESS</p>
              </div>
           </div>
 
@@ -305,7 +302,7 @@ const StaffOnboarding = () => {
                        </div>
                        <div className="text-left flex-1 min-w-0">
                           <span className={`text-[15px] font-black block leading-tight truncate transition-colors ${isAnyEnabled ? 'text-slate-900' : 'text-slate-400'}`}>{m.label}</span>
-                          <span className={`text-[8px] font-black uppercase tracking-widest ${isAnyEnabled ? 'text-emerald-600' : 'text-slate-300'}`}>{isAnyEnabled ? 'Module Authorized' : 'Module Restricted'}</span>
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${isAnyEnabled ? 'text-emerald-600' : 'text-slate-300'}`}>{isAnyEnabled ? 'Feature Enabled' : 'Feature Locked'}</span>
                        </div>
                        <button 
                          type="button"
@@ -318,9 +315,9 @@ const StaffOnboarding = () => {
                     <div className="grid grid-cols-2 gap-3">
                        {[
                          { key: 'view', label: 'Only View', icon: Eye },
-                         { key: 'create', label: 'Can Create', icon: UserPlus },
+                         { key: 'create', label: 'Can Add', icon: UserPlus },
                          { key: 'edit', label: 'Can Edit', icon: Edit3 },
-                         { key: 'delete', label: 'Can Delete', icon: Trash2 },
+                         { key: 'delete', label: 'Can Erase', icon: Trash2 },
                        ].map(action => (
                          <button
                            key={action.key}
@@ -339,7 +336,7 @@ const StaffOnboarding = () => {
                            className={`col-span-2 flex items-center justify-center gap-2.5 p-3 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${modPerms.see_contact ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:border-blue-100 hover:text-blue-400'}`}
                          >
                             <Contact className="w-3.5 h-3.5" />
-                            Client Contact Information
+                            View Client Contacts
                          </button>
                        )}
                     </div>
@@ -347,7 +344,6 @@ const StaffOnboarding = () => {
                );
              })}
 
-             {/* SETTINGS CARD */}
              <div className={`p-8 rounded-[40px] border transition-all flex flex-col justify-between ${permissions.settings?.access ? 'bg-white border-amber-500/30 shadow-xl ring-4 ring-amber-500/5' : 'bg-slate-50/20 border-slate-100'}`}>
                 <div 
                   onClick={toggleSettingsAccess}
@@ -357,10 +353,10 @@ const StaffOnboarding = () => {
                        <Settings className="w-6 h-6" />
                     </div>
                     <div className="text-left flex-1">
-                       <span className={`text-[15px] font-black block leading-tight transition-colors ${permissions.settings?.access ? 'text-slate-900' : 'text-slate-400'}`}>System Settings</span>
-                       <span className={`text-[8px] font-black uppercase tracking-widest ${permissions.settings?.access ? 'text-amber-600' : 'text-slate-300'}`}>Configuration Authority</span>
+                       <span className={`text-[15px] font-black block leading-tight transition-colors ${permissions.settings?.access ? 'text-slate-900' : 'text-slate-400'}`}>Admin Settings</span>
+                       <span className={`text-[8px] font-black uppercase tracking-widest ${permissions.settings?.access ? 'text-amber-600' : 'text-slate-300'}`}>Management Rights</span>
                     </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/settings:border-amber-300'}`}>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-50 border-amber-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/settings:border-amber-300'}`}>
                         <Check className="w-3.5 h-3.5" />
                     </div>
                 </div>
@@ -370,26 +366,25 @@ const StaffOnboarding = () => {
                   className={`w-full flex items-center justify-center gap-3 p-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all mt-6 ${permissions.settings?.access ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:text-amber-500'}`}
                 >
                    <Shield className="w-4 h-4" />
-                   {permissions.settings?.access ? 'Access Authorized' : 'Access Restricted'}
+                   {permissions.settings?.access ? 'Access Allowed' : 'Access Restricted'}
                 </button>
              </div>
           </div>
 
-          {/* Granular Cashbook Permissions Section */}
           {permissions.finance?.view && (
             <div className="pt-12 mt-12 border-t border-slate-100 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div>
                     <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                      <BookOpen className="w-6 h-6 text-emerald-600" /> Fiscal Ledger Access
+                      <BookOpen className="w-6 h-6 text-emerald-600" /> Cashbook Access
                     </h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">SELECT INDIVIDUAL CASHBOOKS AUTHORIZED FOR THIS PROFILE</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">SELECT INDIVIDUAL CASHBOOKS AUTHORIZED FOR THIS MEMBER</p>
                   </div>
                   <div className="relative w-full md:w-64 group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-500" />
                     <input 
                       type="text" 
-                      placeholder="Search ledgers..." 
+                      placeholder="Search cashbooks..." 
                       className="w-full h-12 pl-11 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
                       value={cashbookSearch}
                       onChange={e => setCashbookSearch(e.target.value)}
@@ -400,7 +395,7 @@ const StaffOnboarding = () => {
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredCashbooks.length === 0 ? (
                     <div className="col-span-full py-10 text-center bg-slate-50 rounded-[32px] border border-dashed border-slate-200">
-                      <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">No matching ledgers found</p>
+                      <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">No matching funds found</p>
                     </div>
                   ) : filteredCashbooks.map(cb => {
                     const isSelected = selectedCashbooks.includes(cb.id);
@@ -417,7 +412,7 @@ const StaffOnboarding = () => {
                             </div>
                             <div>
                                <p className={`text-sm font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>{cb.name}</p>
-                               <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>{cb.description} Ledger</p>
+                               <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>{cb.description} Fund</p>
                             </div>
                          </div>
                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white text-emerald-600' : 'bg-white border-slate-100 text-transparent'}`}>
@@ -433,14 +428,14 @@ const StaffOnboarding = () => {
           <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
              <ShieldAlert className="w-6 h-6 text-slate-300 shrink-0" />
              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-               Module Integrity: Detailed action permissions define exactly what this user can do within each sector. Administrators have automatic full master access to all modules and ledgers. Click the module header or icon to toggle all module permissions at once.
+               Security Notice: Management rights define exactly what this member can see and do. Administrators automatically have full access to all features and cashbooks.
              </p>
           </div>
         </div>
 
         <button type="submit" disabled={saving} className="w-full py-8 bg-[#064e3b] text-white rounded-[32px] text-[12px] font-black uppercase tracking-[0.3em] shadow-xl flex items-center justify-center gap-4 hover:bg-black transition-all active:scale-95 disabled:opacity-50">
           {saving ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <ShieldCheck className="w-6 h-6 text-emerald-400" />}
-          Commit Staff Entry & Access Protocol
+          Save Member Details
         </button>
       </form>
     </div>
