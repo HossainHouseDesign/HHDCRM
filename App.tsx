@@ -2,6 +2,7 @@
 import React, { useState, useEffect, createContext, useContext, useCallback, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
+import AIChatBot from './components/AIChatBot'; // New Import
 import Dashboard from './pages/Dashboard';
 import LeadsList from './pages/LeadsList';
 import LeadForm from './pages/LeadForm';
@@ -328,6 +329,9 @@ const AppContent = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
+        
+        {/* Floating Chat Bot */}
+        <AIChatBot />
       </main>
     </div>
   );

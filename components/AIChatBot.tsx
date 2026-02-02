@@ -1,0 +1,326 @@
+
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, Send, Sparkles, RefreshCw, 
+  Bot, User, Minimize2, Maximize2,
+  Banknote, HardHat, FileText, ExternalLink,
+  ArrowRight, MapPin, Calendar, Clock,
+  ListFilter, ShieldCheck
+} from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
+import { supabase } from '../supabaseClient';
+import { useUser, useNotification } from '../App';
+import { useNavigate } from 'react-router-dom';
+
+interface Message {
+  role: 'user' | 'model';
+  text: string;
+}
+
+const AIChatBot: React.FC = () => {
+  const navigate = useNavigate();
+  const { profile } = useUser();
+  const { showNotification } = useNotification();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'model', text: "Hello! I'm your HHD intelligence assistant. I can analyze your firm's entire history or focus on today's tasks. Ask me about projects, financials, or schedules!" }
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // App Context Data
+  const [appContext, setAppContext] = useState<any>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchFullBusinessContext();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  const fetchFullBusinessContext = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Fetch core data with relationships
+      const [leadsRes, projectsRes, financeRes, visitsRes] = await Promise.all([
+        supabase.from('leads').select('id, client_name, status, phone, address, created_at, is_client').is('deleted_at', null).order('created_at', { ascending: false }).limit(50),
+        supabase.from('projects').select('id, name, status, budget, start_date, client:leads(client_name)').is('deleted_at', null),
+        supabase.from('finance_cashbooks').select('id, name, description, initial_balance').is('deleted_at', null),
+        supabase.from('site_visits').select('id, visit_date, location, status, project:projects(name), lead:leads(client_name)').is('deleted_at', null)
+      ]);
+
+      // Calculate aggregated finance for "lifetime" views
+      const { data: transData } = await supabase.from('finance_transactions').select('cashbook_id, type, amount');
+      
+      const enrichedCashbooks = financeRes.data?.map(cb => {
+        const cbTrans = transData?.filter(t => t.cashbook_id === cb.id) || [];
+        const inc = cbTrans.filter(t => t.type === 'Income').reduce((a, b) => a + Number(b.amount), 0);
+        const exp = cbTrans.filter(t => t.type === 'Expense').reduce((a, b) => a + Number(b.amount), 0);
+        return { 
+          ...cb, 
+          current_balance: Number(cb.initial_balance) + inc - exp,
+          total_income: inc,
+          total_expense: exp
+        };
+      });
+
+      const lifetimeStats = {
+        totalLeads: leadsRes.data?.filter(l => !l.is_client).length || 0,
+        totalClients: leadsRes.data?.filter(l => l.is_client).length || 0,
+        totalProjects: projectsRes.data?.length || 0,
+        completedProjects: projectsRes.data?.filter(p => p.status === 'Complete').length || 0,
+        totalRevenue: enrichedCashbooks?.reduce((a, b) => a + b.total_income, 0) || 0,
+        totalLiquidity: enrichedCashbooks?.reduce((a, b) => a + b.current_balance, 0) || 0
+      };
+
+      const context = {
+        todayDate: today,
+        userName: profile?.full_name,
+        lifetime: lifetimeStats,
+        leads: leadsRes.data || [],
+        projects: projectsRes.data || [],
+        cashbooks: enrichedCashbooks || [],
+        visits: visitsRes.data || [],
+        todayVisits: visitsRes.data?.filter(v => v.visit_date === today) || []
+      };
+      
+      setAppContext(context);
+    } catch (err) {
+      console.error("AI deep context fetch failed", err);
+    }
+  };
+
+  const parseMessage = (text: string) => {
+    // Regex for: [[LINK:type:id:label]]
+    const parts = text.split(/(\[\[LINK:[^\]]+\]\])/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('[[LINK:')) {
+        const match = part.match(/\[\[LINK:([^:]+):([^:]+):([^\]]+)\]\]/);
+        if (match) {
+          const [, type, id, label] = match;
+          let path = '/';
+          let Icon = ExternalLink;
+          
+          if (type === 'project') { path = `/projects/${id}`; Icon = HardHat; }
+          if (type === 'lead') { path = `/leads/${id}`; Icon = User; }
+          if (type === 'visit') { path = `/site-visits/${id}`; Icon = MapPin; }
+          if (type === 'finance') { path = `/finance/${id}`; Icon = Banknote; }
+
+          return (
+            <button 
+              key={i}
+              onClick={() => {
+                navigate(path);
+                if (window.innerWidth < 1024) setIsMinimized(true);
+              }}
+              className="my-2 flex items-center justify-between w-full p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl text-emerald-900 transition-all group/link shadow-sm active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                   <Icon className="w-5 h-5 text-[#064e3b]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60 leading-none mb-1">{type}</p>
+                  <p className="text-[13px] font-black tracking-tight leading-tight">{label}</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
+            </button>
+          );
+        }
+      }
+      return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+    });
+  };
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userText = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userText }]);
+    setIsLoading(true);
+
+    try {
+      // Fix: Always create a new GoogleGenAI instance right before the call as per guidelines
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      const systemInstruction = `
+        You are the HHD Business Intelligence Bot. Today's date is ${appContext?.todayDate}.
+        You are assisting ${appContext?.userName}.
+        
+        AVAILABLE DATA CONTEXT:
+        - TODAY'S TASKS: ${JSON.stringify(appContext?.todayVisits)}
+        - LIFETIME SUMMARY: ${JSON.stringify(appContext?.lifetime)}
+        - PROJECTS LIST: ${JSON.stringify(appContext?.projects)}
+        - RECENT LEADS: ${JSON.stringify(appContext?.leads)}
+        - FINANCIAL HEALTH: ${JSON.stringify(appContext?.cashbooks)}
+        - FULL VISIT REGISTRY: ${JSON.stringify(appContext?.visits)}
+
+        BEHAVIORAL RULES:
+        1. MULTI-TIMEFRAME ANALYSIS: 
+           - If asked about "today", answer based on todayVisits.
+           - If asked about "lifetime," "all time," or "overall," use the lifetime summary stats.
+           - If asked about a specific date or period (e.g., "October last year"), search the full registry lists.
+        2. CONDITIONAL LINKS (IMPORTANT):
+           - DO NOT provide clickable row buttons by default for every mention.
+           - ONLY provide a link button if the user specifically asks (e.g., "give me a link", "take me there", "show project row") or if the query is a specific search for one item.
+           - FORMAT FOR LINKS: [[LINK:type:id:label]]
+        3. HUMAN READABILITY:
+           - Use bullet points for lists.
+           - Use professional architectural terminology.
+           - For finance, mention specific cashbook balances if relevant.
+        4. INTELLIGENCE:
+           - You can reason. If a user asks "how are we doing compared to lifetime?", calculate the current active vs total completed projects.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [
+          { role: 'user', parts: [{ text: systemInstruction }] },
+          ...messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+          { role: 'user', parts: [{ text: userText }] }
+        ]
+      });
+
+      const responseText = response.text || "I'm having trouble analyzing the firm's data archive.";
+      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+    } catch (err: any) {
+      console.error("AI Error:", err);
+      showNotification("AI Core is currently busy.", "error");
+      setMessages(prev => [...prev, { role: 'model', text: "I apologize, but my data processing center is taking longer than expected. Please try again in a few seconds." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {!isOpen && (
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 right-6 z-[100] w-14 h-14 md:w-16 md:h-16 bg-[#064e3b] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group"
+        >
+          <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20 group-hover:hidden" />
+          <Bot className="w-7 h-7 md:w-8 md:h-8 relative z-10" />
+        </button>
+      )}
+
+      {isOpen && (
+        <div 
+          className={`fixed bottom-6 right-6 z-[100] bg-white border border-slate-100 shadow-2xl rounded-[32px] md:rounded-[40px] flex flex-col transition-all duration-500 ease-out animate-in slide-in-from-bottom-10 ${
+            isMinimized ? 'h-20 w-72' : 'h-[550px] md:h-[680px] w-[calc(100vw-48px)] md:w-[460px]'
+          }`}
+        >
+          <div className={`p-5 md:p-6 flex items-center justify-between border-b border-slate-50 bg-[#064e3b] text-white rounded-t-[32px] md:rounded-t-[40px] shrink-0`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black tracking-tight leading-none uppercase">HHD Hub</h4>
+                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Live Intelligence</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/10 rounded-lg transition-all">
+                {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+              </button>
+              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {!isMinimized && (
+            <>
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-slate-50/30">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex gap-3 max-w-[90%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center shadow-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}>
+                        {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                      </div>
+                      <div className={`p-4 rounded-2xl text-[13px] font-medium leading-relaxed shadow-sm ${
+                        msg.role === 'user' 
+                        ? 'bg-emerald-600 text-white rounded-tr-none' 
+                        : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'
+                      }`}>
+                        {parseMessage(msg.text)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start animate-in fade-in duration-300">
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-300">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="p-4 bg-white border border-slate-100 rounded-2xl rounded-tl-none flex items-center gap-2 shadow-sm">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar border-t border-slate-50 bg-white">
+                {[
+                  { label: "Today's Schedule", icon: Calendar },
+                  { label: "Lifetime Performance", icon: FileText },
+                  { label: "Revenue Summary", icon: Banknote },
+                  { label: "Show Project Rows", icon: ListFilter }
+                ].map((s, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => { setInput(s.label); }}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-slate-50 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 rounded-full border border-slate-100 transition-all text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+                  >
+                    <s.icon className="w-3 h-3" />
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={handleSendMessage} className="p-6 bg-white border-t border-slate-50 rounded-b-[32px] md:rounded-b-[40px]">
+                <div className="relative group">
+                  <input 
+                    type="text"
+                    placeholder="Ask 'today', 'lifetime', or a specific date..."
+                    className="w-full h-14 pl-6 pr-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500/20 transition-all"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                  />
+                  <button 
+                    type="submit"
+                    disabled={!input.trim() || isLoading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#064e3b] text-white rounded-xl flex items-center justify-center hover:bg-black transition-all disabled:opacity-30 disabled:scale-95 active:scale-90"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest text-center mt-3 flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> HHD Multi-Timeline Engine
+                </p>
+              </form>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+};
+
+export default AIChatBot;
