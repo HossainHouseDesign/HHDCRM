@@ -3,9 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Send, Sparkles, RefreshCw, 
   Bot, User, Minimize2, Maximize2,
-  Banknote, HardHat, FileText, ExternalLink,
+  HardHat, FileText, ExternalLink,
   ArrowRight, MapPin, Calendar, Clock,
-  ListFilter, ShieldCheck
+  ListFilter, ShieldCheck, Target, 
+  History, Users2, Hammer, Trash2, 
+  Layout, Activity
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { supabase } from '../supabaseClient';
@@ -25,17 +27,17 @@ const AIChatBot: React.FC = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "Hello! I'm your HHD intelligence assistant. I can analyze your firm's entire history or focus on today's tasks. Ask me about projects, financials, or schedules!" }
+    { role: 'model', text: "HHD System Intelligence Online. I have full knowledge of the Dashboard, Leads, Projects, Site Visits, Construction progress, and the Team Directory. I can even help you find items in the Recycle Bin. How can I assist you?" }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // App Context Data
+  // App Context Data (Everything except Finance)
   const [appContext, setAppContext] = useState<any>(null);
 
   useEffect(() => {
     if (isOpen) {
-      fetchFullBusinessContext();
+      fetchSystemIntelligence();
     }
   }, [isOpen]);
 
@@ -45,61 +47,61 @@ const AIChatBot: React.FC = () => {
     }
   }, [messages, isLoading]);
 
-  const fetchFullBusinessContext = async () => {
+  const fetchSystemIntelligence = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Fetch core data with relationships
-      const [leadsRes, projectsRes, financeRes, visitsRes] = await Promise.all([
-        supabase.from('leads').select('id, client_name, status, phone, address, created_at, is_client').is('deleted_at', null).order('created_at', { ascending: false }).limit(50),
-        supabase.from('projects').select('id, name, status, budget, start_date, client:leads(client_name)').is('deleted_at', null),
-        supabase.from('finance_cashbooks').select('id, name, description, initial_balance').is('deleted_at', null),
-        supabase.from('site_visits').select('id, visit_date, location, status, project:projects(name), lead:leads(client_name)').is('deleted_at', null)
+      // Multi-module fetch for comprehensive app knowledge
+      const [leadsRes, projectsRes, visitsRes, constRes, profilesRes] = await Promise.all([
+        supabase.from('leads').select('id, client_name, status, created_at, is_client, deleted_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('projects').select('id, name, status, start_date, created_at, deleted_at').order('created_at', { ascending: false }),
+        supabase.from('site_visits').select('id, visit_date, location, status, project:projects(name), lead:leads(client_name), created_at, deleted_at').order('visit_date', { ascending: false }).limit(60),
+        supabase.from('construction_projects').select('id, title, current_stage, progress, status, created_at, deleted_at').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id, full_name, designation, role, created_at, deleted_at').order('full_name', { ascending: true })
       ]);
 
-      // Calculate aggregated finance for "lifetime" views
-      const { data: transData } = await supabase.from('finance_transactions').select('cashbook_id, type, amount');
-      
-      const enrichedCashbooks = financeRes.data?.map(cb => {
-        const cbTrans = transData?.filter(t => t.cashbook_id === cb.id) || [];
-        const inc = cbTrans.filter(t => t.type === 'Income').reduce((a, b) => a + Number(b.amount), 0);
-        const exp = cbTrans.filter(t => t.type === 'Expense').reduce((a, b) => a + Number(b.amount), 0);
-        return { 
-          ...cb, 
-          current_balance: Number(cb.initial_balance) + inc - exp,
-          total_income: inc,
-          total_expense: exp
-        };
-      });
+      const leads = leadsRes.data || [];
+      const projects = projectsRes.data || [];
+      const visits = visitsRes.data || [];
+      const construction = constRes.data || [];
+      const team = profilesRes.data || [];
 
-      const lifetimeStats = {
-        totalLeads: leadsRes.data?.filter(l => !l.is_client).length || 0,
-        totalClients: leadsRes.data?.filter(l => l.is_client).length || 0,
-        totalProjects: projectsRes.data?.length || 0,
-        completedProjects: projectsRes.data?.filter(p => p.status === 'Complete').length || 0,
-        totalRevenue: enrichedCashbooks?.reduce((a, b) => a + b.total_income, 0) || 0,
-        totalLiquidity: enrichedCashbooks?.reduce((a, b) => a + b.current_balance, 0) || 0
+      // Consolidate "Dashboard" style statistics for AI reasoning
+      const dashboardStats = {
+        totalLeads: leads.filter(l => !l.deleted_at && !l.is_client).length,
+        totalClients: leads.filter(l => !l.deleted_at && l.is_client).length,
+        activeProjects: projects.filter(p => !p.deleted_at && p.status === 'Running').length,
+        ongoingConstruction: construction.filter(c => !c.deleted_at && c.status === 'Active').length,
+        teamSize: team.filter(t => !t.deleted_at).length
       };
 
-      const context = {
+      // Compact payload for AI consumption (minimizing tokens for Flash model)
+      const summary = {
         todayDate: today,
-        userName: profile?.full_name,
-        lifetime: lifetimeStats,
-        leads: leadsRes.data || [],
-        projects: projectsRes.data || [],
-        cashbooks: enrichedCashbooks || [],
-        visits: visitsRes.data || [],
-        todayVisits: visitsRes.data?.filter(v => v.visit_date === today) || []
+        dashboard: dashboardStats,
+        active: {
+          leads: leads.filter(l => !l.deleted_at).map(l => ({ id: l.id, n: l.client_name, s: l.status, c: l.created_at?.split('T')[0] })),
+          projects: projects.filter(p => !p.deleted_at).map(p => ({ id: p.id, n: p.name, s: p.status, c: p.created_at?.split('T')[0] })),
+          visits: visits.filter(v => !v.deleted_at).map(v => ({ id: v.id, d: v.visit_date, s: v.status, n: v.project?.name || v.lead?.client_name })),
+          construction: construction.filter(c => !c.deleted_at).map(c => ({ id: c.id, t: c.title, st: c.current_stage, pr: c.progress, s: c.status })),
+          team: team.filter(t => !t.deleted_at).map(t => ({ id: t.id, n: t.full_name, r: t.role, d: t.designation }))
+        },
+        recycleBin: {
+          leads: leads.filter(l => !!l.deleted_at).map(l => ({ n: l.client_name, d: l.deleted_at?.split('T')[0] })),
+          projects: projects.filter(p => !!p.deleted_at).map(p => ({ n: p.name, d: p.deleted_at?.split('T')[0] })),
+          visits: visits.filter(v => !!v.deleted_at).map(v => ({ n: v.project?.name || v.lead?.client_name, d: v.deleted_at?.split('T')[0] })),
+          construction: construction.filter(c => !!c.deleted_at).map(c => ({ n: c.title, d: c.deleted_at?.split('T')[0] })),
+          team: team.filter(t => !!t.deleted_at).map(t => ({ n: t.full_name, d: t.deleted_at?.split('T')[0] }))
+        }
       };
       
-      setAppContext(context);
+      setAppContext(summary);
     } catch (err) {
-      console.error("AI deep context fetch failed", err);
+      console.error("AI Context Refresh Failed", err);
     }
   };
 
   const parseMessage = (text: string) => {
-    // Regex for: [[LINK:type:id:label]]
     const parts = text.split(/(\[\[LINK:[^\]]+\]\])/g);
     return parts.map((part, i) => {
       if (part.startsWith('[[LINK:')) {
@@ -109,10 +111,11 @@ const AIChatBot: React.FC = () => {
           let path = '/';
           let Icon = ExternalLink;
           
-          if (type === 'project') { path = `/projects/${id}`; Icon = HardHat; }
+          if (type === 'project') { path = `/projects/${id}`; Icon = Layout; }
           if (type === 'lead') { path = `/leads/${id}`; Icon = User; }
           if (type === 'visit') { path = `/site-visits/${id}`; Icon = MapPin; }
-          if (type === 'finance') { path = `/finance/${id}`; Icon = Banknote; }
+          if (type === 'construction') { path = `/construction/${id}`; Icon = Hammer; }
+          if (type === 'team') { path = `/settings/staff/edit/${id}`; Icon = Users2; }
 
           return (
             <button 
@@ -129,7 +132,7 @@ const AIChatBot: React.FC = () => {
                 </div>
                 <div className="text-left">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60 leading-none mb-1">{type}</p>
-                  <p className="text-[13px] font-black tracking-tight leading-tight">{label}</p>
+                  <p className="text-[13px] font-black tracking-tight leading-tight truncate max-w-[180px]">{label}</p>
                 </div>
               </div>
               <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
@@ -154,58 +157,61 @@ const AIChatBot: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const systemInstruction = `
-        You are the HHD Business Intelligence Bot. Today's date is ${appContext?.todayDate || new Date().toISOString().split('T')[0]}.
-        You are assisting ${appContext?.userName || 'User'}.
-        
-        AVAILABLE DATA CONTEXT (UP-TO-DATE):
-        - TODAY'S TASKS: ${JSON.stringify(appContext?.todayVisits || [])}
-        - LIFETIME SUMMARY: ${JSON.stringify(appContext?.lifetime || {})}
-        - PROJECTS LIST: ${JSON.stringify(appContext?.projects || [])}
-        - RECENT LEADS: ${JSON.stringify(appContext?.leads || [])}
-        - FINANCIAL HEALTH (CASHBOOKS): ${JSON.stringify(appContext?.cashbooks || [])}
-        - FULL VISIT REGISTRY: ${JSON.stringify(appContext?.visits || [])}
+        Role: HHD Architectural System Intelligence.
+        Scope: Full knowledge of Dashboard stats, Lead pipeline, Project vault, Site Visits, Construction status, Team directory, and the Recycle Bin.
+        Restriction: You have NO access to finance, money, or payroll. Politely decline if asked.
 
-        INTELLIGENCE RULES:
-        1. MULTI-TIMEFRAME ANALYSIS: 
-           - If user asks for "today", focus on 'TODAY'S TASKS'.
-           - If user asks for "lifetime", "all time", or "overall", focus on 'LIFETIME SUMMARY'.
-           - If user asks for a specific date/month, search 'FULL VISIT REGISTRY' or 'PROJECTS LIST'.
-           - Compare today's status against lifetime stats if asked for "business health".
-        2. CONDITIONAL LINKS:
-           - DO NOT provide clickable links/buttons automatically.
-           - ONLY provide a link if the user asks (e.g., "show me the link", "go to project", "open row") or if you are identifying a single specific project/lead.
-           - LINK FORMAT: [[LINK:type:id:label]] (Types: 'project', 'visit', 'lead', 'finance')
-        3. BEHAVIOR:
-           - Use professional architectural terminology.
-           - Be concise. Use bullet points for comparisons.
-           - If data is missing for a date, say "The archive does not show records for that specific period."
+        REAL-TIME CONTEXT:
+        Current Date (Today): ${appContext?.todayDate}
+        System Stats: ${JSON.stringify(appContext?.dashboard)}
+
+        KNOWLEDGE BASE:
+        - LEADS/CLIENTS: ${JSON.stringify(appContext?.active?.leads)}
+        - PROJECTS: ${JSON.stringify(appContext?.active?.projects)}
+        - VISITS: ${JSON.stringify(appContext?.active?.visits)}
+        - CONSTRUCTION: ${JSON.stringify(appContext?.active?.construction)}
+        - TEAM: ${JSON.stringify(appContext?.active?.team)}
+        - RECYCLE BIN (Deleted Items): ${JSON.stringify(appContext?.recycleBin)}
+
+        RULES:
+        1. Use 'c' (created date) in leads/projects to answer "how many were added today/this week".
+        2. Construction Analysis: You know the exact milestone (st) and progress percentage (pr) for sites.
+        3. Bin Awareness: If a user asks for something not in active lists, check recycleBin.
+        4. NAVIGATION: Only provide [[LINK:type:id:label]] if requested or if identifying one specific record clearly.
+
+        TONE: Professional, Concise, Architect-led intelligence.
       `;
 
-      // Filter messages for history: skip turns that don't follow user-model-user pattern
-      // Gemini contents MUST start with a user turn if systemInstruction is in config.
-      const chatHistory = messages.slice(1).map(m => ({
+      // Optimized history for flash model
+      const history = messages.slice(-6).map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
       }));
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview', // Switched to Flash to resolve 429 quota issues
         contents: [
-          ...chatHistory,
+          ...history,
           { role: 'user', parts: [{ text: userText }] }
         ],
         config: {
           systemInstruction: systemInstruction,
-          temperature: 0.7
+          temperature: 0.1,
+          topP: 0.8
         }
       });
 
-      const responseText = response.text || "I processed the inquiry but the response buffer was empty. Please rephrase.";
+      const responseText = response.text || "Synchronizing with the neural engine... please retry your request.";
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (err: any) {
-      console.error("AI Error Details:", err);
-      showNotification("AI Gateway Timeout. Retrying...", "warning");
-      setMessages(prev => [...prev, { role: 'model', text: "I apologize, but my reasoning engine encountered a synchronization issue. This usually happens if the firm's data payload is too large or the API key is being rate-limited. Please try a more specific question." }]);
+      console.error("Neural Sync Error:", err);
+      if (err.message?.includes('429')) {
+        showNotification("Neural Engine Quota Exhausted. Cooling down...", "warning");
+        setMessages(prev => [...prev, { role: 'model', text: "I've hit a processing rate limit. Please allow me 60 seconds to reset my intelligence core before your next inquiry." }]);
+      } else {
+        showNotification("AI Core disconnected.", "error");
+        setMessages(prev => [...prev, { role: 'model', text: "Connectivity with the intelligence core was interrupted. Please re-establish the connection." }]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +232,7 @@ const AIChatBot: React.FC = () => {
       {isOpen && (
         <div 
           className={`fixed bottom-6 right-6 z-[100] bg-white border border-slate-100 shadow-2xl rounded-[32px] md:rounded-[40px] flex flex-col transition-all duration-500 ease-out animate-in slide-in-from-bottom-10 ${
-            isMinimized ? 'h-20 w-72' : 'h-[550px] md:h-[700px] w-[calc(100vw-48px)] md:w-[460px]'
+            isMinimized ? 'h-20 w-72' : 'h-[550px] md:h-[750px] w-[calc(100vw-48px)] md:w-[480px]'
           }`}
         >
           <div className={`p-5 md:p-6 flex items-center justify-between border-b border-slate-50 bg-[#064e3b] text-white rounded-t-[32px] md:rounded-t-[40px] shrink-0`}>
@@ -236,7 +242,7 @@ const AIChatBot: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-sm font-black tracking-tight leading-none uppercase">HHD Intelligence</h4>
-                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Live Firm Analysis</p>
+                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Full System Access</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -286,10 +292,11 @@ const AIChatBot: React.FC = () => {
 
               <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar border-t border-slate-50 bg-white">
                 {[
-                  { label: "Today's Schedule", icon: Calendar },
-                  { label: "Lifetime Overview", icon: FileText },
-                  { label: "Financial Health", icon: Banknote },
-                  { label: "Ask for Links", icon: ListFilter }
+                  { label: "Construction Status", icon: Hammer },
+                  { label: "New Leads Today", icon: Target },
+                  { label: "Active Designs", icon: Layout },
+                  { label: "Staff Directory", icon: Users2 },
+                  { label: "Recycle Bin", icon: Trash2 }
                 ].map((s, i) => (
                   <button 
                     key={i}
@@ -306,7 +313,7 @@ const AIChatBot: React.FC = () => {
                 <div className="relative group">
                   <input 
                     type="text"
-                    placeholder="Compare today vs lifetime, search dates..."
+                    placeholder="Search sites, team, or history..."
                     className="w-full h-14 pl-6 pr-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500/20 transition-all"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -320,7 +327,7 @@ const AIChatBot: React.FC = () => {
                   </button>
                 </div>
                 <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest text-center mt-3 flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> HHD Multi-Temporal Reasoning
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> High-Throughput Neural Engine
                 </p>
               </form>
             </>
