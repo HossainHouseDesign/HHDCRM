@@ -151,53 +151,61 @@ const AIChatBot: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Fix: Always create a new GoogleGenAI instance right before the call as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const systemInstruction = `
-        You are the HHD Business Intelligence Bot. Today's date is ${appContext?.todayDate}.
-        You are assisting ${appContext?.userName}.
+        You are the HHD Business Intelligence Bot. Today's date is ${appContext?.todayDate || new Date().toISOString().split('T')[0]}.
+        You are assisting ${appContext?.userName || 'User'}.
         
-        AVAILABLE DATA CONTEXT:
-        - TODAY'S TASKS: ${JSON.stringify(appContext?.todayVisits)}
-        - LIFETIME SUMMARY: ${JSON.stringify(appContext?.lifetime)}
-        - PROJECTS LIST: ${JSON.stringify(appContext?.projects)}
-        - RECENT LEADS: ${JSON.stringify(appContext?.leads)}
-        - FINANCIAL HEALTH: ${JSON.stringify(appContext?.cashbooks)}
-        - FULL VISIT REGISTRY: ${JSON.stringify(appContext?.visits)}
+        AVAILABLE DATA CONTEXT (UP-TO-DATE):
+        - TODAY'S TASKS: ${JSON.stringify(appContext?.todayVisits || [])}
+        - LIFETIME SUMMARY: ${JSON.stringify(appContext?.lifetime || {})}
+        - PROJECTS LIST: ${JSON.stringify(appContext?.projects || [])}
+        - RECENT LEADS: ${JSON.stringify(appContext?.leads || [])}
+        - FINANCIAL HEALTH (CASHBOOKS): ${JSON.stringify(appContext?.cashbooks || [])}
+        - FULL VISIT REGISTRY: ${JSON.stringify(appContext?.visits || [])}
 
-        BEHAVIORAL RULES:
+        INTELLIGENCE RULES:
         1. MULTI-TIMEFRAME ANALYSIS: 
-           - If asked about "today", answer based on todayVisits.
-           - If asked about "lifetime," "all time," or "overall," use the lifetime summary stats.
-           - If asked about a specific date or period (e.g., "October last year"), search the full registry lists.
-        2. CONDITIONAL LINKS (IMPORTANT):
-           - DO NOT provide clickable row buttons by default for every mention.
-           - ONLY provide a link button if the user specifically asks (e.g., "give me a link", "take me there", "show project row") or if the query is a specific search for one item.
-           - FORMAT FOR LINKS: [[LINK:type:id:label]]
-        3. HUMAN READABILITY:
-           - Use bullet points for lists.
+           - If user asks for "today", focus on 'TODAY'S TASKS'.
+           - If user asks for "lifetime", "all time", or "overall", focus on 'LIFETIME SUMMARY'.
+           - If user asks for a specific date/month, search 'FULL VISIT REGISTRY' or 'PROJECTS LIST'.
+           - Compare today's status against lifetime stats if asked for "business health".
+        2. CONDITIONAL LINKS:
+           - DO NOT provide clickable links/buttons automatically.
+           - ONLY provide a link if the user asks (e.g., "show me the link", "go to project", "open row") or if you are identifying a single specific project/lead.
+           - LINK FORMAT: [[LINK:type:id:label]] (Types: 'project', 'visit', 'lead', 'finance')
+        3. BEHAVIOR:
            - Use professional architectural terminology.
-           - For finance, mention specific cashbook balances if relevant.
-        4. INTELLIGENCE:
-           - You can reason. If a user asks "how are we doing compared to lifetime?", calculate the current active vs total completed projects.
+           - Be concise. Use bullet points for comparisons.
+           - If data is missing for a date, say "The archive does not show records for that specific period."
       `;
 
+      // Filter messages for history: skip turns that don't follow user-model-user pattern
+      // Gemini contents MUST start with a user turn if systemInstruction is in config.
+      const chatHistory = messages.slice(1).map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3-pro-preview',
         contents: [
-          { role: 'user', parts: [{ text: systemInstruction }] },
-          ...messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+          ...chatHistory,
           { role: 'user', parts: [{ text: userText }] }
-        ]
+        ],
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.7
+        }
       });
 
-      const responseText = response.text || "I'm having trouble analyzing the firm's data archive.";
+      const responseText = response.text || "I processed the inquiry but the response buffer was empty. Please rephrase.";
       setMessages(prev => [...prev, { role: 'model', text: responseText }]);
     } catch (err: any) {
-      console.error("AI Error:", err);
-      showNotification("AI Core is currently busy.", "error");
-      setMessages(prev => [...prev, { role: 'model', text: "I apologize, but my data processing center is taking longer than expected. Please try again in a few seconds." }]);
+      console.error("AI Error Details:", err);
+      showNotification("AI Gateway Timeout. Retrying...", "warning");
+      setMessages(prev => [...prev, { role: 'model', text: "I apologize, but my reasoning engine encountered a synchronization issue. This usually happens if the firm's data payload is too large or the API key is being rate-limited. Please try a more specific question." }]);
     } finally {
       setIsLoading(false);
     }
@@ -218,7 +226,7 @@ const AIChatBot: React.FC = () => {
       {isOpen && (
         <div 
           className={`fixed bottom-6 right-6 z-[100] bg-white border border-slate-100 shadow-2xl rounded-[32px] md:rounded-[40px] flex flex-col transition-all duration-500 ease-out animate-in slide-in-from-bottom-10 ${
-            isMinimized ? 'h-20 w-72' : 'h-[550px] md:h-[680px] w-[calc(100vw-48px)] md:w-[460px]'
+            isMinimized ? 'h-20 w-72' : 'h-[550px] md:h-[700px] w-[calc(100vw-48px)] md:w-[460px]'
           }`}
         >
           <div className={`p-5 md:p-6 flex items-center justify-between border-b border-slate-50 bg-[#064e3b] text-white rounded-t-[32px] md:rounded-t-[40px] shrink-0`}>
@@ -227,8 +235,8 @@ const AIChatBot: React.FC = () => {
                 <Sparkles className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h4 className="text-sm font-black tracking-tight leading-none uppercase">HHD Hub</h4>
-                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Live Intelligence</p>
+                <h4 className="text-sm font-black tracking-tight leading-none uppercase">HHD Intelligence</h4>
+                <p className="text-[9px] font-bold text-emerald-400/70 uppercase tracking-widest mt-1">Live Firm Analysis</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -279,9 +287,9 @@ const AIChatBot: React.FC = () => {
               <div className="px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar border-t border-slate-50 bg-white">
                 {[
                   { label: "Today's Schedule", icon: Calendar },
-                  { label: "Lifetime Performance", icon: FileText },
-                  { label: "Revenue Summary", icon: Banknote },
-                  { label: "Show Project Rows", icon: ListFilter }
+                  { label: "Lifetime Overview", icon: FileText },
+                  { label: "Financial Health", icon: Banknote },
+                  { label: "Ask for Links", icon: ListFilter }
                 ].map((s, i) => (
                   <button 
                     key={i}
@@ -298,7 +306,7 @@ const AIChatBot: React.FC = () => {
                 <div className="relative group">
                   <input 
                     type="text"
-                    placeholder="Ask 'today', 'lifetime', or a specific date..."
+                    placeholder="Compare today vs lifetime, search dates..."
                     className="w-full h-14 pl-6 pr-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:bg-white focus:border-emerald-500/20 transition-all"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -312,7 +320,7 @@ const AIChatBot: React.FC = () => {
                   </button>
                 </div>
                 <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest text-center mt-3 flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> HHD Multi-Timeline Engine
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" /> HHD Multi-Temporal Reasoning
                 </p>
               </form>
             </>
