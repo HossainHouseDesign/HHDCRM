@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Banknote, ArrowLeft, ShieldCheck, 
@@ -40,6 +39,9 @@ interface Transaction {
   date: string;
   project_id?: string;
   lead_id?: string;
+  creator?: {
+    full_name: string;
+  };
 }
 
 interface ActionPermissions {
@@ -538,6 +540,7 @@ const Finance = () => {
           </div>
         </header>
 
+        {/* COMPACT HERO STATS - ENFORCED ONE ROW */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8">
              <div className="bg-white p-3 sm:p-6 md:p-10 rounded-2xl sm:rounded-[32px] md:rounded-[56px] border border-slate-100 shadow-lg relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />

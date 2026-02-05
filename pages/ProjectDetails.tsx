@@ -5,7 +5,7 @@ import {
   CheckCircle2, Clock, Grid, Bed, Bath, ListTree, Banknote,
   PhoneCall, RefreshCw, Compass, ShieldCheck, Mail,
   Edit3, Trash2, Hash, Map, Layers, X, Save, Activity, Layout, Info, Globe,
-  AlertTriangle, UserCircle, User, Home, Zap, Users2
+  AlertTriangle, UserCircle, User, Home, Zap, Users2, ChevronDown
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { Project, Lead, Profile, ProjectStatus, FormFieldConfig } from '../types';
@@ -16,6 +16,8 @@ const ProjectDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
   const [project, setProject] = useState<Project | null>(null);
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [formConfig, setFormConfig] = useState<FormFieldConfig[]>([]);
@@ -23,19 +25,27 @@ const ProjectDetails = () => {
   
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   
   const [editFormData, setEditFormData] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchData();
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setShowStatusMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [id]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Relationship hints for joins
       const [projRes, teamRes, configRes] = await Promise.all([
         supabase.from('projects').select('*, client:leads(*), creator:profiles!created_by(full_name), assignments:project_assignments(profile:profiles(*))').eq('id', id).single(),
         supabase.from('profiles').select('*').is('deleted_at', null).eq('status', 'active'),
@@ -77,6 +87,27 @@ const ProjectDetails = () => {
       navigate('/projects');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: ProjectStatus) => {
+    if (!project || isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', project.id);
+      
+      if (error) throw error;
+      
+      setProject({ ...project, status: newStatus });
+      showNotification(`Project transitioned to ${newStatus}.`, "success");
+      setShowStatusMenu(false);
+    } catch (err: any) {
+      showNotification(`Status sync failed: ${err.message}`, "error");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -184,20 +215,8 @@ const ProjectDetails = () => {
     return <Info className="w-5 h-5 text-emerald-500 opacity-30" />;
   };
 
-  const getSectionIcon = (section: string) => {
-    switch (section) {
-      case 'Identity': return <User className="w-4 h-4 text-emerald-500" />;
-      case 'Architecture': return <Home className="w-4 h-4 text-emerald-500" />;
-      case 'Logistics': return <Zap className="w-4 h-4 text-emerald-500" />;
-      case 'Financials': return <Banknote className="w-4 h-4 text-emerald-500" />;
-      case 'Interests': return <ShieldCheck className="w-4 h-4 text-emerald-500" />;
-      default: return <Compass className="w-4 h-4 text-emerald-500" />;
-    }
-  };
-
   if (loading || !project) return <div className="h-[80vh] flex flex-col items-center justify-center gap-6"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin" /></div>;
 
-  const client = (project.client as Lead) || ({} as Lead);
   const statusConfig = {
     'Upcoming': { style: 'bg-blue-50 text-blue-700 border-blue-200', icon: Clock },
     'Running': { style: 'bg-slate-900 text-white border-transparent', icon: Activity },
@@ -211,7 +230,7 @@ const ProjectDetails = () => {
     <div className="min-h-screen bg-[#f8fafc] pb-32 animate-in fade-in duration-700">
       
       {showDeleteModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[48px] p-12 max-w-lg w-full shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-300 text-center">
             <div className="w-24 h-24 bg-red-50 text-red-600 rounded-[32px] flex items-center justify-center mb-10 mx-auto shadow-sm">
               <AlertTriangle className="w-10 h-10" />
@@ -308,7 +327,29 @@ const ProjectDetails = () => {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-4">
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight truncate">{project.name}</h1>
-                <div className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border flex items-center gap-2 ${statusDisplay.style}`}><statusDisplay.icon className="w-4 h-4" />{project.status}</div>
+                <div className="relative" ref={statusDropdownRef}>
+                  <button 
+                    onClick={() => setShowStatusMenu(!showStatusMenu)}
+                    className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border flex items-center gap-2 transition-all active:scale-95 ${statusDisplay.style}`}
+                  >
+                    {isUpdatingStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <statusDisplay.icon className="w-4 h-4" />}
+                    {project.status}
+                    <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform ${showStatusMenu ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showStatusMenu && (
+                    <div className="absolute top-full left-0 mt-3 w-44 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[120] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {(['Upcoming', 'Running', 'Complete'] as ProjectStatus[]).map(s => (
+                        <button 
+                          key={s} 
+                          onClick={() => handleUpdateStatus(s)}
+                          className={`w-full text-left px-4 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${project.status === s ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-3 flex items-center gap-3"><Hash className="w-3.5 h-3.5 text-emerald-500" /> PROJECT RECORD: {project.id.slice(0, 12).toUpperCase()}</p>
             </div>
@@ -401,19 +442,19 @@ const ProjectDetails = () => {
              <div className="bg-[#0f172a] p-12 rounded-[64px] shadow-2xl relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
                 <div className="relative z-10 space-y-10">
-                   <div className="space-y-2"><p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Project Owner Profile</p><h3 className="text-3xl font-black text-white tracking-tight leading-tight">{client?.client_name || 'Individual Client'}</h3></div>
+                   <div className="space-y-2"><p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Project Owner Profile</p><h3 className="text-3xl font-black text-white tracking-tight leading-tight">{project.client?.client_name || 'Individual Client'}</h3></div>
                    <div className="flex items-center gap-6 p-8 bg-white/5 rounded-[40px] border border-white/5">
                       <div className="w-20 h-20 bg-emerald-500 text-white rounded-[28px] flex items-center justify-center font-black text-3xl shadow-2xl shadow-emerald-900/40 overflow-hidden">
-                        {client?.metadata?.avatar_url ? (
-                          <img src={client.metadata.avatar_url} className="w-full h-full object-cover" alt="Client Avatar" />
+                        {project.client?.metadata?.avatar_url ? (
+                          <img src={project.client.metadata.avatar_url} className="w-full h-full object-cover" alt="Client Avatar" />
                         ) : (
-                          client?.client_name?.charAt(0) || '?'
+                          project.client?.client_name?.charAt(0) || '?'
                         )}
                       </div>
-                      <div><p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Active Client Since</p><p className="text-lg font-black text-white mt-1">{client?.converted_at ? new Date(client.converted_at).toLocaleDateString() : 'N/A'}</p></div>
+                      <div><p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Active Client Since</p><p className="text-lg font-black text-white mt-1">{project.client?.converted_at ? new Date(project.client.converted_at).toLocaleDateString() : 'N/A'}</p></div>
                    </div>
                    <div className="space-y-4">
-                      <a href={`tel:${client?.phone}`} className="flex items-center justify-between p-7 bg-emerald-600 text-white rounded-[32px] shadow-xl hover:bg-emerald-500 transition-all group/call"><div className="flex items-center gap-5"><PhoneCall className="w-6 h-6 group-hover/call:rotate-12 transition-transform" /><span className="text-base font-black tracking-tight">{client?.phone}</span></div><ArrowLeft className="w-5 h-5 rotate-[135deg] opacity-50" /></a>
+                      <a href={`tel:${project.client?.phone}`} className="flex items-center justify-between p-7 bg-emerald-600 text-white rounded-[32px] shadow-xl hover:bg-emerald-500 transition-all group/call"><div className="flex items-center gap-5"><PhoneCall className="w-6 h-6 group-hover/call:rotate-12 transition-transform" /><span className="text-base font-black tracking-tight">{project.client?.phone}</span></div><ArrowLeft className="w-5 h-5 rotate-[135deg] opacity-50" /></a>
                    </div>
                 </div>
              </div>
@@ -422,9 +463,9 @@ const ProjectDetails = () => {
                 <div className="flex items-center gap-4 mb-10"><Map className="w-6 h-6 text-emerald-500" /><h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em]">Site Logistics</h3></div>
                 <div className="space-y-8">
                    {[
-                     { label: 'District', value: client?.address },
-                     { label: 'Upazila', value: client?.upazila },
-                     { label: 'Village / Area', value: client?.village_name || 'N/A' },
+                     { label: 'District', value: project.client?.address },
+                     { label: 'Upazila', value: project.client?.upazila },
+                     { label: 'Village / Area', value: project.client?.village_name || 'N/A' },
                    ].map((loc, i) => (
                      <div key={i} className="flex justify-between items-start pb-6 border-b border-slate-50 last:border-0 last:pb-0 group"><span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-1 group-hover:text-emerald-500 transition-colors">{loc.label}</span><span className="text-[12px] font-black text-slate-700 text-right">{loc.value}</span></div>
                    ))}
