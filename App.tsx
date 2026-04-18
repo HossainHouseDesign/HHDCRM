@@ -129,11 +129,23 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   const isAdmin = useMemo(() => {
     const masterEmail = 'hhdandbhd@gmail.com';
-    if (session?.user?.email?.toLowerCase() === masterEmail.toLowerCase()) return true;
+    const userEmail = (session?.user?.email || profile?.email || '').toLowerCase();
+    
+    // 1. Master Check
+    if (userEmail === masterEmail.toLowerCase() && userEmail !== '') return true;
+    
     if (!profile) return false;
-    if (profile.email?.toLowerCase() === masterEmail.toLowerCase()) return true;
+    
+    // 2. Role Check
     const r = (profile.role || '').toLowerCase();
-    return ['office_admin', 'super_admin', 'admin', 'administrator', 'office-admin'].includes(r);
+    const hasAdminRole = ['office_admin', 'super_admin', 'admin', 'administrator', 'office-admin'].includes(r);
+    if (hasAdminRole) return true;
+
+    // 3. Explicit Settings Permission Check
+    // If a staff is given "Settings Access", they should see admin features
+    if (profile.permissions?.settings?.access === true) return true;
+
+    return false;
   }, [profile, session]);
 
   return (

@@ -117,7 +117,12 @@ const Dashboard = () => {
     return items.filter(item => {
       if (item.adminOnly && !isAdmin) return false;
       if (isAdmin) return true;
-      return profile?.permissions?.[item.key as keyof typeof profile.permissions] === true;
+      
+      const perms = profile?.permissions?.[item.key as keyof typeof profile.permissions];
+      if (perms && typeof perms === 'object') {
+        return (perms as any).view === true || (perms as any).access === true;
+      }
+      return perms === true;
     });
   }, [profile, isAdmin]);
 

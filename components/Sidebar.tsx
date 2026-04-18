@@ -56,7 +56,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose, onLogout }) => {
     if (item.adminOnly && !isAdmin) return false;
     if (isAdmin) return true;
     if (item.key === 'dashboard') return true;
-    return profile?.permissions?.[item.key as keyof typeof profile.permissions] === true;
+    
+    const perms = profile?.permissions?.[item.key as keyof typeof profile.permissions];
+    if (perms && typeof perms === 'object') {
+      return (perms as any).view === true || (perms as any).access === true;
+    }
+    return perms === true;
   });
 
   const isActive = (path: string) => location.pathname === path;
