@@ -3,7 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Lead, LeadAIAnalysis } from "./types";
 
 export const analyzeLead = async (lead: Lead): Promise<LeadAIAnalysis> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const ai = new GoogleGenAI({ apiKey: apiKey! });
 
   const prompt = `
     Analyze this architectural lead for a high-end house design firm.

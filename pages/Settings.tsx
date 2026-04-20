@@ -246,34 +246,34 @@ const Settings = () => {
 
   // 1. ADMIN HUB VIEW
   if (view === 'hub' && isAdmin) return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in fade-in duration-500 max-w-6xl mx-auto">
-      <header className="mb-16">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Settings Hub</h1>
-        <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-2 opacity-80">MANAGE FIRM DETAILS & USERS</p>
+    <div className="min-h-screen bg-[#f8fafc] pb-32 px-4 md:px-6 pt-8 md:pt-10 animate-in fade-in duration-500 max-w-5xl mx-auto">
+      <header className="mb-8 md:mb-10">
+        <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">Settings Hub</h1>
+        <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-2 opacity-80 leading-none">MANAGE FIRM DETAILS & USERS</p>
       </header>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <button onClick={() => setView('form')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><FormInput className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">Lead Form Details</h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Customize input fields and dropdown options.</p>
-          <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Edit Form <ChevronRight className="w-3 h-3" /></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <button onClick={() => setView('form')} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm text-left group hover:border-slate-900 transition-all hover:bg-slate-50/50">
+          <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><FormInput className="w-6 h-6" /></div>
+          <h3 className="text-base font-black text-slate-900 mb-1 uppercase tracking-tight">Lead Logic</h3>
+          <p className="text-[10px] text-slate-400 font-bold leading-tight uppercase opacity-60">Fields & Dropdowns</p>
+          <div className="mt-6 flex items-center gap-1.5 text-slate-900 text-[8px] font-black uppercase tracking-widest leading-none">Configure <ChevronRight className="w-3 h-3" /></div>
         </button>
-        <button onClick={() => setView('branding')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-purple-500 transition-all hover:-translate-y-1">
-          <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><Palette className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">Company Branding</h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Update logos and document backgrounds.</p>
-          <div className="mt-8 flex items-center gap-2 text-purple-600 text-[10px] font-black uppercase tracking-widest">Edit Branding <ChevronRight className="w-3 h-3" /></div>
+        <button onClick={() => setView('branding')} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm text-left group hover:border-slate-900 transition-all hover:bg-slate-50/50">
+          <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Palette className="w-6 h-6" /></div>
+          <h3 className="text-base font-black text-slate-900 mb-1 uppercase tracking-tight">Firm Identity</h3>
+          <p className="text-[10px] text-slate-400 font-bold leading-tight uppercase opacity-60">Logos & Assets</p>
+          <div className="mt-6 flex items-center gap-1.5 text-slate-900 text-[8px] font-black uppercase tracking-widest leading-none">Customize <ChevronRight className="w-3 h-3" /></div>
         </button>
-        <button onClick={() => setView('profile')} className="p-10 bg-white border border-slate-100 rounded-[48px] shadow-sm text-left group hover:border-blue-500 transition-all hover:-translate-y-1">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[28px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform"><UserCircle className="w-8 h-8" /></div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">My Profile</h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">Change your info, photo and password.</p>
-          <div className="mt-8 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-widest">Edit Account <ChevronRight className="w-3 h-3" /></div>
+        <button onClick={() => setView('profile')} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm text-left group hover:border-slate-900 transition-all hover:bg-slate-50/50">
+          <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><UserCircle className="w-6 h-6" /></div>
+          <h3 className="text-base font-black text-slate-900 mb-1 uppercase tracking-tight">Operator Profile</h3>
+          <p className="text-[10px] text-slate-400 font-bold leading-tight uppercase opacity-60">Account Security</p>
+          <div className="mt-6 flex items-center gap-1.5 text-slate-900 text-[8px] font-black uppercase tracking-widest leading-none">Manage <ChevronRight className="w-3 h-3" /></div>
         </button>
       </div>
-      <div className="mt-12 flex justify-between items-center">
-        <Link to="/settings/recycle-bin" className="flex items-center gap-4 text-slate-400 hover:text-red-500 transition-all text-[11px] font-black uppercase tracking-widest">
-           <History className="w-5 h-5" /> Deleted Records (Trash)
+      <div className="mt-8 flex justify-between items-center border-t border-slate-100 pt-6">
+        <Link to="/settings/recycle-bin" className="flex items-center gap-3 text-slate-300 hover:text-slate-900 transition-all text-[9px] font-black uppercase tracking-widest leading-none">
+           <History className="w-4 h-4" /> COMPACT ARCHIVE (RECYCLE BIN)
         </Link>
       </div>
     </div>
@@ -283,50 +283,50 @@ const Settings = () => {
   if (view === 'form' && isAdmin) {
     const sections = Array.from(new Set(formFields.filter(f => f && f.section).map(f => f.section)));
     return (
-      <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-12 pt-12 animate-in slide-in-from-right-6 duration-500 max-w-5xl mx-auto">
-        <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-          <div className="flex items-center gap-6">
-            <button onClick={() => setView('hub')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Form Settings</h1>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">CONFIGURE CLIENT DATA INPUTS</p>
+      <div className="min-h-screen bg-[#f8fafc] pb-32 px-4 md:px-6 pt-8 md:pt-10 animate-in slide-in-from-right-6 duration-500 max-w-4xl mx-auto">
+        <header className="mb-8 flex flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('hub')} className="w-10 h-10 bg-white border border-slate-200 rounded-xl shadow-none hover:bg-slate-50 transition-all leading-none flex items-center justify-center"><ArrowLeft className="w-4 h-4 text-slate-500" /></button>
+            <div className="leading-none">
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase leading-none">Form Logic</h1>
+              <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-1.5 opacity-80 leading-none">CONFIGURE CLIENT DATA INPUTS</p>
             </div>
           </div>
-          <button onClick={() => setIsFieldModalOpen(true)} className="px-8 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-3">
-             <Plus className="w-4 h-4" /> Add Field
+          <button onClick={() => setIsFieldModalOpen(true)} className="px-5 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-none flex items-center gap-2 leading-none hover:bg-black transition-all">
+             <Plus className="w-4 h-4 text-emerald-400" /> New Field
           </button>
         </header>
 
-        <div className="space-y-12">
+        <div className="space-y-6">
           {sections.map(section => (
-            <div key={section || 'general'} className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-               <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{section} Section</h3>
+            <div key={section || 'general'} className="bg-white rounded-2xl border border-slate-200 shadow-none overflow-hidden">
+               <div className="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+                  <h3 className="text-[9px] font-black text-slate-900 uppercase tracking-widest">{section} Segment</h3>
                </div>
                <div className="divide-y divide-slate-50">
                   {formFields.filter(f => f && f.section === section).map(field => (
-                    <div key={field.id} className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:bg-slate-50/50 transition-colors group">
-                       <div className="flex items-center gap-6">
-                          <div className="w-12 h-12 bg-white border border-slate-100 rounded-xl flex items-center justify-center text-slate-300">
-                             {field.type === 'select' ? <ListFilter className="w-5 h-5" /> : field.type === 'number' ? <Hash className="w-5 h-5" /> : <TypeIcon className="w-5 h-5" />}
+                    <div key={field.id} className="px-6 py-2.5 flex flex-row justify-between items-center gap-4 hover:bg-slate-50/50 transition-colors group">
+                       <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-8 h-8 bg-slate-50 text-slate-300 rounded-lg flex items-center justify-center font-black flex-shrink-0">
+                             {field.type === 'select' ? <ListFilter className="w-4 h-4" /> : field.type === 'number' ? <Hash className="w-4 h-4" /> : <TypeIcon className="w-4 h-4" />}
                           </div>
-                          <div>
-                             <p className="text-sm font-black text-slate-900">{field.label}</p>
-                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Type: {field.type?.toUpperCase() || 'TEXT'}</p>
+                          <div className="min-w-0 leading-none">
+                             <p className="text-[13px] font-black text-slate-900 uppercase truncate tracking-tight leading-none">{field.label}</p>
+                             <p className="text-[8px] text-slate-300 font-bold uppercase tracking-widest mt-1.5 leading-none">SCHEMA: {field.type?.toUpperCase() || 'TEXT'}</p>
                           </div>
                        </div>
-                       <div className="flex items-center gap-4">
+                       <div className="flex items-center gap-2 leading-none">
                           {field.type === 'select' && (
-                            <button onClick={() => openOptionsEditor(field)} className="px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-purple-100">
-                               {field.options?.length || 0} Choices
+                            <button onClick={() => openOptionsEditor(field)} className="px-2.5 py-1 bg-slate-50 text-slate-400 rounded-md text-[7px] font-black uppercase tracking-widest border border-slate-100 hover:bg-slate-100 transition-colors">
+                               {field.options?.length || 0} ENUMS
                             </button>
                           )}
-                          <button onClick={() => toggleFieldVisibility(field.id)} className={`p-3 rounded-xl transition-all ${field.visible ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                             {field.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          <button onClick={() => toggleFieldVisibility(field.id)} className={`p-1.5 rounded-md transition-all ${field.visible ? 'text-emerald-600' : 'text-slate-200 hover:text-slate-400'}`}>
+                             {field.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                           </button>
-                          <button onClick={() => deleteField(field.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors">
-                             <Trash2 className="w-4 h-4" />
+                          <button onClick={() => deleteField(field.id)} className="p-1.5 text-slate-100 hover:text-red-500 transition-colors">
+                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                        </div>
                     </div>
@@ -337,77 +337,77 @@ const Settings = () => {
         </div>
 
         {isFieldModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-             <div className="bg-white rounded-[40px] p-10 max-lg w-full shadow-2xl animate-in zoom-in-95">
-                <div className="flex justify-between items-start mb-10">
-                   <h3 className="text-2xl font-black text-slate-900">New Form Field</h3>
-                   <button onClick={() => setIsFieldModalOpen(false)} className="p-2 text-slate-300 hover:text-slate-900"><X className="w-6 h-6" /></button>
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+             <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 leading-none">
+                <div className="flex justify-between items-start mb-6">
+                   <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">New Record Entry</h3>
+                   <button onClick={() => setIsFieldModalOpen(false)} className="p-1.5 text-slate-300 hover:text-slate-900 transition-colors"><X className="w-5 h-5" /></button>
                 </div>
-                <div className="space-y-6">
-                   <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Field Name</label>
-                      <input className="w-full h-14 px-6 bg-slate-50 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white" value={newField.label} onChange={e => setNewField({...newField, label: e.target.value})} />
+                <div className="space-y-4">
+                   <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Label Identity</label>
+                      <input className="w-full h-11 px-5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-none uppercase" value={newField.label} onChange={e => setNewField({...newField, label: e.target.value})} />
                    </div>
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Input Type</label>
-                         <select className="w-full h-14 px-4 bg-slate-50 rounded-2xl font-bold" value={newField.type} onChange={e => setNewField({...newField, type: e.target.value as FieldType})}>
-                            <option value="text">Text</option>
-                            <option value="number">Number</option>
-                            <option value="select">Dropdown</option>
-                            <option value="textarea">Large Text</option>
-                            <option value="checkbox">Yes/No Checkbox</option>
+                   <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Input Schema</label>
+                         <select className="w-full h-11 px-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold uppercase tracking-tight outline-none cursor-pointer" value={newField.type} onChange={e => setNewField({...newField, type: e.target.value as FieldType})}>
+                            <option value="text">Textual</option>
+                            <option value="number">Numeric</option>
+                            <option value="select">Selection</option>
+                            <option value="textarea">Extended</option>
+                            <option value="checkbox">Boolean</option>
                          </select>
                       </div>
-                      <div className="space-y-2">
-                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Section</label>
-                         <select className="w-full h-14 px-4 bg-slate-50 rounded-2xl font-bold" value={newField.section} onChange={e => setNewField({...newField, section: e.target.value})}>
+                      <div className="space-y-1.5">
+                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Category</label>
+                         <select className="w-full h-11 px-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold uppercase tracking-tight outline-none cursor-pointer" value={newField.section} onChange={e => setNewField({...newField, section: e.target.value})}>
                             <option value="Identity">Identity</option>
-                            <option value="Architecture">Architecture</option>
-                            <option value="Logistics">Logistics</option>
-                            <option value="Financials">Financials</option>
+                            <option value="Architecture">Design</option>
+                            <option value="Logistics">Site</option>
+                            <option value="Financials">Financial</option>
                             <option value="Interests">Interests</option>
                          </select>
                       </div>
                    </div>
                    {newField.type === 'select' && (
-                      <div className="p-6 bg-slate-50 rounded-3xl space-y-4">
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Manage Options</p>
+                      <div className="p-4 bg-slate-50 rounded-2xl space-y-3 border border-slate-100">
+                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Manage Enum Tags</p>
                          <div className="flex gap-2">
-                            <input className="flex-1 h-12 px-4 bg-white rounded-xl text-sm font-bold" placeholder="New option..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
-                            <button onClick={addOptionTag} className="p-3 bg-emerald-600 text-white rounded-xl"><Plus className="w-5 h-5" /></button>
+                            <input className="flex-1 h-9 px-4 bg-white border border-slate-100 rounded-lg text-[12px] font-bold outline-none uppercase" placeholder="TAG NAME..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
+                            <button onClick={addOptionTag} className="w-9 h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center hover:bg-black transition-all flex-shrink-0"><Plus className="w-4 h-4" /></button>
                          </div>
-                         <div className="flex flex-wrap gap-2">
-                            {tempOptions.map(t => <span key={t} className="px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[10px] font-bold flex items-center gap-2">{t} <button onClick={() => removeOptionTag(t)}><X className="w-3 h-3 text-red-400" /></button></span>)}
+                         <div className="flex flex-wrap gap-1.5">
+                            {tempOptions.map(t => <span key={t} className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-[9px] font-black uppercase flex items-center gap-1.5 tracking-tight">{t} <button onClick={() => removeOptionTag(t)} className="text-slate-300 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button></span>)}
                          </div>
                       </div>
                    )}
-                   <button onClick={addNewField} className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] font-black uppercase tracking-widest shadow-xl">Save Field</button>
+                   <button onClick={addNewField} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-none hover:bg-black transition-all active:scale-95 leading-none">Commit Schema</button>
                 </div>
              </div>
           </div>
         )}
 
         {editingOptionsId && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-             <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-2xl">
-                <h3 className="text-xl font-black text-slate-900 mb-8">Edit Dropdown Options</h3>
-                <div className="space-y-6">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+             <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl leading-none">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-6 leading-none">Refine Enums</h3>
+                <div className="space-y-4">
                    <div className="flex gap-2">
-                      <input className="flex-1 h-14 px-6 bg-slate-50 rounded-2xl font-bold" placeholder="Add choice..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
-                      <button onClick={addOptionTag} className="px-6 bg-slate-900 text-white rounded-2xl"><Plus className="w-5 h-5" /></button>
+                      <input className="flex-1 h-11 px-5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none uppercase" placeholder="NEW TAG..." value={optionInput} onChange={e => setOptionInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOptionTag()} />
+                      <button onClick={addOptionTag} className="w-11 h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-black transition-all flex-shrink-0"><Plus className="w-5 h-5 text-emerald-400" /></button>
                    </div>
-                   <div className="max-h-64 overflow-y-auto no-scrollbar space-y-2">
+                   <div className="max-h-52 overflow-y-auto no-scrollbar space-y-1.5">
                       {tempOptions.map(t => (
-                        <div key={t} className="flex justify-between items-center p-4 bg-slate-50 rounded-xl group">
-                           <span className="text-sm font-bold text-slate-700">{t}</span>
-                           <button onClick={() => removeOptionTag(t)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4" /></button>
+                        <div key={t} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl group border border-transparent hover:border-slate-100 transition-all leading-none">
+                           <span className="text-[12px] font-black text-slate-700 uppercase tracking-tight leading-none">{t}</span>
+                           <button onClick={() => removeOptionTag(t)} className="text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4" /></button>
                         </div>
                       ))}
                    </div>
-                   <div className="flex gap-4">
-                      <button onClick={() => setEditingOptionsId(null)} className="flex-1 py-5 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase text-[10px]">Cancel</button>
-                      <button onClick={handleUpdateOptions} className="flex-1 py-5 bg-[#064e3b] text-white rounded-2xl font-black uppercase text-[10px]">Save Changes</button>
+                   <div className="flex gap-3 pt-2">
+                      <button onClick={() => setEditingOptionsId(null)} className="flex-1 py-3.5 bg-slate-50 text-slate-400 border border-slate-100 rounded-xl font-black uppercase text-[9px] tracking-widest leading-none">Cancel</button>
+                      <button onClick={handleUpdateOptions} className="flex-1 py-3.5 bg-slate-900 text-white rounded-xl font-black uppercase text-[9px] tracking-widest leading-none flex items-center justify-center gap-2 active:scale-95"><Check className="w-3.5 h-3.5 text-emerald-400" /> Confirm</button>
                    </div>
                 </div>
              </div>
@@ -419,38 +419,40 @@ const Settings = () => {
 
   // Profile view
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-4 md:px-12 pt-8 md:pt-12 animate-in slide-in-from-bottom-6 duration-500 max-w-4xl mx-auto">
-      <header className="mb-10 md:mb-12 flex items-center gap-6">
-        <button onClick={() => isAdmin ? setView('hub') : navigate('/')} className="p-3 md:p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:bg-slate-50 transition-all"><ArrowLeft className="w-5 h-5 text-slate-500" /></button>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Account Settings</h1>
-          <p className="text-slate-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mt-1.5">MANAGE YOUR PERSONAL DETAILS</p>
+    <div className="min-h-screen bg-[#f8fafc] pb-32 px-4 md:px-6 pt-8 md:pt-10 animate-in slide-in-from-bottom-6 duration-500 max-w-3xl mx-auto">
+      <header className="mb-8 flex flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => isAdmin ? setView('hub') : navigate('/')} className="w-10 h-10 bg-white border border-slate-200 rounded-xl shadow-none hover:bg-slate-50 transition-all leading-none flex items-center justify-center"><ArrowLeft className="w-4 h-4 text-slate-500" /></button>
+          <div className="leading-none">
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase leading-none">Profile Logic</h1>
+            <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-1.5 opacity-80 leading-none">MANAGE OPERATOR IDENTITY</p>
+          </div>
         </div>
       </header>
 
-      <div className="bg-white rounded-[40px] md:rounded-[48px] border border-slate-100 shadow-xl overflow-hidden">
-         <div className="h-40 md:h-48 bg-[#064e3b] relative">
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-none overflow-hidden transition-all">
+         <div className="h-28 md:h-32 bg-slate-900 relative">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
             
-            <div className="absolute -bottom-14 md:-bottom-16 left-6 md:left-12 flex flex-col md:flex-row items-end md:items-center gap-6">
-               <div className="relative group shadow-2xl rounded-[48px]">
+            <div className="absolute -bottom-10 md:-bottom-12 left-6 md:left-10 flex flex-row items-end gap-5">
+               <div className="relative group shadow-none rounded-2xl border-4 border-white bg-white">
                   <img 
                     src={localProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${localProfile.email || 'User'}`} 
-                    className={`w-32 h-32 md:w-40 md:h-40 rounded-[40px] md:rounded-[48px] border-8 border-white bg-white object-cover transition-all ${uploadingAvatar ? 'opacity-40 grayscale' : 'group-hover:opacity-90'}`} 
+                    className={`w-24 h-24 md:w-28 md:h-28 rounded-xl bg-slate-50 object-cover transition-all ${uploadingAvatar ? 'opacity-40 grayscale' : 'group-hover:opacity-90'}`} 
                     alt="Profile" 
                   />
                   {uploadingAvatar && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                       <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+                       <RefreshCw className="w-6 h-6 text-slate-900 animate-spin" />
                     </div>
                   )}
                   <button 
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
-                    className="absolute -bottom-2 -right-2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-emerald-600 hover:bg-[#064e3b] hover:text-white transition-all border border-slate-100"
-                    title="Upload Profile Picture"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-lg shadow-md flex items-center justify-center text-slate-900 hover:bg-slate-900 hover:text-white transition-all border border-slate-200"
+                    title="Upload Identity Photo"
                   >
-                     <Camera className="w-5 h-5 md:w-6 md:h-6" />
+                     <Camera className="w-4 h-4" />
                   </button>
                   <input 
                     type="file" 
@@ -461,69 +463,69 @@ const Settings = () => {
                   />
                </div>
                
-               <div className="hidden md:block mb-6">
-                  <h2 className="text-2xl font-black text-white leading-tight drop-shadow-md">{localProfile.full_name || 'Member Profile'}</h2>
-                  <p className="text-emerald-100/60 text-[10px] font-black uppercase tracking-widest">{localProfile.designation || 'Operational Staff'}</p>
+               <div className="mb-1 leading-none">
+                  <h2 className="text-lg font-black text-white leading-none uppercase tracking-tight truncate max-w-[150px] md:max-w-xs">{localProfile.full_name || 'OPERATOR'}</h2>
+                  <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mt-1.5 leading-none">{localProfile.designation || 'STAFF UNIT'}</p>
                </div>
             </div>
          </div>
 
-         <div className="pt-24 md:pt-28 pb-10 md:pb-14 px-6 md:px-12">
-            <form onSubmit={handleUpdateProfile} className="space-y-10 md:space-y-12">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
-                  <div className="space-y-2.5">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+         <div className="pt-16 md:pt-20 pb-8 px-6 md:px-10">
+            <form onSubmit={handleUpdateProfile} className="space-y-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Full Name</label>
                      <div className="relative group">
-                        <UserIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                        <input required className="w-full h-14 md:h-16 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[24px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner" value={localProfile.full_name || ''} onChange={e => setLocalProfile({...localProfile, full_name: e.target.value})} />
+                        <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <input required className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none uppercase" value={localProfile.full_name || ''} onChange={e => setLocalProfile({...localProfile, full_name: e.target.value})} />
                      </div>
                   </div>
-                  <div className="space-y-2.5">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Title</label>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Designation</label>
                      <div className="relative group">
-                        <Briefcase className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                        <input className="w-full h-14 md:h-16 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[24px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner" placeholder="e.g. Media Manager" value={localProfile.designation || ''} onChange={e => setLocalProfile({...localProfile, designation: e.target.value})} />
+                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <input className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none uppercase" placeholder="e.g. Media Manager" value={localProfile.designation || ''} onChange={e => setLocalProfile({...localProfile, designation: e.target.value})} />
                      </div>
                   </div>
-                  <div className="space-y-2.5">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Contact Phone</label>
                      <div className="relative group">
-                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                        <input className="w-full h-14 md:h-16 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[24px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner" value={localProfile.phone || ''} onChange={e => setLocalProfile({...localProfile, phone: e.target.value})} />
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <input className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" value={localProfile.phone || ''} onChange={e => setLocalProfile({...localProfile, phone: e.target.value})} />
                      </div>
                   </div>
-                  <div className="space-y-2.5">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Profile Image Link</label>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Identity Link (Photo)</label>
                      <div className="relative group">
-                        <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                        <input className="w-full h-14 md:h-16 pl-14 pr-24 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[24px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner" placeholder="Paste link or upload ->" value={localProfile.avatar_url || ''} onChange={e => setLocalProfile({...localProfile, avatar_url: e.target.value})} />
+                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <input className="w-full h-11 pl-11 pr-20 bg-white border border-slate-200 rounded-xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" placeholder="Paste link..." value={localProfile.avatar_url || ''} onChange={e => setLocalProfile({...localProfile, avatar_url: e.target.value})} />
                         <button 
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 px-4 bg-white border border-slate-100 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 transition-all flex items-center gap-2"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-3 bg-slate-50 border border-slate-100 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:bg-white transition-all flex items-center gap-1 leading-none"
                         >
-                           <Upload className="w-3.5 h-3.5" /> Upload
+                           <Upload className="w-3 h-3" /> UID
                         </button>
                      </div>
                   </div>
-                  <div className="space-y-2.5 md:col-span-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Password</label>
+                  <div className="space-y-1.5 md:col-span-2">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">Operator Credentials</label>
                      <div className="relative group">
-                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                        <input type={showPassword ? 'text' : 'password'} className="w-full h-14 md:h-16 pl-14 pr-24 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[24px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner" value={localProfile.login_password || ''} onChange={e => setLocalProfile({...localProfile, login_password: e.target.value})} />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors">{showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}</button>
-                           <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Generate New Password"><RefreshCw className="w-4.5 h-4.5" /></button>
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
+                        <input type={showPassword ? 'text' : 'password'} className="w-full h-11 pl-11 pr-20 bg-white border border-slate-200 rounded-xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" value={localProfile.login_password || ''} onChange={e => setLocalProfile({...localProfile, login_password: e.target.value})} />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-200 hover:text-slate-900 transition-colors">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                           <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all" title="Regenerate credentials"><RefreshCw className="w-4 h-4" /></button>
                         </div>
                      </div>
                   </div>
                </div>
 
-               <div className="flex flex-col sm:flex-row gap-4 md:gap-6 pt-4 border-t border-slate-50">
-                  <button type="submit" disabled={saving} className="flex-1 py-6 md:py-7 bg-[#064e3b] text-white rounded-2xl md:rounded-[28px] text-[11px] md:text-[12px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50">
-                    {saving ? <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" /> : <Save className="w-5 h-5 text-emerald-400" />} Save Changes
+               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-50">
+                  <button type="submit" disabled={saving} className="flex-1 py-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-none hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 leading-none">
+                    {saving ? <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />} Commit Updates
                   </button>
-                  <button type="button" onClick={() => isAdmin ? setView('hub') : navigate('/')} className="px-10 py-6 md:py-7 bg-white text-slate-400 rounded-2xl md:rounded-[28px] text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all border border-slate-100">Cancel</button>
+                  <button type="button" onClick={() => isAdmin ? setView('hub') : navigate('/')} className="px-8 py-4 bg-white text-slate-300 rounded-xl text-[9px] font-black uppercase tracking-widest hover:text-slate-900 hover:bg-slate-50 transition-all border border-slate-200 leading-none">Dismiss</button>
                </div>
             </form>
          </div>

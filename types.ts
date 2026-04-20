@@ -2,6 +2,8 @@
 export type LeadStatus = 'Discovery' | 'Follow_Up' | 'Quotation' | 'Completed' | 'Rejected';
 export type UserRole = 'super_admin' | 'office_admin' | 'staff' | 'admin';
 export type ProjectStatus = 'Upcoming' | 'Running' | 'Complete';
+export type TaskStatus = 'Upcoming' | 'Running' | 'Completed';
+export type TaskStage = 'Floor Plan' | '3D Design' | 'Structure' | 'Drafting';
 export type PaymentStatus = 'Pre-paid' | 'Post-paid' | 'Free';
 export type VisitStatus = 'Upcoming' | 'Done' | 'Hold';
 
@@ -127,14 +129,39 @@ export interface Project {
   status: ProjectStatus;
   budget: number;
   start_date: string;
+  deadline?: string;
+  foundation_type?: string;
   description?: string;
   created_at: string;
   updated_at: string;
   deleted_at?: string;
   client?: Lead;
   assignments?: any[];
+  tasks?: ProjectTask[];
   created_by?: string;
   creator?: {
     full_name: string;
   };
+}
+
+export interface ProjectTask {
+  id: string;
+  project_id: string;
+  stage: TaskStage;
+  status: TaskStatus;
+  assigned_employees: string[]; // Profile IDs
+  order: number;
+  completed_at?: string;
+  updated_at: string;
+  project?: Project;
+}
+
+export interface TaskActivityLog {
+  id: string;
+  task_id: string;
+  user_id: string;
+  action: 'started' | 'completed' | 'assigned';
+  details?: string;
+  created_at: string;
+  user?: Profile;
 }

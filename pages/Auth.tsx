@@ -104,50 +104,50 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row animate-in fade-in duration-700">
-      <div className="hidden md:flex md:w-1/2 bg-[#064e3b] relative overflow-hidden items-center justify-center p-20">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:40px_40px]"></div>
+      <div className="hidden md:flex md:w-1/2 bg-slate-900 relative overflow-hidden items-center justify-center p-12 lg:p-20">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]"></div>
         </div>
-        <div className="relative z-10 space-y-10 max-w-lg">
-          <div className="w-24 h-24 bg-white rounded-[32px] flex items-center justify-center shadow-2xl">
-             <Building2 className="w-12 h-12 text-[#064e3b]" />
+        <div className="relative z-10 space-y-8 max-w-sm">
+          <div className="w-16 h-16 bg-white rounded-[24px] flex items-center justify-center shadow-xl">
+             <Building2 className="w-8 h-8 text-slate-900" />
           </div>
-          <div className="space-y-4 text-white">
-            <h1 className="text-6xl font-black tracking-tighter leading-none">Firm Gateway.</h1>
-            <p className="text-emerald-100/60 text-lg font-medium">Enterprise Role-Based Access. Architectural Lead Governance.</p>
+          <div className="space-y-3 text-white">
+            <h1 className="text-5xl font-black tracking-tighter leading-none uppercase">HHD ERP<span className="text-emerald-500">.</span></h1>
+            <p className="text-slate-400 text-sm font-bold tracking-widest uppercase opacity-80">ARCHITECTURAL LEAD GOVERNANCE</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 md:p-20 bg-[#f8fafc]">
-        <div className="w-full max-w-md space-y-12">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-slate-50/30">
+        <div className="w-full max-w-sm space-y-8">
           {/* Mobile Brand Visual */}
-          <div className="md:hidden flex flex-col items-center gap-4 mb-8">
-            <div className="w-16 h-16 bg-[#064e3b] rounded-[24px] flex items-center justify-center shadow-xl">
-               <Building2 className="w-8 h-8 text-white" />
+          <div className="md:hidden flex flex-col items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-slate-900 rounded-[18px] flex items-center justify-center shadow-lg">
+               <Building2 className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">HHD ERP</h1>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase">HHD ERP</h1>
           </div>
 
-          <div className="space-y-4 text-center md:text-left">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-              {isLogin ? 'Authorized Access' : 'Register Firm'}
+          <div className="space-y-1.5 text-center md:text-left leading-none">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">
+              {isLogin ? 'Secure Gateway' : 'Register Firm'}
             </h2>
-            <p className="text-slate-400 font-medium">
-              {isLogin ? 'Enter credentials to enter workspace.' : 'Create a private workspace for your architectural team.'}
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-tight mt-1.5 leading-none">
+              {isLogin ? 'Authorization Required' : 'Onboard Workspace'}
             </p>
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-6">
+          <form onSubmit={handleAuth} className="space-y-5">
             {!isLogin && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Administrator Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Administrator Identity</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
                   <input 
                     required 
-                    className="w-full h-16 pl-16 pr-6 bg-white border border-slate-100 rounded-[24px] text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm" 
-                    placeholder="e.g. Sarah Khan" 
+                    className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" 
+                    placeholder="Full Name" 
                     value={formData.full_name} 
                     onChange={e => setFormData({...formData, full_name: e.target.value})} 
                   />
@@ -155,29 +155,29 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Workspace Email</label>
-              <div className="relative">
-                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Corporate Email</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
                 <input 
                   required 
                   type="email" 
-                  className="w-full h-16 pl-16 pr-6 bg-white border border-slate-100 rounded-[24px] text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm" 
-                  placeholder="name@archfirm.com" 
+                  className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" 
+                  placeholder="name@firm.com" 
                   value={formData.email} 
                   onChange={e => setFormData({...formData, email: e.target.value})} 
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
-              <div className="relative">
-                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Credentials</label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
                 <input 
                   required 
                   type="password" 
-                  className="w-full h-16 pl-16 pr-6 bg-white border border-slate-100 rounded-[24px] text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm" 
+                  className="w-full h-11 pl-11 pr-5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none" 
                   placeholder="••••••••" 
                   value={formData.password} 
                   onChange={e => setFormData({...formData, password: e.target.value})} 
@@ -188,19 +188,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <button 
               type="submit" 
               disabled={loading} 
-              className="w-full py-6 bg-[#064e3b] text-white rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:bg-black transition-all shadow-2xl shadow-emerald-900/20 active:scale-95 disabled:opacity-50"
+              className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-black transition-all shadow-none active:scale-95 disabled:opacity-50"
             >
-              {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5 text-emerald-400" />}
-              {isLogin ? 'Authorize Access' : 'Create Firm'}
+              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4 text-emerald-400" />}
+              {isLogin ? 'Authorize Connection' : 'Establish Workspace'}
             </button>
           </form>
 
-          <div className="pt-6 text-center">
+          <div className="pt-2 text-center">
             <button 
               onClick={() => setIsLogin(!isLogin)} 
-              className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-[#064e3b] transition-colors"
+              className="text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-slate-900 transition-colors"
             >
-              {isLogin ? "New Firm? Sign Up" : "Already Registered? Login"}
+              {isLogin ? "PROVISION NEW WORKSPACE" : "EXISTING OPERATOR LOGIN"}
             </button>
           </div>
         </div>

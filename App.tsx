@@ -18,6 +18,7 @@ import Construction from './pages/Construction';
 import ConstructionDetails from './pages/ConstructionDetails';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
+import TasksDashboard from './pages/TasksDashboard';
 import QuotationList from './pages/QuotationList';
 import QuotationDetails from './pages/QuotationDetails';
 import SiteVisitList from './pages/SiteVisitList';
@@ -205,18 +206,17 @@ const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-4 max-w-xl w-full pointer-events-none px-4">
         {notifications.map(n => (
-          <div key={n.id} className={`pointer-events-auto flex items-start gap-4 p-6 rounded-[32px] border shadow-2xl backdrop-blur-3xl animate-in slide-in-from-top-10 fade-in duration-500 w-full ${n.type === 'success' ? 'bg-[#064e3b]/95 border-emerald-500/30 text-white' : n.type === 'error' ? 'bg-red-950/95 border-red-500/30 text-white' : n.type === 'warning' ? 'bg-amber-950/95 border-amber-500/30 text-white' : 'bg-slate-950/95 border-slate-500/30 text-white'}`}>
+          <div key={n.id} className={`pointer-events-auto flex items-start gap-4 p-4 rounded-xl border shadow-lg backdrop-blur-3xl animate-in slide-in-from-top-10 fade-in duration-500 w-full ${n.type === 'success' ? 'bg-[#064e3b] border-emerald-500/30 text-white' : n.type === 'error' ? 'bg-red-950 border-red-500/30 text-white' : n.type === 'warning' ? 'bg-amber-950 border-amber-500/30 text-white' : 'bg-slate-950 border-slate-500/30 text-white'}`}>
             <div className="mt-1 shrink-0">
-              {n.type === 'success' && <CheckCircle2 className="w-6 h-6 text-emerald-400" />}
-              {n.type === 'error' && <ShieldAlert className="w-6 h-6 text-red-400" />}
-              {n.type === 'warning' && <AlertCircle className="w-6 h-6 text-amber-400" />}
-              {n.type === 'info' && <Info className="w-6 h-6 text-blue-400" />}
+              {n.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+              {n.type === 'error' && <ShieldAlert className="w-5 h-5 text-red-400" />}
+              {n.type === 'warning' && <AlertCircle className="w-5 h-5 text-amber-400" />}
+              {n.type === 'info' && <Info className="w-5 h-5 text-blue-400" />}
             </div>
-            <div className="flex-1 space-y-1">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-50">Notice</p>
-              <p className="text-[15px] font-black leading-snug tracking-tight">{n.message}</p>
+            <div className="flex-1 space-y-0.5">
+              <p className="text-[13px] font-bold leading-snug">{n.message}</p>
             </div>
-            <button onClick={() => removeNotification(n.id)} className="p-1.5 hover:bg-white/10 rounded-xl transition-all"><X className="w-4 h-4 opacity-40" /></button>
+            <button onClick={() => removeNotification(n.id)} className="p-1 hover:bg-white/10 rounded-lg"><X className="w-4 h-4 opacity-40" /></button>
           </div>
         ))}
       </div>
@@ -313,7 +313,7 @@ const AppContent = () => {
       </div>
 
       <main className="flex-1 min-w-0 flex flex-col relative pt-16 lg:pt-0">
-        <div className="flex-1 w-full max-w-[1600px] mx-auto">
+        <div className="flex-1 w-full max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/leads" element={<LeadsList />} />
@@ -331,6 +331,7 @@ const AppContent = () => {
             <Route path="/construction/:id" element={<ConstructionDetails />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
+            <Route path="/tasks" element={<TasksDashboard />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/finance/:id" element={<CashbookDetails />} />
             <Route path="/team" element={<TeamList />} />

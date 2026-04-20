@@ -1,8 +1,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://vtfooxylfnzyrgdkslms.supabase.co';
-const supabaseKey = 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vtfooxylfnzyrgdkslms.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_VeOlP0mvDUwCzT-Kyls9EA_bfV42SKO';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -100,7 +100,34 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  * USING ( bucket_id = 'UserImage' ) 
  * WITH CHECK ( bucket_id = 'UserImage' );
  * 
- * -- 6. CRITICAL: RELOAD POSTGREST CACHE
+ * -- 6. TASK MANAGEMENT SCHEMA (Sequential Flow)
+ * CREATE TABLE IF NOT EXISTS public.project_tasks (
+ *     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ *     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE,
+ *     stage TEXT NOT NULL,
+ *     status TEXT NOT NULL DEFAULT 'Upcoming',
+ *     assigned_employees JSONB DEFAULT '[]',
+ *     "order" INTEGER NOT NULL,
+ *     completed_at TIMESTAMPTZ,
+ *     updated_at TIMESTAMPTZ DEFAULT now()
+ * );
+ * 
+ * ALTER TABLE public.project_tasks ENABLE ROW LEVEL SECURITY;
+ * DROP POLICY IF EXISTS "Public_CRM_Access" ON public.project_tasks;
+ * CREATE POLICY "Public_CRM_Access" ON public.project_tasks FOR ALL TO public USING (true) WITH CHECK (true);
+ * 
+ * -- Ensure columns exist in projects
+ * DO $$ 
+ * BEGIN 
+ *   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='deadline') THEN
+ *     ALTER TABLE public.projects ADD COLUMN deadline DATE;
+ *   END IF;
+ *   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='foundation_type') THEN
+ *     ALTER TABLE public.projects ADD COLUMN foundation_type TEXT;
+ *   END IF;
+ * END $$;
+ * 
+ * -- 7. CRITICAL: RELOAD POSTGREST CACHE
  * NOTIFY pgrst, 'reload schema';
  * 
  * -- END SQL --

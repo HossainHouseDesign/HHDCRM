@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead, LeadStatus, FormFieldConfig } from '../types';
 import { 
-  Search, Plus, Eye, RefreshCw, Hash, MapPin, 
+  Search, Plus, Eye, RefreshCw, Hash, MapPin, ArrowUpRight,
   Layers, Phone, Home, Hammer, Paintbrush, FilterX, CheckCircle2,
   ChevronDown, UserCheck, User, MessageSquare
 } from 'lucide-react';
@@ -134,166 +134,154 @@ const LeadsList = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-64 animate-in fade-in duration-500 relative">
-      {/* 
-         THE STICKY HEADER BLOCK
-         Grouped controls + spacer gap.
-         top-16 aligns below the fixed 64px mobile global header.
-         z-[50] ensures it's above content but below mobile side-nav/popups.
-      */}
-      <div className="sticky top-16 lg:top-0 z-[50] bg-[#f8fafc]">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="min-h-screen bg-slate-50/50 pb-20 animate-in fade-in duration-500 relative">
+      <div className="sticky top-14 lg:top-0 z-[50] bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm transition-all">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-row justify-between items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lead Portfolio</h1>
-            <p className="text-slate-500 text-sm font-medium mt-1 uppercase tracking-wider flex items-center gap-2">
-               <Home className="w-4 h-4 text-emerald-500" /> Architectural Discovery
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none uppercase">Lead Vault</h1>
+            <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5 leading-none">
+               <Home className="w-3 h-3 text-emerald-500" /> ACQUISITION REPOSITORY
             </p>
           </div>
-          <Link to="/leads/new" className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-sm hover:bg-slate-800 transition-all">
-            <Plus className="w-4 h-4" /> New Lead
+          <Link to="/leads/new" className="flex items-center gap-1.5 px-5 py-2 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-none hover:bg-slate-800 transition-all leading-none">
+            <Plus className="w-3.5 h-3.5" /> Acquisition
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8 space-y-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {(['All', 'Discovery', 'Follow_Up', 'Quotation', 'Rejected'] as (LeadStatus | 'All')[]).map((status) => (
-              <button
-                key={status}
-                onClick={() => setActiveStatus(status)}
-                className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${activeStatus === status ? 'bg-slate-900 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
-              >
-                {status === 'All' ? 'All' : status.replace('_', ' ')}
-              </button>
-            ))}
-          </div>
+        <div className="max-w-[1600px] mx-auto px-4 pb-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 items-center">
+            <div className="lg:col-span-12 flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
+              <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar py-0.5 bg-slate-100 p-0.5 rounded-lg shrink-0">
+                {(['All', 'Discovery', 'Follow_Up', 'Quotation', 'Rejected'] as (LeadStatus | 'All')[]).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setActiveStatus(status)}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-md text-[8px] font-bold uppercase tracking-wider transition-all ${activeStatus === status ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {status === 'All' ? 'All' : status.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-8 relative group">
-               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
-               <input 
-                 type="text" 
-                 placeholder="Search by client name or phone..."
-                 className="w-full h-12 pl-12 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:bg-white focus:border-emerald-500 transition-all"
-                 value={search} 
-                 onChange={(e) => setSearch(e.target.value)}
-               />
-            </div>
-            <div className="md:col-span-4 flex items-center gap-2">
-              <button onClick={() => setFilterConst(!filterConst)} className={`flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${filterConst ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>Construction</button>
-              <button onClick={() => setFilterInt(!filterInt)} className={`flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${filterInt ? 'bg-blue-600 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>Interior</button>
+              <div className="flex-1 relative group">
+                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300 transition-colors" />
+                 <input 
+                   type="text" 
+                   placeholder="Search archive..."
+                   className="w-full h-8 pl-8 pr-4 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium text-slate-700 outline-none focus:bg-white transition-all shadow-none"
+                   value={search} 
+                   onChange={(e) => setSearch(e.target.value)}
+                 />
+              </div>
+              
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => setFilterConst(!filterConst)} className={`h-8 px-3 rounded-lg text-[8px] font-bold uppercase tracking-wider border transition-all ${filterConst ? 'bg-emerald-600 text-white border-transparent' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}>Const</button>
+                <button onClick={() => setFilterInt(!filterInt)} className={`h-8 px-3 rounded-lg text-[8px] font-bold uppercase tracking-wider border transition-all ${filterInt ? 'bg-blue-600 text-white border-transparent' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}>Interior</button>
+              </div>
             </div>
           </div>
         </div>
-        
-        {/* 
-           PERSISTENT AIR GAP (Fixed Height Spacer)
-           This stays sticky with the header, creating the visual "architectural buffer"
-           that content slides under. Matches page background color [#f8fafc].
-        */}
-        <div className="h-10 md:h-12 bg-[#f8fafc] w-full border-t border-slate-100/20"></div>
       </div>
 
-      {/* LEAD ROWS (Content) */}
-      <div className="px-5 md:px-10 max-w-[1600px] mx-auto relative z-10">
+      <div className="px-4 py-4 max-w-[1600px] mx-auto relative z-10">
         {loading ? (
-          <div className="py-24 text-center"><RefreshCw className="w-12 h-12 text-[#064e3b] animate-spin mx-auto" /></div>
+          <div className="py-24 text-center">
+            <RefreshCw className="w-10 h-10 text-emerald-900 animate-spin mx-auto" />
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4">Accessing Vault...</p>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-32 text-center bg-white rounded-[48px] border border-slate-100 shadow-sm">
-             <Layers className="w-16 h-16 text-slate-100 mx-auto mb-4" />
-             <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Pipeline segment empty</p>
+          <div className="py-16 text-center bg-white rounded-xl border border-slate-200 shadow-none">
+             <Layers className="w-10 h-10 text-slate-100 mx-auto mb-3 grayscale opacity-50" />
+             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Repository Empty</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-6 lg:hidden">
+            {/* MOBILE VIEW */}
+            <div className="grid grid-cols-1 gap-3 lg:hidden">
               {filtered.map((l) => (
-                <div key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm active:scale-[0.98] transition-all relative group">
-                  <div className="flex justify-between items-start mb-6">
+                <div key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="bg-white p-4 rounded-xl border border-slate-100 shadow-none active:scale-[0.98] transition-all relative group">
+                  <div className="flex justify-between items-start mb-2">
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">#{l.id.slice(0,6).toUpperCase()}</p>
-                      <h3 className="text-[19px] font-black text-slate-900 mt-1.5 leading-tight group-hover:text-[#064e3b] transition-colors truncate pr-2">{l.client_name}</h3>
+                      <p className="text-[7px] font-bold text-slate-300 uppercase">#{l.id.slice(0,6).toUpperCase()}</p>
+                      <h3 className="text-[13px] font-bold text-slate-900 mt-0.5 leading-none uppercase tracking-tight group-hover:text-emerald-700 transition-colors truncate pr-2">{l.client_name}</h3>
                     </div>
-                    <button 
-                      onClick={(e) => toggleDropdown(e, l.id)}
-                      className={`shrink-0 px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest border flex items-center gap-2 ${statusMap[l.status]?.color || 'bg-slate-50'}`}
+                    <div 
+                      className={`shrink-0 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border flex items-center gap-1.5 ${statusMap[l.status]?.color || 'bg-slate-50'}`}
                     >
                       {statusMap[l.status]?.label || l.status}
-                      <ChevronDown className="w-3.5 h-3.5 opacity-40" />
-                    </button>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-3.5 text-slate-400 mb-8">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-                       <Phone className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <span className="text-[15px] font-bold text-slate-600">{l.phone}</span>
+                  <div className="flex items-center gap-2 text-slate-400 mb-3">
+                     <Phone className="w-3 h-3 text-emerald-500" />
+                     <span className="text-[11px] font-bold text-slate-600 leading-none">{l.phone}</span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                    <div className="flex gap-2">
-                       {resolveInterest(l, detectedKeys.construction) && <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[8px] font-black uppercase border border-emerald-100/50">Const</div>}
-                       {resolveInterest(l, detectedKeys.interior) && <div className="px-3.5 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[8px] font-black uppercase border border-blue-100/50">Int</div>}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <div className="flex gap-1">
+                       {resolveInterest(l, detectedKeys.construction) && <div className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[7px] font-black uppercase tracking-tighter border border-emerald-100/50 leading-none">Const</div>}
+                       {resolveInterest(l, detectedKeys.interior) && <div className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[7px] font-black uppercase tracking-tighter border border-blue-100/50 leading-none">Int</div>}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-[10px] font-black text-slate-400">{l.creator?.full_name?.split(' ')[0] || 'Staff'}</p>
-                      <div className="w-8 h-8 bg-slate-50 rounded-[14px] flex items-center justify-center text-slate-300 border border-slate-100">
-                        <User className="w-4.5 h-4.5" />
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase leading-none">{l.creator?.full_name?.split(' ')[0] || 'Staff'}</p>
+                      <ArrowUpRight className="w-3 h-3 text-slate-200" />
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Desktop View Table */}
-            <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-20">
+            {/* DESKTOP VIEW */}
+            <div className="hidden lg:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-10 transition-all">
               <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left min-w-[1000px] border-separate border-spacing-0">
+                <table className="w-full text-left border-separate border-spacing-0">
                   <thead className="bg-slate-50/50">
-                    <tr className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
-                      <th className="px-8 py-5 border-b border-slate-100">Client Entity</th>
-                      <th className="px-8 py-5 border-b border-slate-100">Interests</th>
-                      <th className="px-8 py-5 border-b border-slate-100">Assigned Staff</th>
-                      <th className="px-8 py-5 border-b border-slate-100">Process Status</th>
-                      <th className="px-8 py-5 border-b border-slate-100 text-right">Action</th>
+                    <tr className="text-slate-400 text-[8px] uppercase font-bold tracking-widest leading-none">
+                      <th className="px-5 py-2.5 border-b border-slate-100">Lead Entity</th>
+                      <th className="px-5 py-2.5 border-b border-slate-100">Interests</th>
+                      <th className="px-5 py-2.5 border-b border-slate-100">Staff</th>
+                      <th className="px-5 py-2.5 border-b border-slate-100">Status</th>
+                      <th className="px-5 py-2.5 border-b border-slate-100 text-right"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-100">
                     {filtered.map((l) => {
                       const isDropdownActive = activeStatusDropdown === l.id;
                       const statusInfo = statusMap[l.status] || { label: 'Unknown', color: 'bg-slate-50' };
                       return (
-                        <tr key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="hover:bg-slate-50/50 transition-all cursor-pointer group">
-                          <td className="px-8 py-6">
-                             <p className="text-[10px] font-bold text-slate-300 uppercase mb-1">#{l.id.slice(0,6).toUpperCase()}</p>
-                             <p className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{l.client_name}</p>
-                             <p className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-emerald-500" /> {l.phone}</p>
-                          </td>
-                          <td className="px-8 py-6">
-                             <div className="flex gap-2">
-                                {resolveInterest(l, detectedKeys.construction) && <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase border border-emerald-100">Construction</div>}
-                                {resolveInterest(l, detectedKeys.interior) && <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase border border-blue-100">Interior</div>}
+                        <tr key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="hover:bg-slate-50/30 transition-all cursor-pointer group">
+                          <td className="px-5 py-2">
+                             <p className="text-[13px] font-bold text-slate-900 leading-none uppercase tracking-tight group-hover:text-emerald-700 transition-colors uppercase leading-none">{l.client_name}</p>
+                             <div className="flex items-center gap-1.5 mt-1.5 leading-none">
+                               <span className="text-[7px] font-bold text-slate-300 uppercase">#{l.id.slice(0,6).toUpperCase()}</span>
+                               <span className="w-0.5 h-0.5 bg-slate-300 rounded-full"></span>
+                               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{l.phone}</span>
                              </div>
                           </td>
-                          <td className="px-8 py-6">
-                             <div className="flex items-center gap-3">
-                               <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all"><User className="w-4 h-4" /></div>
-                               <p className="text-sm font-semibold text-slate-700">{l.creator?.full_name || 'System'}</p>
+                          <td className="px-5 py-2">
+                             <div className="flex gap-1">
+                                {resolveInterest(l, detectedKeys.construction) && <div className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[7px] font-black uppercase tracking-tighter border border-emerald-100 leading-none">Const</div>}
+                                {resolveInterest(l, detectedKeys.interior) && <div className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[7px] font-black uppercase tracking-tighter border border-blue-100 leading-none">Int</div>}
                              </div>
                           </td>
-                          <td className="px-8 py-6">
-                            <div className="relative">
-                              <button 
-                                onClick={(e) => toggleDropdown(e, l.id)}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${statusInfo.color}`}
-                              >
-                                {statusInfo.label}
-                                <ChevronDown className={`w-3.5 h-3.5 opacity-50 ${isDropdownActive ? 'rotate-180' : ''}`} />
-                              </button>
-                            </div>
+                          <td className="px-5 py-2">
+                             <div className="flex items-center gap-2">
+                               <div className="w-5 h-5 bg-slate-50 rounded flex items-center justify-center text-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all"><User className="w-2.5 h-2.5" /></div>
+                               <p className="text-[10px] font-bold text-slate-500 uppercase leading-none">{l.creator?.full_name?.split(' ')[0] || 'System'}</p>
+                             </div>
                           </td>
-                          <td className="px-8 py-6 text-right">
-                             <div className="inline-flex p-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-400 group-hover:text-emerald-600 group-hover:border-emerald-200 transition-all">
-                                <Eye className="w-5 h-5" />
+                          <td className="px-5 py-2">
+                             <button 
+                               onClick={(e) => toggleDropdown(e, l.id)}
+                               className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border flex items-center gap-1 transition-all ${statusInfo.color}`}
+                             >
+                               {statusInfo.label}
+                               <ChevronDown className={`w-2.5 h-2.5 opacity-50 ${isDropdownActive ? 'rotate-180' : ''}`} />
+                             </button>
+                          </td>
+                          <td className="px-5 py-2 text-right">
+                             <div className="inline-flex p-1.5 text-slate-100 group-hover:text-slate-900 transition-all">
+                                <ArrowUpRight className="w-3.5 h-3.5" />
                              </div>
                           </td>
                         </tr>
@@ -310,15 +298,15 @@ const LeadsList = () => {
       {activeStatusDropdown && (
         <div 
           ref={statusMenuRef} 
-          className="fixed min-w-[220px] bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[300] p-4 space-y-1 animate-in fade-in slide-in-from-top-2" 
+          className="fixed min-w-[180px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-[300] p-1.5 space-y-1 animate-in fade-in slide-in-from-top-2" 
           style={{ top: dropdownPos.top, left: dropdownPos.left }}
         >
-          <div className="px-5 py-3 border-b border-slate-50 mb-2"><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Update Lifecycle</p></div>
+          <div className="px-4 py-2 border-b border-slate-50 mb-1"><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Update Lifecycle</p></div>
           {(['Discovery', 'Follow_Up', 'Quotation', 'Completed', 'Rejected'] as LeadStatus[]).map(s => (
             <button 
               key={s} 
               onClick={(e) => { e.stopPropagation(); handleUpdateStatus(activeStatusDropdown, s); }} 
-              className={`w-full text-left px-5 py-4 rounded-[18px] text-[11px] font-black uppercase tracking-widest transition-all ${leads.find(l => l.id === activeStatusDropdown)?.status === s ? 'bg-[#0f172a] text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'}`}
+              className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${leads.find(l => l.id === activeStatusDropdown)?.status === s ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}
             >
               {s.replace('_', ' ')}
             </button>

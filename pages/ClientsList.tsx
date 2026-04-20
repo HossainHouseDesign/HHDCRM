@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Lead } from '../types';
-import { Search, Eye, RefreshCw, Briefcase, MapPin, Hash, BriefcaseIcon, UserCheck, Plus } from 'lucide-react';
+import { Search, Eye, RefreshCw, Briefcase, MapPin, Hash, BriefcaseIcon, UserCheck, Plus, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ClientsList = () => {
@@ -42,100 +42,90 @@ const ClientsList = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24 animate-in fade-in duration-700">
-      <div className="sticky top-16 lg:top-0 z-40 bg-[#f8fafc]/90 backdrop-blur-xl px-6 md:px-10 pt-10 pb-8 border-b border-slate-50 shadow-sm">
-        <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Active Portfolio</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-2 opacity-80 flex items-center gap-2">
-              <BriefcaseIcon className="w-3.5 h-3.5 text-emerald-500" /> MANAGING CONVERTED PROJECT LIFECYCLES
+    <div className="min-h-screen bg-slate-50/50 pb-20 animate-in fade-in duration-500 relative">
+      <div className="sticky top-14 lg:top-0 z-40 bg-white px-4 py-2 border-b border-slate-100 transition-all leading-none">
+        <header className="flex flex-row justify-between items-center gap-4 mb-2 leading-none">
+          <div className="leading-none">
+            <h1 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase">Client Base</h1>
+            <p className="text-slate-300 text-[7px] font-black uppercase tracking-widest mt-1.5 flex items-center gap-1.5 leading-none opacity-80">
+              <Plus className="w-3 h-3 text-slate-900" /> STAKEHOLDER DIRECTORY
             </p>
           </div>
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <button onClick={() => navigate('/clients/add')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/10 active:scale-95">
-              <Plus className="w-5 h-5" /> Add New Client
-            </button>
-          </div>
+          <button onClick={() => navigate('/clients/add')} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95 leading-none flex items-center gap-2">
+            <Plus className="w-3 h-3" /> Acquisition
+          </button>
         </header>
 
-        <div className="relative w-full max-w-lg">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+        <div className="relative w-full max-w-lg leading-none">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300" />
           <input 
             type="text" 
-            placeholder="Search active clients or locations..."
-            className="w-full pl-16 pr-6 h-16 bg-white border border-slate-100 rounded-[28px] text-[13px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
+            placeholder="Search stakeholders..."
+            className="w-full pl-9 pr-4 h-7 bg-slate-50 border border-slate-100 rounded-lg text-[11px] font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-none leading-none"
             value={search} 
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="px-6 md:px-10 mt-10">
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/5 overflow-hidden">
-          <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-320px)] overflow-y-auto">
-            <table className="w-full text-left min-w-[1100px] border-separate border-spacing-0">
+      <div className="px-4 mt-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-12">
+          <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-220px)] overflow-y-auto">
+            <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 z-[40] bg-white">
-                <tr className="bg-white text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Project Lead</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Architectural Specs</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Added By</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Conversion Date</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
+                <tr className="bg-slate-50/50 text-slate-400 text-[8px] uppercase font-bold tracking-widest leading-none">
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Client Identity</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Strategy / Loc</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Initiator</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Validation</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50 text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={5} className="py-24 text-center"><RefreshCw className="w-10 h-10 text-[#064e3b] animate-spin mx-auto" /></td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center"><RefreshCw className="w-8 h-8 text-emerald-900 animate-spin mx-auto" /><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-4">Accessing Vault...</p></td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="py-24 text-center text-slate-300 font-black tracking-widest">No active projects found</td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center text-slate-200 font-bold tracking-widest uppercase text-[10px]">Vault Records Empty</td></tr>
                 ) : filtered.map((c) => (
-                  <tr key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
-                    <td className="px-10 py-8">
-                      <div className="flex items-center gap-5">
-                        {c.metadata?.avatar_url ? (
-                          <img 
-                            src={c.metadata.avatar_url} 
-                            className="w-14 h-14 rounded-[20px] object-cover shadow-sm border border-slate-100" 
-                            alt={c.client_name} 
-                          />
-                        ) : (
-                          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-[20px] flex items-center justify-center font-black text-lg group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-                            {c.client_name.charAt(0)}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-[15px] font-black text-slate-900 group-hover:text-emerald-700 transition-colors">{c.client_name}</p>
-                          <p className="text-[11px] text-slate-400 font-bold mt-1.5">{c.phone}</p>
+                  <tr key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="hover:bg-slate-50/30 transition-all cursor-pointer group">
+                    <td className="px-5 py-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 bg-slate-50 text-slate-200 rounded-lg flex items-center justify-center font-black group-hover:bg-slate-900 group-hover:text-white transition-all shadow-none">
+                          {c.client_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate uppercase tracking-tight leading-none">{c.client_name}</p>
+                          <p className="text-[8px] text-slate-300 font-bold leading-none mt-1 uppercase">#{c.id.slice(0,8).toUpperCase()}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-10 py-8">
-                      <div className="flex flex-col gap-1.5">
-                        <p className="text-[12px] font-black text-slate-700 uppercase tracking-tight">{c.package || 'Discovery Package'}</p>
-                        <p className="text-[10px] text-slate-400 font-bold flex items-center gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {c.address || 'Location Pending'}
+                    <td className="px-5 py-2">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[11px] font-bold text-slate-700 uppercase tracking-tight leading-none leading-none truncate max-w-[150px]">{c.package || 'Standard'}</p>
+                        <p className="text-[8px] text-slate-400 font-bold flex items-center gap-1 leading-none uppercase">
+                          <Phone className="w-2.5 h-2.5 text-emerald-400 shrink-0" /> {c.phone}
                         </p>
                       </div>
                     </td>
-                    <td className="px-10 py-8">
-                        <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-                              <UserCheck className="w-4 h-4" />
+                    <td className="px-5 py-2">
+                        <div className="flex items-center gap-2">
+                           <div className="w-5 h-5 bg-slate-50 rounded flex items-center justify-center text-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                              <UserCheck className="w-2.5 h-2.5" />
                            </div>
-                           <p className="text-[12px] font-black text-slate-700">{c.creator?.full_name || 'Legacy Record'}</p>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase leading-none">{c.creator?.full_name?.split(' ')[0] || 'Staff'}</p>
                         </div>
                     </td>
-                    <td className="px-10 py-8">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-black text-slate-800">
-                          {c.converted_at ? new Date(c.converted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                    <td className="px-5 py-2">
+                      <div className="flex flex-col leading-none">
+                        <span className="text-[11px] font-bold text-slate-800 uppercase leading-none">
+                          {c.converted_at ? new Date(c.converted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A'}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">VALIDATED CONTRACT</span>
+                        <span className="text-[7px] text-slate-200 font-bold uppercase tracking-widest mt-1">Confirmed</span>
                       </div>
                     </td>
-                    <td className="px-10 py-8 text-right">
-                       <div className="inline-flex p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-slate-300 group-hover:text-emerald-600 transition-all group-hover:shadow-md group-hover:scale-110">
-                          <Eye className="w-5 h-5" />
+                    <td className="px-5 py-2 text-right">
+                       <div className="inline-flex p-1.5 text-slate-100 group-hover:text-emerald-600 transition-all">
+                          <Eye className="w-3.5 h-3.5" />
                        </div>
                     </td>
                   </tr>

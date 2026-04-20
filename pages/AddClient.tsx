@@ -40,111 +40,111 @@ const AddClient = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 md:px-10 pt-12 animate-in slide-in-from-bottom-6">
-      <header className="max-w-4xl mx-auto flex items-center gap-6 mb-12">
+    <div className="min-h-screen bg-[#f8fafc] pb-32 px-6 pt-10 animate-in slide-in-from-bottom-6">
+      <header className="max-w-3xl mx-auto flex items-center gap-4 mb-10">
         <button 
           onClick={() => mode === 'choice' ? navigate(-1) : setMode('choice')} 
-          className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all shadow-slate-200/50"
+          className="p-3 bg-white border border-slate-100 rounded-xl shadow-none text-slate-300 hover:text-slate-900 transition-all"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Expand Portfolio</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">SECURE CLIENT ONBOARDING PROTOCOL</p>
+        <div className="leading-none">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none uppercase">Expand Portfolio</h1>
+          <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-2 leading-none opacity-80">SECURE CLIENT ONBOARDING PROTOCOL</p>
         </div>
       </header>
 
       {mode === 'choice' ? (
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           <button 
             onClick={fetchLeads}
             disabled={loading}
-            className="p-12 bg-white border border-slate-100 rounded-[48px] shadow-xl text-left group hover:border-emerald-500 transition-all hover:-translate-y-2 relative overflow-hidden"
+            className="p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm text-left group hover:border-emerald-500 transition-all hover:-translate-y-1 relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full pointer-events-none" />
-            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[32px] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-              {loading ? <RefreshCw className="w-10 h-10 animate-spin" /> : <FileText className="w-10 h-10" />}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-[30px] rounded-full pointer-events-none" />
+            <div className="w-12 h-12 bg-slate-50 text-slate-900 border border-slate-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-none">
+              {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <FileText className="w-6 h-6" />}
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">From Lead Pipeline</h3>
-            <p className="text-sm text-slate-400 font-medium leading-relaxed">Promote an existing inquiry to a validated project client. All lead history will be preserved.</p>
-            <div className="mt-10 flex items-center gap-3 text-emerald-600 text-[11px] font-black uppercase tracking-widest">
-              Select Existing <ChevronRight className="w-4 h-4" />
+            <h3 className="text-xl font-black text-slate-900 mb-2 leading-none uppercase">From Lead Pipeline</h3>
+            <p className="text-xs text-slate-400 font-bold leading-relaxed uppercase tracking-tight">Convert existing inquiry to project.</p>
+            <div className="mt-8 flex items-center gap-2 text-emerald-600 text-[9px] font-black uppercase tracking-widest leading-none">
+              Select Existing <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </button>
 
           <button 
             onClick={() => navigate('/leads/new?mode=client')}
-            className="p-12 bg-white border border-slate-100 rounded-[48px] shadow-xl text-left group hover:border-slate-900 transition-all hover:-translate-y-2 relative overflow-hidden"
+            className="p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm text-left group hover:border-slate-900 transition-all hover:-translate-y-1 relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-900/5 blur-[40px] rounded-full pointer-events-none" />
-            <div className="w-20 h-20 bg-slate-50 text-slate-400 rounded-[32px] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm">
-              <Edit3 className="w-10 h-10" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-slate-900/5 blur-[30px] rounded-full pointer-events-none" />
+            <div className="w-12 h-12 bg-slate-50 text-slate-900 border border-slate-100 rounded-xl flex items-center justify-center mb-6 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-none">
+              <Plus className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Manual Entry</h3>
-            <p className="text-sm text-slate-400 font-medium leading-relaxed">Directly onboard a new client bypassing the lead stage. Ideal for immediate contract validation.</p>
-            <div className="mt-10 flex items-center gap-3 text-slate-900 text-[11px] font-black uppercase tracking-widest">
-              Direct Onboarding <ChevronRight className="w-4 h-4" />
+            <h3 className="text-xl font-black text-slate-900 mb-2 leading-none uppercase">Manual Entry</h3>
+            <p className="text-xs text-slate-400 font-bold leading-relaxed uppercase tracking-tight">Directly onboard without lead stage.</p>
+            <div className="mt-8 flex items-center gap-2 text-slate-900 text-[9px] font-black uppercase tracking-widest leading-none">
+              Direct Onboarding <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </button>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-300">
+        <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-300">
            <div className="relative group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-900 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Search leads by name or contact..."
                 autoFocus
-                className="w-full h-20 pl-16 pr-8 bg-white border border-slate-100 rounded-[32px] text-lg font-bold text-slate-700 outline-none focus:ring-8 focus:ring-emerald-500/5 transition-all shadow-xl"
+                className="w-full h-12 pl-12 pr-6 bg-white border border-slate-200 rounded-2xl text-[13px] font-bold text-slate-700 outline-none focus:border-slate-900 transition-all shadow-none"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
            </div>
 
-           <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl overflow-hidden divide-y divide-slate-50">
+           <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
               {filteredLeads.length === 0 ? (
-                <div className="py-24 text-center">
-                   <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 opacity-30">
-                      <History className="w-10 h-10" />
+                <div className="py-20 text-center">
+                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 opacity-30">
+                      <History className="w-8 h-8" />
                    </div>
-                   <p className="text-sm font-black text-slate-300 uppercase tracking-widest">No matching leads in pipeline</p>
+                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No matching leads in pipeline</p>
                 </div>
               ) : filteredLeads.map(l => (
                 <div 
                   key={l.id} 
                   onClick={() => navigate(`/leads/${l.id}`)}
-                  className="p-8 flex items-center justify-between hover:bg-slate-50/80 transition-all cursor-pointer group"
+                  className="p-5 flex items-center justify-between hover:bg-slate-50/50 transition-all cursor-pointer group"
                 >
-                   <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-xl font-black text-slate-300 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm">
-                         {l.client_name.charAt(0)}
+                   <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-sm font-black text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-none">
+                         {l.client_name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                         <p className="text-lg font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">{l.client_name}</p>
-                         <div className="flex items-center gap-4 mt-1.5">
-                            <p className="text-[11px] font-bold text-slate-400 flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> {l.phone}</p>
-                            <p className="text-[11px] font-bold text-slate-400 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-emerald-400" /> {l.address || 'Location Unknown'}</p>
+                      <div className="leading-none">
+                         <p className="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors leading-none uppercase truncate tracking-tight">{l.client_name}</p>
+                         <div className="flex items-center gap-3 mt-2 leading-none">
+                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 leading-none uppercase"><Phone className="w-3 h-3 text-emerald-400" /> {l.phone}</p>
+                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 leading-none uppercase truncate max-w-[150px]"><MapPin className="w-3 h-3 text-purple-400" /> {l.address || 'PENDING'}</p>
                          </div>
                       </div>
                    </div>
-                   <div className="flex items-center gap-6">
-                      <div className="text-right hidden sm:block">
-                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Status</p>
-                         <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest mt-1">{l.status}</p>
+                   <div className="flex items-center gap-4">
+                      <div className="text-right hidden sm:block leading-none">
+                         <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest opacity-50">STATUS</p>
+                         <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1.5">{l.status}</p>
                       </div>
-                      <div className="w-12 h-12 rounded-full border border-slate-100 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all">
-                         <ChevronRight className="w-6 h-6" />
+                      <div className="w-8 h-8 rounded-lg border border-slate-100 flex items-center justify-center text-slate-200 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                         <ChevronRight className="w-4 h-4" />
                       </div>
                    </div>
                 </div>
               ))}
            </div>
 
-           <div className="p-10 bg-emerald-50 rounded-[48px] border border-emerald-100 flex items-center gap-6 shadow-sm">
-              <Sparkles className="w-8 h-8 text-emerald-500 shrink-0" />
-              <div>
-                 <p className="text-[11px] font-black text-emerald-900 uppercase tracking-widest">PRO-TIP: SELECT TO REVIEW</p>
-                 <p className="text-sm font-medium text-emerald-800/70 leading-relaxed mt-1">Select a lead to open its vault. You can then review its parameters before authorizing the final client conversion.</p>
+           <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-200 flex items-center gap-4 shadow-none">
+              <Sparkles className="w-5 h-5 text-emerald-500 shrink-0" />
+              <div className="leading-tight">
+                 <p className="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none">PRO-TIP: SELECT TO REVIEW</p>
+                 <p className="text-[11px] font-bold text-slate-400 tracking-tight leading-relaxed mt-1.5 uppercase">Select a lead to review parameters before authorizing conversion.</p>
               </div>
            </div>
         </div>

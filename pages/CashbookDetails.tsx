@@ -506,117 +506,113 @@ const CashbookDetails = () => {
       )}
 
       {/* HEADER SECTION */}
-      <div className="bg-[#0f172a] pt-16 md:pt-20 pb-40 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 relative z-10">
-          <div className="flex justify-between items-center mb-8 md:mb-12">
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 text-white/40 hover:text-white transition-colors text-[10px] md:text-[11px] font-black uppercase tracking-widest group"><ArrowLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" /> Back to Center</button>
+      <div className="bg-[#0f172a] pt-12 pb-24 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="max-w-[1440px] mx-auto px-6 relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-[9px] font-bold uppercase tracking-widest group"><ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Center</button>
             {isAdmin && (
-              <div className="flex items-center gap-2 md:gap-3">
-                <button onClick={() => setShowEditModal(true)} className="px-4 md:px-6 py-3 md:py-4 bg-white/5 border border-white/10 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest flex items-center gap-2 md:gap-3 hover:bg-white/10 transition-all"><Edit3 className="w-3.5 h-3.5 text-emerald-400" /> Update</button>
-                <button onClick={() => setShowDeleteModal(true)} className="p-3 md:p-4 bg-white/5 border border-white/10 text-rose-400 rounded-xl md:rounded-2xl hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowEditModal(true)} className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all"><Edit3 className="w-3.5 h-3.5 text-emerald-400" /> Update</button>
+                <button onClick={() => setShowDeleteModal(true)} className="p-2 bg-white/5 border border-white/10 text-rose-400 rounded-lg hover:bg-rose-500 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
               </div>
             )}
           </div>
 
-          <div className="flex flex-col lg:flex-row justify-between items-start md:items-end gap-10">
-             <div className="space-y-4 md:space-y-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 md:w-16 md:h-16 bg-white/5 border border-white/10 rounded-[18px] md:rounded-[24px] flex items-center justify-center text-emerald-400 shadow-2xl backdrop-blur-md"><Banknote className="w-6 h-6 md:w-8 md:h-8" /></div>
+          <div className="flex flex-row justify-between items-end gap-10">
+             <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-emerald-400 shadow-xl backdrop-blur-md shrink-0"><Banknote className="w-5 h-5" /></div>
                    <div className="relative" ref={statusMenuRef}>
-                     <button onClick={(e) => isAdmin && toggleStatusDropdown(e)} className={`px-5 py-1.5 md:py-2 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${cashbook.deleted_at ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                       {cashbook.deleted_at ? <Clock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                     <button onClick={(e) => isAdmin && toggleStatusDropdown(e)} className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border transition-all flex items-center gap-2 ${cashbook.deleted_at ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                       {cashbook.deleted_at ? <Clock className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                        {cashbook.deleted_at ? 'Archived' : 'Active'}
-                       {isAdmin && <ChevronDown className="w-3.5 h-3.5 opacity-40" />}
+                       {isAdmin && <ChevronDown className="w-3 h-3 opacity-40" />}
                      </button>
                    </div>
                 </div>
                 <div>
-                   <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">{cashbook.name}</h1>
-                   <p className="text-white/40 text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] mt-3 md:mt-4 flex items-center gap-3"><Tag className="w-4 h-4 text-emerald-500" /> {cashbook.type} Cashbook</p>
+                   <h1 className="text-2xl font-bold text-white tracking-tight leading-none uppercase">{cashbook.name}</h1>
+                   <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-2 flex items-center gap-2"><Tag className="w-3.5 h-3.5 text-emerald-500" /> {cashbook.type}</p>
                 </div>
              </div>
-             <div className="bg-white/5 border border-white/10 p-6 md:p-10 rounded-[32px] md:rounded-[56px] backdrop-blur-xl flex items-center gap-8 md:gap-12 shadow-3xl w-full md:w-auto">
-                <div className="flex-1 md:text-right space-y-1">
-                   <p className="text-[9px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">Available Balance</p>
-                   <p className="text-3xl md:text-4xl font-black text-white tracking-tighter">Tk. {totals.balance.toLocaleString()}</p>
+             <div className="bg-white/5 border border-white/10 p-4 px-6 rounded-2xl backdrop-blur-xl flex items-center gap-6 shadow-2xl">
+                <div className="text-right space-y-1">
+                   <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest leading-none">Liquidity</p>
+                   <p className="text-2xl font-bold text-white tracking-tight leading-none">Tk. {totals.balance.toLocaleString()}</p>
                 </div>
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-500 text-white rounded-[18px] md:rounded-[28px] flex items-center justify-center shadow-2xl shrink-0"><Wallet className="w-6 h-6 md:w-8 md:h-8" /></div>
+                <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shrink-0"><Wallet className="w-5 h-5" /></div>
              </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 -mt-20 relative z-20 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="max-w-[1440px] mx-auto px-6 -mt-10 relative z-20 space-y-6">
+        <div className="grid grid-cols-3 gap-4">
            {[
-             { label: 'Opening Balance', val: cashbook.initial_balance, icon: Coins, color: 'text-slate-400', bg: 'bg-slate-50' },
-             { label: 'Total Inflow', val: totals.income, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', symbol: '+' },
-             { label: 'Total Outflow', val: totals.expense, icon: DollarSign, color: 'text-rose-600', bg: 'bg-rose-50', symbol: '-' }
+             { label: 'Opening', val: cashbook.initial_balance, icon: Coins, color: 'text-slate-400', bg: 'bg-slate-50' },
+             { label: 'Inflow', val: totals.income, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50', symbol: '+' },
+             { label: 'Outflow', val: totals.expense, icon: DollarSign, color: 'text-rose-600', bg: 'bg-rose-50', symbol: '-' }
            ].map((s, i) => (
-             <div key={i} className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[56px] border border-slate-100 shadow-xl relative overflow-hidden group">
-                <div className={`w-12 h-12 ${s.bg} ${s.color} rounded-2xl flex items-center justify-center mb-6 md:mb-8`}><s.icon className="w-6 h-6" /></div>
-                <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
-                <h3 className={`text-2xl md:text-3xl font-black mt-2 ${s.symbol === '+' ? 'text-emerald-600' : s.symbol === '-' ? 'text-rose-600' : 'text-slate-900'}`}>{s.symbol && `${s.symbol} `}Tk. {s.val.toLocaleString()}</h3>
+             <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-2">
+                   <div className={`w-8 h-8 ${s.bg} ${s.color} rounded-lg flex items-center justify-center`}><s.icon className="w-4 h-4" /></div>
+                   <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                </div>
+                <h3 className={`text-xl font-bold tracking-tight ${s.symbol === '+' ? 'text-emerald-600' : s.symbol === '-' ? 'text-rose-600' : 'text-slate-900'}`}>{s.symbol && `${s.symbol} `}Tk. {s.val.toLocaleString()}</h3>
              </div>
            ))}
         </div>
 
-        <div className="bg-white rounded-[40px] md:rounded-[64px] border border-slate-100 shadow-xl overflow-hidden">
-           <div className="px-8 md:px-12 py-8 md:py-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-20">
+           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
-                 <h4 className="text-[11px] md:text-[13px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3"><ArrowRightLeft className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" /> Transaction Logs</h4>
+                 <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2 leading-none"><ArrowRightLeft className="w-4 h-4 text-emerald-500" /> Transaction Logs</h4>
               </div>
-              <span className="px-4 py-1.5 bg-white border border-slate-100 rounded-full text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest shadow-sm">{transactions.length} Records Found</span>
+              <span className="px-3 py-1 bg-white border border-slate-200 rounded-md text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">{transactions.length} Records</span>
            </div>
 
-           <div className="lg:hidden divide-y divide-slate-50">
-             {transactions.length === 0 ? (
-               <div className="py-20 text-center"><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No entries recorded</p></div>
-             ) : transactions.map(t => (
-               <div key={t.id} className="p-6 space-y-4 hover:bg-slate-50 transition-colors">
-                 <div className="flex justify-between items-start">
-                   <div className="flex items-center gap-3">
-                     <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shadow-inner"><User className="w-3.5 h-3.5" /></div>
-                     <span className="text-[11px] font-black text-slate-600">{t.creator?.full_name || 'Staff'}</span>
-                   </div>
-                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">{new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                 </div>
-                 <div>
-                   <h5 className="text-sm font-black text-slate-900 leading-tight">{t.description || 'General Log'}</h5>
-                   <div className={`text-lg font-black mt-2 ${t.type === 'Income' ? 'text-emerald-600' : 'text-rose-500'}`}>
-                     {t.type === 'Income' ? '+' : '-'} Tk. {t.amount.toLocaleString()}
-                   </div>
-                 </div>
-                 <div className="flex justify-end gap-2">
-                    <button onClick={() => handleEditTransaction(t)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-blue-50 active:text-blue-600 transition-colors"><Edit3 className="w-4 h-4" /></button>
-                    {isAdmin && <button onClick={() => setTransactionToDelete(t.id)} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl active:bg-rose-50 active:text-rose-600 transition-colors"><Trash2 className="w-4 h-4" /></button>}
-                 </div>
-               </div>
-             ))}
-           </div>
-
-           <div className="hidden lg:block overflow-x-auto no-scrollbar">
-              <table className="w-full text-left min-w-[1000px] border-separate border-spacing-0">
+           <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-left border-separate border-spacing-0">
                  <thead>
-                    <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50">
-                       <th className="px-12 py-8 bg-white sticky left-0 z-10">Added By</th>
-                       <th className="px-12 py-8 bg-white">Log Date</th>
-                       <th className="px-12 py-8 bg-white">Description</th>
-                       <th className="px-12 py-8 bg-white text-right">Inflow (Tk)</th>
-                       <th className="px-12 py-8 bg-white text-right">Outflow (Tk)</th>
-                       <th className="px-12 py-8 bg-white text-right">Actions</th>
+                    <tr className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20">AGENT</th>
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20">DATE</th>
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20">DESCRIPTION</th>
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20 text-right">INFLOW</th>
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20 text-right">OUTFLOW</th>
+                       <th className="px-6 py-3 border-b border-slate-100 bg-slate-50/20 text-right"></th>
                     </tr>
                  </thead>
-                 <tbody className="divide-y divide-slate-50">
-                    {transactions.map(t => (
-                      <tr key={t.id} className="hover:bg-slate-50/80 transition-colors group">
-                        <td className="px-12 py-8 sticky left-0 bg-white group-hover:bg-slate-50/80 z-10"><div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 shadow-sm border border-slate-100"><User className="w-4 h-4" /></div><p className="text-[12px] font-black text-slate-700">{t.creator?.full_name || 'Legacy Log'}</p></div></td>
-                        <td className="px-12 py-8 text-[12px] font-black text-slate-400 uppercase">{new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="px-12 py-8"><p className="text-sm font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">{t.description || 'General Record'}</p></td>
-                        <td className="px-12 py-8 text-right">{t.type === 'Income' ? <span className="text-[16px] font-black text-emerald-600">+ {t.amount.toLocaleString()}</span> : <span className="text-slate-100">—</span>}</td>
-                        <td className="px-12 py-8 text-right">{t.type === 'Expense' ? <span className="text-[16px] font-black text-rose-500">- {t.amount.toLocaleString()}</span> : <span className="text-slate-100">—</span>}</td>
-                        <td className="px-12 py-8 text-right"><div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all"><button onClick={() => handleEditTransaction(t)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-blue-600 rounded-xl shadow-sm transition-all active:scale-90"><Edit3 className="w-4 h-4" /></button>{isAdmin && <button onClick={() => setTransactionToDelete(t.id)} className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-rose-600 rounded-xl shadow-sm transition-all active:scale-90"><Trash2 className="w-4 h-4" /></button>}</div></td>
+                 <tbody className="divide-y divide-slate-100">
+                    {transactions.length === 0 ? (
+                      <tr><td colSpan={6} className="py-20 text-center opacity-30 text-[9px] font-bold uppercase tracking-widest">No matching history</td></tr>
+                    ) : transactions.map(t => (
+                      <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
+                        <td className="px-6 py-2.5">
+                           <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 border border-slate-100"><User className="w-3.5 h-3.5" /></div>
+                              <p className="text-[11px] font-bold text-slate-700 leading-tight truncate max-w-[120px]">{t.creator?.full_name || 'Staff'}</p>
+                           </div>
+                        </td>
+                        <td className="px-6 py-2.5">
+                           <p className="text-[10px] font-bold text-slate-400 uppercase leading-none">{new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '20' + new Date(t.date).getFullYear().toString().slice(-2) })}</p>
+                        </td>
+                        <td className="px-6 py-2.5">
+                           <p className="text-xs font-bold text-slate-900 leading-tight uppercase tracking-tight">{t.description || 'General Log'}</p>
+                        </td>
+                        <td className="px-6 py-2.5 text-right">
+                           {t.type === 'Income' ? <span className="text-[14px] font-bold text-emerald-600">+{t.amount.toLocaleString()}</span> : <span className="text-slate-100 text-[12px]">—</span>}
+                        </td>
+                        <td className="px-6 py-2.5 text-right">
+                           {t.type === 'Expense' ? <span className="text-[14px] font-bold text-rose-500">-{t.amount.toLocaleString()}</span> : <span className="text-slate-100 text-[12px]">—</span>}
+                        </td>
+                        <td className="px-6 py-2.5 text-right">
+                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEditTransaction(t)} className="p-1 px-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"><Edit3 className="w-3 h-3" /></button>
+                              {isAdmin && <button onClick={() => setTransactionToDelete(t.id)} className="p-1 px-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-all"><Trash2 className="w-3 h-3" /></button>}
+                           </div>
+                        </td>
                       </tr>
                     ))}
                  </tbody>

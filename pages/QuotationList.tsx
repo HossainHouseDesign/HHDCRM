@@ -31,83 +31,81 @@ const QuotationList = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24 animate-in fade-in duration-500">
-      <div className="sticky top-16 lg:top-0 z-40 bg-[#f8fafc]/90 backdrop-blur-xl px-6 md:px-10 pt-10 pb-8 border-b border-slate-50 shadow-sm">
-        <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+    <div className="min-h-screen bg-slate-50/50 pb-20 animate-in fade-in duration-500 relative">
+      <div className="sticky top-14 lg:top-0 z-40 bg-white/80 backdrop-blur-md px-4 py-3 border-b border-slate-100 shadow-sm transition-all">
+        <header className="flex flex-row justify-between items-center gap-4 mb-3">
           <div>
-            <h1 className="text-4xl font-black text-[#0f172a] tracking-tight">Quotations Portfolio</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] mt-2 opacity-80 flex items-center gap-2">
-              <FileSpreadsheet className="w-3.5 h-3.5 text-purple-500" /> MONITORING ACTIVE ARCHITECTURAL PROPOSALS
+            <h1 className="text-xl font-bold text-[#0f172a] tracking-tight leading-none uppercase">Proposal Vault</h1>
+            <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mt-1 flex items-center gap-1.5 leading-none">
+              <FileSpreadsheet className="w-3 h-3 text-purple-500" /> QUOTATION REPOSITORY
             </p>
           </div>
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <button onClick={() => navigate('/quotations/add')} className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 bg-[#064e3b] text-white rounded-[24px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-emerald-900/10 active:scale-95">
-              <Plus className="w-5 h-5" /> New Quotation
-            </button>
-          </div>
+          <button onClick={() => navigate('/quotations/add')} className="px-5 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95 leading-none flex items-center gap-2">
+            <Plus className="w-3.5 h-3.5" /> Proposal
+          </button>
         </header>
 
         <div className="relative w-full max-w-lg">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
           <input 
             type="text" 
-            placeholder="Search proposals by client or ID..."
-            className="w-full pl-16 pr-6 h-16 bg-white border border-slate-100 rounded-[28px] text-[13px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-purple-500/5 transition-all shadow-sm"
+            placeholder="Search proposals..."
+            className="w-full pl-9 pr-4 h-8 bg-slate-50 border border-slate-100 rounded-lg text-xs font-medium text-slate-700 outline-none focus:bg-white transition-all shadow-none"
             value={search} 
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="px-6 md:px-10 mt-10">
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/5 overflow-hidden">
-          <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-320px)] overflow-y-auto">
-            <table className="w-full text-left min-w-[1000px] border-separate border-spacing-0">
+      <div className="px-4 mt-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-12 transition-all">
+          <div className="overflow-x-auto no-scrollbar max-h-[calc(100vh-220px)] overflow-y-auto">
+            <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 z-[40] bg-white">
-                <tr className="bg-white text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Proposal Reference</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Client Entity</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Asking Fee</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white">Lifecycle Stage</th>
-                  <th className="px-10 py-7 border-b border-slate-100 bg-white text-right">Action</th>
+                <tr className="bg-slate-50/50 text-slate-400 text-[8px] uppercase font-bold tracking-widest leading-none">
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Reference ID</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Client Identity</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Financials</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50">Phase</th>
+                  <th className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/50 text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={5} className="py-24 text-center"><RefreshCw className="w-10 h-10 text-purple-600 animate-spin mx-auto" /></td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center"><RefreshCw className="w-8 h-8 text-purple-900 animate-spin mx-auto" /><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-4">Accessing Data...</p></td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="py-24 text-center text-slate-300 font-black tracking-widest">No matching quotations found</td></tr>
+                  <tr><td colSpan={5} className="py-24 text-center text-slate-200 font-bold tracking-widest uppercase text-[10px]">Vault Records Empty</td></tr>
                 ) : filtered.map((l) => (
-                  <tr key={l.id} onClick={() => navigate(`/quotations/${l.id}`)} className="hover:bg-slate-50/80 transition-all cursor-pointer group">
-                    <td className="px-10 py-8">
-                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1.5">QTN-{l.id.slice(0,8).toUpperCase()}</p>
-                       <p className="text-[14px] font-black text-slate-900 group-hover:text-purple-700 transition-colors">{l.package || 'Custom Proposal'}</p>
+                  <tr key={l.id} onClick={() => navigate(`/quotations/${l.id}`)} className="hover:bg-slate-50/30 transition-all cursor-pointer group">
+                    <td className="px-5 py-2">
+                       <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest leading-none">QTN-{l.id.slice(0,8).toUpperCase()}</p>
+                       <p className="text-[13px] font-bold text-slate-900 group-hover:text-purple-700 transition-colors mt-1.5 leading-none uppercase tracking-tight">{l.package || 'Proposal'}</p>
                     </td>
-                    <td className="px-10 py-8">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-slate-400 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
-                             {l.client_name.charAt(0)}
+                    <td className="px-5 py-2">
+                       <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 bg-slate-50 rounded text-slate-300 group-hover:bg-purple-900 group-hover:text-white transition-all shadow-none flex items-center justify-center font-black">
+                             {l.client_name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                             <p className="text-[14px] font-black text-slate-700">{l.client_name}</p>
-                             <p className="text-[10px] font-bold text-slate-400 flex items-center gap-2 mt-0.5"><MapPin className="w-3.5 h-3.5 text-purple-300" /> {l.address}</p>
+                          <div className="min-w-0">
+                             <p className="text-[13px] font-bold text-slate-700 leading-none truncate uppercase tracking-tight">{l.client_name}</p>
+                             <p className="text-[8px] font-bold text-slate-300 flex items-center gap-1.5 mt-1 leading-none uppercase"><MapPin className="w-2.5 h-2.5 text-purple-200" /> {l.address || 'PENDING'}</p>
                           </div>
                        </div>
                     </td>
-                    <td className="px-10 py-8">
-                       <div className="flex flex-col">
-                          <span className="text-[15px] font-black text-purple-700">BDT {l.asking_fee?.toLocaleString() || '0'}</span>
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mt-1">ASKING FEE</span>
+                    <td className="px-5 py-2">
+                       <div className="flex flex-col leading-none">
+                          <span className="text-[13px] font-bold text-purple-900">৳{l.asking_fee?.toLocaleString() || '0'}</span>
+                          <span className="text-[7px] font-black text-slate-200 uppercase tracking-widest mt-1">ASKING RATE</span>
                        </div>
                     </td>
-                    <td className="px-10 py-8">
-                      <span className="px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100 shadow-sm">
-                        Quotation Sent
+                    <td className="px-5 py-2">
+                      <span className="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100 leading-none">
+                        Transmitted
                       </span>
                     </td>
-                    <td className="px-10 py-8 text-right">
-                       <div className="inline-flex p-3 bg-white border border-slate-100 rounded-xl shadow-sm text-slate-300 group-hover:text-purple-600 transition-all group-hover:shadow-md group-hover:scale-110">
-                          <Eye className="w-5 h-5" />
+                    <td className="px-5 py-2 text-right">
+                       <div className="inline-flex p-1.5 text-slate-100 group-hover:text-purple-900 transition-all">
+                          <Eye className="w-3.5 h-3.5" />
                        </div>
                     </td>
                   </tr>

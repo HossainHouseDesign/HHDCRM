@@ -510,158 +510,159 @@ const Finance = () => {
       )}
 
       {/* PAGE CONTENT */}
-      <div className="max-w-[1600px] mx-auto px-4 md:px-12 pt-6 md:pt-12 space-y-8 md:space-y-12">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8">
-          <div className="flex items-center gap-4 md:gap-8 min-w-0">
-            <button onClick={() => navigate('/')} className="w-12 h-12 md:w-14 md:h-14 bg-white border border-slate-100 rounded-2xl shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all shrink-0">
-              <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-slate-500" />
+      <div className="max-w-[1600px] mx-auto px-4 pt-6 space-y-6">
+        <header className="flex flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <button onClick={() => navigate('/')} className="w-10 h-10 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all shrink-0">
+              <ArrowLeft className="w-5 h-5 text-slate-500" />
             </button>
             <div>
-              <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">Finance Command</h1>
-              <p className="text-slate-400 text-[8px] md:text-[10px] font-black uppercase tracking-[0.25em] mt-2 md:mt-3 flex items-center gap-3">
-                <Banknote className="w-4 h-4 text-emerald-500" /> INTEGRATED FIRM FISCAL REPOSITORY
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">Finance</h1>
+              <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest mt-1 flex items-center gap-2 leading-none">
+                <Banknote className="w-3 h-3 text-emerald-500" /> FISCAL COMMAND
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowCashbookModal(true)}
-              className="flex-1 md:flex-none px-4 md:px-8 py-4 md:py-5 bg-white border border-slate-100 text-slate-900 rounded-[18px] md:rounded-[24px] text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-900 rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2 active:scale-95 leading-none"
             >
-              <Plus className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" /> New Cashbook
+              <Plus className="w-3.5 h-3.5 text-emerald-600" /> New Cashbook
             </button>
             <button 
               onClick={() => setShowEntryModal(true)}
-              className="flex-1 md:flex-none px-4 md:px-8 py-4 md:py-5 bg-[#064e3b] text-white rounded-[18px] md:rounded-[24px] text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/10 hover:bg-black transition-all flex items-center justify-center gap-2 md:gap-3 active:scale-95"
+              className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-md hover:bg-slate-800 transition-all flex items-center gap-2 active:scale-95 leading-none"
             >
-              <LogIn className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" /> Add Entry
+              <LogIn className="w-3.5 h-3.5 text-emerald-400" /> Add Entry
             </button>
           </div>
         </header>
 
         {/* Totals Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6" />
+        <div className="grid grid-cols-3 gap-4">
+             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold uppercase tracking-wider">
-                    <ArrowUpRight className="w-4 h-4" /> Revenue
+                  <div className="flex items-center gap-1 text-emerald-600 text-[7px] font-bold uppercase tracking-widest">
+                    <ArrowUpRight className="w-3 h-3" /> REVENUE
                   </div>
                 </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Inflow</p>
-                <h3 className="text-3xl font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.in.toLocaleString()}</h3>
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Inflow</p>
+                <h3 className="text-lg font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.in.toLocaleString()}</h3>
              </div>
 
-             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-6 h-6" />
+             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 bg-rose-50 text-rose-600 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-rose-600 text-xs font-bold uppercase tracking-wider">
-                    <ArrowDownRight className="w-4 h-4" /> Costs
+                  <div className="flex items-center gap-1 text-rose-600 text-[7px] font-bold uppercase tracking-widest">
+                    <ArrowDownRight className="w-3 h-3" /> COSTS
                   </div>
                 </div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Outflow</p>
-                <h3 className="text-3xl font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.out.toLocaleString()}</h3>
+                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Outflow</p>
+                <h3 className="text-lg font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.out.toLocaleString()}</h3>
              </div>
 
-             <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-sm relative overflow-hidden group">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-12 h-12 bg-white/10 text-emerald-400 rounded-xl flex items-center justify-center">
-                    <Wallet className="w-6 h-6" />
+             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm relative overflow-hidden group text-white">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-8 h-8 bg-white/10 text-emerald-400 rounded-lg flex items-center justify-center">
+                    <Wallet className="w-4 h-4" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                    <ShieldCheck className="w-4 h-4" /> Secure
+                  <div className="flex items-center gap-1 text-emerald-400 text-[7px] font-bold uppercase tracking-widest">
+                    <ShieldCheck className="w-3 h-3" /> SECURE
                   </div>
                 </div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Net Balance</p>
-                <h3 className="text-3xl font-bold text-white mt-1 tracking-tight truncate">Tk. {totals.balance.toLocaleString()}</h3>
+                <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest leading-none">Net Balance</p>
+                <h3 className="text-lg font-bold text-white mt-1 tracking-tight truncate">Tk. {totals.balance.toLocaleString()}</h3>
              </div>
         </div>
 
-        <div className="space-y-6 md:space-y-8">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+        <div className="space-y-4">
+             <div className="flex flex-row justify-between items-center gap-4">
                 <div>
-                   <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                     <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-emerald-600" /> Cashbooks Portfolio
+                   <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2 leading-none">
+                     <BookOpen className="w-4 h-4 text-emerald-600" /> Cashbooks Portfolio
                    </h2>
-                   <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 ml-8 md:ml-9">ACTIVE FIRM FISCAL SECTORS</p>
+                   <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1 leading-none">ACTIVE SECTORS</p>
                 </div>
-                <div className="flex p-1 bg-slate-100 rounded-[18px] md:rounded-2xl w-full md:w-auto overflow-x-auto no-scrollbar">
+                <div className="flex p-0.5 bg-slate-100 rounded-lg">
                    <button 
                      onClick={() => setActiveTab('active')}
-                     className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'active' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+                     className={`px-3 py-1 rounded-md text-[8px] font-bold uppercase tracking-widest transition-all ${activeTab === 'active' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
                    >
                      Active ({cashbooks.filter(cb => !cb.deleted_at).length})
                    </button>
                    <button 
                      onClick={() => setActiveTab('archived')}
-                     className={`flex-1 md:flex-none px-6 md:px-8 py-2.5 md:py-3 rounded-xl text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}
+                     className={`px-3 py-1 rounded-md text-[8px] font-bold uppercase tracking-widest transition-all ${activeTab === 'archived' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}
                    >
                      Archive ({cashbooks.filter(cb => !!cb.deleted_at).length})
                    </button>
                 </div>
              </div>
 
-             <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-4 md:gap-6">
-                <div className="relative group flex-1">
-                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
+             <div className="flex flex-row items-center gap-3">
+                <div className="relative group flex-1 max-w-sm">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 transition-colors" />
                    <input 
                      type="text" 
                      placeholder="Search cashbooks..."
-                     className="w-full h-14 md:h-16 pl-16 pr-6 bg-white border border-slate-100 rounded-[20px] md:rounded-[28px] text-[13px] md:text-[14px] font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
+                     className="w-full h-8 pl-9 pr-4 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
                      value={searchQuery}
                      onChange={e => setSearchQuery(e.target.value)}
                    />
                 </div>
-                <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-[20px] md:rounded-[24px] border border-slate-50 shadow-sm overflow-x-auto no-scrollbar pb-1">
+                <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-100 overflow-x-auto no-scrollbar">
                    {(['All', 'Project', 'Office Cost', 'Salary', 'Site Visit', 'Other'] as (CashbookType | 'All')[]).map(t => (
-                     <button key={t} onClick={() => setTypeFilter(t)} className={`px-4 md:px-6 py-3 rounded-[16px] md:rounded-[20px] text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${typeFilter === t ? 'bg-[#064e3b] text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>{t}</button>
+                     <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1 rounded-md text-[7px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${typeFilter === t ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}>{t}</button>
                    ))}
                 </div>
              </div>
 
-             <div className="bg-white rounded-[32px] md:rounded-[48px] border border-slate-100 shadow-xl overflow-hidden">
+             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-12">
                 <div className="overflow-x-auto no-scrollbar">
                    <table className="w-full text-left border-separate border-spacing-0">
                       <thead>
-                         <tr className="bg-slate-50/30 text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100">SECTOR NAME</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">INFLOW</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">OUTFLOW</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">NET LIQUIDITY</th>
-                            <th className="px-8 md:px-10 py-6 md:py-7 border-b border-slate-100 text-right">ACTIONS</th>
+                         <tr className="bg-slate-50/50 text-slate-400 text-[8px] uppercase font-bold tracking-widest leading-none">
+                            <th className="px-5 py-3 border-b border-slate-100">SECTOR NAME</th>
+                            <th className="px-5 py-3 border-b border-slate-100 text-right">INFLOW</th>
+                            <th className="px-5 py-3 border-b border-slate-100 text-right">OUTFLOW</th>
+                            <th className="px-5 py-3 border-b border-slate-100 text-right">LIQUIDITY</th>
+                            <th className="px-5 py-3 border-b border-slate-100 text-right"></th>
                          </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className="divide-y divide-slate-100">
                          {displayedCashbooks.length === 0 ? (
-                            <tr><td colSpan={5} className="py-24 text-center opacity-30 text-[11px] font-black uppercase tracking-widest">No matching cashbooks found</td></tr>
+                            <tr><td colSpan={5} className="py-12 text-center opacity-30 text-[9px] font-bold uppercase tracking-widest">No matching sectors</td></tr>
                          ) : displayedCashbooks.map(cb => (
-                            <tr key={cb.id} onClick={() => navigate(`/finance/${cb.id}`)} className="group hover:bg-slate-50/80 transition-colors cursor-pointer">
-                               <td className="px-8 md:px-10 py-6 md:py-8">
-                                  <div className="flex items-center gap-4 md:gap-5">
-                                     <div className={`w-10 h-10 md:w-12 md:h-12 rounded-[14px] md:rounded-[18px] flex items-center justify-center shadow-sm shrink-0 transition-transform group-hover:scale-110 ${cb.type === 'Project' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
-                                        {cb.type === 'Project' ? <Building2 className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
+                            <tr key={cb.id} onClick={() => navigate(`/finance/${cb.id}`)} className="group hover:bg-slate-50/30 transition-all cursor-pointer">
+                               <td className="px-5 py-2.5">
+                                  <div className="flex items-center gap-3">
+                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm shrink-0 transition-transform group-hover:scale-105 ${cb.type === 'Project' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                                        {cb.type === 'Project' ? <Building2 className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
                                      </div>
-                                     <div>
-                                        <p className="text-[13px] md:text-[15px] font-black text-slate-900 group-hover:text-emerald-700 transition-colors">{cb.name}</p>
-                                        <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{cb.type} Cashbook</p>
+                                     <div className="min-w-0">
+                                        <p className="text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 transition-colors uppercase tracking-tight truncate leading-tight">{cb.name}</p>
+                                        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-0.5 leading-none">{cb.type}</p>
                                      </div>
                                   </div>
                                </td>
-                               <td className="px-8 md:px-10 py-6 md:py-8 text-right"><p className="text-[13px] md:text-[14px] font-black text-emerald-600">+ Tk. {cb.total_in.toLocaleString()}</p></td>
-                               <td className="px-8 md:px-10 py-6 md:py-8 text-right"><p className="text-[13px] md:text-[14px] font-black text-rose-500">- Tk. {cb.total_out.toLocaleString()}</p></td>
-                               <td className="px-8 md:px-10 py-6 md:py-8 text-right"><p className="text-[15px] md:text-[18px] font-black text-slate-900 tracking-tight">Tk. {cb.balance.toLocaleString()}</p></td>
-                               <td className="px-8 md:px-10 py-6 md:py-8 text-right">
-                                  <div className="flex items-center justify-end gap-2 opacity-40 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                               <td className="px-5 py-2.5 text-right"><p className="text-[12px] font-bold text-emerald-600 leading-none">+ {cb.total_in.toLocaleString()}</p></td>
+                               <td className="px-5 py-2.5 text-right"><p className="text-[12px] font-bold text-rose-500 leading-none">- {cb.total_out.toLocaleString()}</p></td>
+                               <td className="px-5 py-2.5 text-right"><p className="text-[14px] font-bold text-slate-900 tracking-tight leading-none">Tk. {cb.balance.toLocaleString()}</p></td>
+                               <td className="px-5 py-2.5 text-right">
+                                  <div className="flex items-center justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
                                      {activeTab === 'active' ? (
-                                        isAdmin && <button onClick={(e) => handleArchiveCashbook(e, cb.id)} className="p-2 md:p-3 bg-white border border-slate-100 text-slate-300 hover:text-amber-500 rounded-xl transition-all shadow-sm active:scale-90" title="Archive"><Archive className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                        isAdmin && <button onClick={(e) => handleArchiveCashbook(e, cb.id)} className="p-1 px-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded transition-all" title="Archive"><Archive className="w-3.5 h-3.5" /></button>
                                      ) : (
-                                        isAdmin && <button onClick={(e) => handleRestoreCashbook(e, cb.id)} className="p-2 md:p-3 bg-white border border-slate-100 text-slate-300 hover:text-emerald-500 rounded-xl transition-all shadow-sm active:scale-90" title="Restore"><RotateCcw className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                        isAdmin && <button onClick={(e) => handleRestoreCashbook(e, cb.id)} className="p-1 px-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded transition-all" title="Restore"><RotateCcw className="w-3.5 h-3.5" /></button>
                                      )}
+                                     <ArrowRightLeft className="w-3.5 h-3.5 text-slate-200" />
                                   </div>
                                </td>
                             </tr>

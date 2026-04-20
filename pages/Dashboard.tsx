@@ -322,15 +322,15 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="animate-in fade-in duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 md:px-10 pb-24">
+    <div className="animate-in fade-in duration-700 max-w-[1600px] mx-auto px-4 sm:px-6 md:px-10 pb-12">
       {/* Dashboard Top Header */}
-      <header className="sticky top-16 lg:top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-md py-6 sm:py-8 flex flex-col lg:flex-row justify-between items-center gap-4 lg:gap-8 border-b border-slate-50">
-        <div className="relative w-full lg:w-[450px]" ref={searchContainerRef}>
-           <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+      <header className="sticky top-16 lg:top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-md py-2 px-4 flex flex-col lg:flex-row justify-between items-center gap-2 lg:gap-4 border-b border-slate-100 shadow-sm transition-all">
+        <div className="relative w-full lg:w-[350px]" ref={searchContainerRef}>
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
            <input 
              type="text" 
-             placeholder="Search Leads or Projects..." 
-             className="w-full bg-white border border-slate-100 rounded-[24px] h-12 lg:h-14 pl-14 pr-12 text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-[#064e3b]/5 transition-all shadow-sm" 
+             placeholder="Search archive..." 
+             className="w-full bg-white border border-slate-200 rounded-lg h-8 pl-9 pr-8 text-xs font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/20 transition-all shadow-none" 
              value={searchQuery} 
              onFocus={() => setShowSearchResults(true)}
              onChange={(e) => {
@@ -340,35 +340,35 @@ const Dashboard = () => {
            />
            
            {showSearchResults && searchQuery.trim() !== '' && (
-             <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-slate-100 rounded-[32px] shadow-2xl z-[100] overflow-hidden">
-                <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
-                   <h5 className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-2">
-                     <CommandIcon className="w-3 h-3" /> Search Results
+             <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] overflow-hidden">
+                <div className="p-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                   <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                     <CommandIcon className="w-3 h-3" /> ARCHIVE SEARCH
                    </h5>
-                   <button onClick={() => setShowSearchResults(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-300"><X className="w-3.5 h-3.5" /></button>
+                   <button onClick={() => setShowSearchResults(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-300"><X className="w-3 h-3" /></button>
                 </div>
                 
-                <div className="max-h-[350px] overflow-y-auto no-scrollbar p-2 space-y-1">
+                <div className="max-h-[300px] overflow-y-auto no-scrollbar p-1 space-y-0.5">
                    {!hasAnyResults ? (
-                     <div className="py-12 text-center text-slate-300 uppercase text-[10px] font-black tracking-widest">No results found</div>
+                     <div className="py-8 text-center text-slate-200 uppercase text-[9px] font-black tracking-widest leading-none">Access Denied: No Records</div>
                    ) : (
                      <>
                         {searchResults.projects.map(p => (
-                          <button key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0"><Layers className="w-4 h-4" /></div>
-                            <span className="text-sm font-bold truncate">{p.name}</span>
+                          <button key={p.id} onClick={() => navigate(`/projects/${p.id}`)} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-3">
+                            <div className="w-7 h-7 bg-slate-50 text-slate-300 rounded flex items-center justify-center shrink-0"><Layers className="w-3.5 h-3.5" /></div>
+                            <span className="text-[12px] font-bold text-slate-700 truncate leading-none uppercase">{p.name}</span>
                           </button>
                         ))}
                         {searchResults.clients.map(c => (
-                          <button key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex items-center gap-3">
-                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0"><UserCheck className="w-4 h-4" /></div>
-                            <span className="text-sm font-bold truncate">{c.client_name}</span>
+                          <button key={c.id} onClick={() => navigate(`/leads/${c.id}`)} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-3">
+                            <div className="w-7 h-7 bg-emerald-50 text-emerald-600 rounded flex items-center justify-center shrink-0"><UserCheck className="w-3.5 h-3.5" /></div>
+                            <span className="text-[12px] font-bold text-slate-700 truncate leading-none uppercase">{c.client_name}</span>
                           </button>
                         ))}
                         {searchResults.leads.map(l => (
-                          <button key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex items-center gap-3">
-                            <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0"><FileText className="w-4 h-4" /></div>
-                            <span className="text-sm font-bold truncate">{l.client_name}</span>
+                          <button key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg flex items-center gap-3">
+                            <div className="w-7 h-7 bg-slate-100 text-slate-400 rounded flex items-center justify-center shrink-0"><FileText className="w-3.5 h-3.5" /></div>
+                            <span className="text-[12px] font-bold text-slate-700 truncate leading-none uppercase">{l.client_name}</span>
                           </button>
                         ))}
                      </>
@@ -379,26 +379,26 @@ const Dashboard = () => {
         </div>
         
         {/* Desktop Header Actions */}
-        <div className="hidden lg:flex items-center justify-between w-full lg:w-auto gap-4 lg:gap-6">
-          <div className="flex items-center gap-3">
-            <button onClick={() => fetchDashboardData(true)} className="p-3 lg:p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
-              <RefreshCw className={`w-5 lg:w-6 h-5 lg:h-5 text-slate-400 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
+        <div className="hidden lg:flex items-center justify-between w-full lg:w-auto gap-2">
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => fetchDashboardData(true)} className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all shadow-none">
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${syncing ? 'animate-spin text-emerald-600' : ''}`} />
             </button>
 
             <div className="relative" ref={notificationRef}>
-              <button onClick={() => setShowNotificationList(!showNotificationList)} className="p-3 lg:p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 shadow-sm relative">
-                <Bell className={`w-5 lg:w-6 h-5 lg:h-5 ${agendaItems.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
-                {agendaItems.length > 0 && <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-emerald-600 rounded-full border-2 border-white" />}
+              <button onClick={() => setShowNotificationList(!showNotificationList)} className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-none relative">
+                <Bell className={`w-3.5 h-3.5 ${agendaItems.length > 0 ? 'text-emerald-600 animate-pulse' : 'text-slate-400'}`} />
+                {agendaItems.length > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-emerald-600 rounded-full border border-white" />}
               </button>
               {showNotificationList && (
-                <div className="absolute top-[calc(100%+8px)] right-0 w-72 lg:w-80 bg-white border border-slate-100 rounded-[28px] shadow-2xl z-[100] overflow-hidden">
-                   <div className="p-4 bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-500">Today's Tasks</div>
-                   <div className="max-h-64 overflow-y-auto no-scrollbar p-2">
-                     {agendaItems.length === 0 ? <p className="p-8 text-center text-xs text-slate-300 uppercase font-black tracking-widest">No tasks today</p> : 
+                <div className="absolute top-[calc(100%+4px)] right-0 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl z-[100] overflow-hidden">
+                   <div className="p-2 bg-slate-50 border-b text-[9px] font-black uppercase tracking-widest text-slate-500 leading-none">Today's Agenda</div>
+                   <div className="max-h-60 overflow-y-auto no-scrollbar p-1">
+                     {agendaItems.length === 0 ? <p className="p-6 text-center text-[9px] text-slate-200 uppercase font-black tracking-widest uppercase">Agenda Clear</p> : 
                       agendaItems.map(i => (
-                        <div key={i.id} onClick={() => navigate(i.type === 'visit' ? `/site-visits/${i.id}` : `/leads/${i.id}`)} className="p-3 hover:bg-slate-50 rounded-2xl cursor-pointer flex items-center gap-3">
-                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${i.type === 'visit' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>{i.type === 'visit' ? <MapPin className="w-5 h-5" /> : <Target className="w-5 h-5" />}</div>
-                           <span className="text-sm font-bold truncate">{i.name}</span>
+                        <div key={i.id} onClick={() => navigate(i.type === 'visit' ? `/site-visits/${i.id}` : `/leads/${i.id}`)} className="p-2 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2.5">
+                           <div className={`w-7 h-7 rounded flex items-center justify-center shrink-0 ${i.type === 'visit' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>{i.type === 'visit' ? <MapPin className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}</div>
+                           <span className="text-[11px] font-bold text-slate-700 truncate leading-none uppercase">{i.name}</span>
                         </div>
                       ))
                      }
@@ -408,143 +408,139 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pl-4 lg:pl-6 border-l border-slate-200">
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
             <div className="text-right hidden sm:block">
-              <p className="text-[13px] lg:text-[14px] font-black text-slate-900 leading-none">{profile?.full_name || 'Member'}</p>
-              <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Staff Access</p>
+              <p className="text-[12px] font-bold text-slate-900 leading-none uppercase tracking-tight">{profile?.full_name?.split(' ')[0] || 'REDACTED'}</p>
+              <p className="text-[8px] text-slate-300 font-bold uppercase tracking-widest mt-1 leading-none">OPERATIVE</p>
             </div>
             <img 
               src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.email || 'Arch'}`} 
-              className="w-10 lg:w-12 h-10 lg:h-12 rounded-xl lg:rounded-2xl border-2 border-white shadow-lg bg-white cursor-pointer object-cover"
+              className="w-9 h-9 rounded-lg border border-white shadow-sm bg-white cursor-pointer object-cover"
               alt="Avatar"
               onClick={() => navigate('/settings')}
             />
           </div>
         </div>
 
-        <div className="lg:hidden w-full h-2"></div>
+        <div className="lg:hidden w-full h-1"></div>
       </header>
 
-      <div className="pt-8 space-y-12">
+      <div className="pt-4 space-y-6">
         {/* MOBILE ICON NAVIGATION GRID */}
         <section className="lg:hidden animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Quick Links</h2>
-            <div className="h-px flex-1 bg-slate-100 ml-4"></div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-300">Quick Portal</h2>
+            <div className="h-[1px] flex-1 bg-slate-100 ml-4"></div>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
             {mobileNavItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-3 p-4 bg-white border border-slate-50 rounded-[24px] shadow-sm active:scale-95 active:bg-slate-50 transition-all group"
+                className="flex flex-col items-center gap-1.5 p-2 bg-white border border-slate-100 rounded-xl shadow-none active:scale-95 active:bg-slate-50 transition-all group"
               >
-                <div className={`w-12 h-12 ${item.color} rounded-2xl flex items-center justify-center shadow-sm group-active:shadow-inner`}>
-                  <item.icon className="w-6 h-6" />
+                <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center shadow-none`}>
+                  <item.icon className="w-4 h-4" />
                 </div>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.name}</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-none truncate w-full text-center">{item.name}</span>
               </button>
             ))}
           </div>
         </section>
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <div className="flex flex-row justify-between items-center gap-3 mb-4 px-1">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System Dashboard</h1>
-            <p className="text-slate-500 text-sm font-medium mt-1">Enterprise Overview & Operations Monitoring</p>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none uppercase">COMMAND CENTER</h1>
+            <p className="text-slate-400 text-[8px] font-black uppercase tracking-[0.2em] mt-1.5 leading-none flex items-center gap-1.5">
+               <Activity className="w-3 h-3 text-emerald-500" /> Operational Matrix
+            </p>
           </div>
-          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 shadow-none">
             <button 
               onClick={() => navigate('/leads/new')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-md text-[8px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-none leading-none"
             >
-              <PlusCircle className="w-4 h-4" /> New Lead
-            </button>
-            <button 
-              onClick={() => fetchDashboardData(true)}
-              className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-            >
-              <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+              <PlusCircle className="w-3 h-3" /> LEAD
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {[
-            { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Active Projects', val: stats.activeProjects, icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Total Clients', val: stats.validatedClients, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'Project Count', val: stats.completed, icon: CheckCircle2, color: 'text-slate-600', bg: 'bg-slate-100' }
+            { label: 'Leads', val: stats.totalLeads, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Active', val: stats.activeProjects, icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Clients', val: stats.validatedClients, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+            { label: 'History', val: stats.completed, icon: CheckCircle2, color: 'text-slate-600', bg: 'bg-slate-100' }
           ].map((s, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className={`w-12 h-12 ${s.bg} ${s.color} rounded-xl flex items-center justify-center`}>
-                  <s.icon className="w-5 h-5" />
+            <div key={i} className="bg-white p-3 rounded-xl border border-slate-100 shadow-none transition-all group hover:border-slate-300">
+              <div className="flex justify-between items-start mb-2">
+                <div className={`w-7 h-7 ${s.bg} ${s.color} rounded flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <s.icon className="w-3.5 h-3.5" />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-slate-900 transition-colors" />
+                <ArrowUpRight className="w-3 h-3 text-slate-200 group-hover:text-slate-900 transition-colors" />
               </div>
-              <p className="text-3xl font-bold text-slate-900 tracking-tight mb-1">{s.val}</p>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{s.label}</p>
+              <p className="text-xl font-bold text-slate-900 mb-0.5 tracking-tighter">{s.val}</p>
+              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none group-hover:text-slate-500">{s.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
           {/* Charts Section */}
-          <div className="xl:col-span-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="xl:col-span-8 bg-white p-4 rounded-xl border border-slate-100 shadow-none space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <h4 className="text-lg font-bold text-slate-900 tracking-tight">Performance Metrics</h4>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-1">Lead & Project Pipeline</p>
+                <h4 className="text-xs font-bold text-slate-900 tracking-tight uppercase leading-none">Operational Rhythm</h4>
+                <p className="text-[8px] text-slate-300 font-black uppercase tracking-widest mt-1.5 leading-none italic">Throughput Analytics</p>
               </div>
-              <div className="bg-slate-50 p-1 rounded-xl flex w-full sm:w-auto">
+              <div className="bg-slate-50 p-0.5 rounded-lg flex w-full sm:w-auto overflow-hidden border border-slate-100">
                   {['Weekly', 'Monthly', 'Yearly'].map(v => (
                       <button 
                         key={v} 
                         onClick={() => setTimeframe(v as any)} 
-                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timeframe === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`flex-1 sm:flex-none px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-wider transition-all leading-none ${timeframe === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                       >
                         {v}
                       </button>
                   ))}
               </div>
             </div>
-            <div className="h-80 w-full">
+            <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analyticsData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }} />
-                  <Bar dataKey="Leads" fill="#60a5fa" radius={[4, 4, 0, 0]} barSize={8} />
-                  <Bar dataKey="Clients" fill="#10b981" radius={[4, 4, 0, 0]} barSize={8} />
-                  <Bar dataKey="Projects" fill="#0f172a" radius={[4, 4, 0, 0]} barSize={8} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 700}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 700}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '8px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', padding: '8px' }} labelStyle={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }} itemStyle={{ fontSize: '10px', fontWeight: 700, padding: 0 }} />
+                  <Bar dataKey="Leads" fill="#60a5fa" radius={[2, 2, 0, 0]} barSize={6} />
+                  <Bar dataKey="Clients" fill="#10b981" radius={[2, 2, 0, 0]} barSize={6} />
+                  <Bar dataKey="Projects" fill="#0f172a" radius={[2, 2, 0, 0]} barSize={6} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Calendar Section */}
-          <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="xl:col-span-4 bg-white rounded-xl border border-slate-100 shadow-none flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
               <div>
-                <h4 className="text-lg font-bold text-slate-900 tracking-tight">Calendar</h4>
-                <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider mt-1">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                <h4 className="text-xs font-bold text-slate-900 tracking-tight uppercase leading-none">Engagement log</h4>
+                <p className="text-[8px] font-black uppercase text-blue-600 tracking-widest mt-1.5 leading-none">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
               </div>
-              <div className="flex gap-1">
-                <button onClick={handlePrevMonth} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"><ChevronLeft className="w-4 h-4" /></button>
-                <button onClick={handleNextMonth} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"><ChevronRight className="w-4 h-4" /></button>
+              <div className="flex gap-0.5">
+                <button onClick={handlePrevMonth} className="p-1 text-slate-300 hover:text-slate-900 hover:bg-white rounded transition-all"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                <button onClick={handleNextMonth} className="p-1 text-slate-300 hover:text-slate-900 hover:bg-white rounded transition-all"><ChevronRight className="w-3.5 h-3.5" /></button>
               </div>
             </div>
             
-            <div className="p-6 grid grid-cols-7 gap-1">
+            <div className="p-3 grid grid-cols-7 gap-0.5 border-b border-slate-100 bg-white">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
-                <div key={`${d}-${idx}`} className="text-center text-[10px] font-bold text-slate-400 uppercase py-2">{d}</div>
+                <div key={`${d}-${idx}`} className="text-center text-[8px] font-black text-slate-300 uppercase py-1">{d}</div>
               ))}
               {calendarDays.map((day, i) => {
-                if (day === null) return <div key={`empty-${i}`} className="h-10" />;
+                if (day === null) return <div key={`empty-${i}`} className="h-7" />;
                 const dateKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 const isSelected = selectedDate === dateKey;
                 const isToday = day === new Date().getDate() && 
@@ -555,38 +551,38 @@ const Dashboard = () => {
                   <button 
                     key={i} 
                     onClick={() => setSelectedDate(dateKey)}
-                    className={`h-10 relative flex items-center justify-center text-sm font-semibold rounded-xl transition-all ${
-                      isSelected ? 'bg-slate-900 text-white shadow-md' : 
-                      isToday ? 'text-blue-600 bg-blue-50' : 
-                      'hover:bg-slate-50 text-slate-600'
+                    className={`h-7 relative flex items-center justify-center text-[10px] font-bold rounded transition-all ${
+                      isSelected ? 'bg-slate-900 text-white shadow-none' : 
+                      isToday ? 'text-blue-600 bg-blue-50/50' : 
+                      'hover:bg-slate-50 text-slate-500'
                     }`}
                   >
                     {day}
-                    {(calendarData[dateKey]?.siteVisits.length || 0) > 0 && <div className={`absolute bottom-1.5 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500'}`} />}
+                    {(calendarData[dateKey]?.siteVisits.length || 0) > 0 && <div className={`absolute bottom-0.5 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500'}`} />}
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex-1 p-6 space-y-4 overflow-y-auto max-h-[300px] no-scrollbar border-t border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed bg-slate-50/10">
+            <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[180px] no-scrollbar italic text-[9px] font-medium text-slate-400 leading-relaxed bg-slate-50/20">
                {selectedDayStats.followUps.length === 0 && selectedDayStats.siteVisits.length === 0 ? (
-                 <div className="py-6 text-center">
-                   <Clock className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">No Events Scheduled</p>
+                 <div className="py-8 text-center grayscale opacity-50">
+                   <Clock className="w-6 h-6 text-slate-200 mx-auto mb-2" />
+                   <p className="text-[8px] text-slate-300 font-bold uppercase tracking-widest">Logs Empty</p>
                  </div>
                ) : (
-                 <div className="space-y-2">
+                 <div className="space-y-1.5">
                     {selectedDayStats.siteVisits.map(v => (
                       <div 
                         key={v.id} 
-                        className="p-4 bg-white rounded-xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-slate-300 shadow-sm transition-all" 
+                        className="p-2.5 bg-white rounded-lg border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all" 
                         onClick={() => navigate(`/site-visits/${v.id}`)}
                       >
-                         <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><MapPin className="w-4 h-4" /></div>
-                           <span className="text-xs font-bold text-slate-700 truncate max-w-[140px]">{v.name}</span>
+                         <div className="flex items-center gap-2">
+                           <div className="w-6 h-6 bg-blue-50 text-blue-600 rounded flex items-center justify-center"><MapPin className="w-3.5 h-3.5" /></div>
+                           <span className="text-[11px] font-bold text-slate-700 truncate max-w-[140px] uppercase leading-none">{v.name}</span>
                          </div>
-                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-all" />
+                         <ArrowUpRight className="w-3 h-3 text-slate-200 group-hover:text-slate-900 transition-all" />
                       </div>
                     ))}
                  </div>
