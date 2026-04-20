@@ -540,48 +540,45 @@ const Finance = () => {
           </div>
         </header>
 
-        {/* COMPACT HERO STATS - ENFORCED ONE ROW */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8">
-             <div className="bg-white p-3 sm:p-6 md:p-10 rounded-2xl sm:rounded-[32px] md:rounded-[56px] border border-slate-100 shadow-lg relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
-                <div className="flex items-center justify-between mb-3 sm:mb-8">
-                  <div className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-sm">
-                    <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+        {/* Totals Summary */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6" />
                   </div>
-                  <div className="hidden sm:flex items-center gap-1.5 text-emerald-600 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
-                    <ArrowUpRight className="w-3.5 h-3.5" /> REVENUE
+                  <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold uppercase tracking-wider">
+                    <ArrowUpRight className="w-4 h-4" /> Revenue
                   </div>
                 </div>
-                <p className="text-[7px] sm:text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-widest">Total In</p>
-                <h3 className="text-[12px] sm:text-2xl md:text-4xl font-black text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.in.toLocaleString()}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Inflow</p>
+                <h3 className="text-3xl font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.in.toLocaleString()}</h3>
              </div>
 
-             <div className="bg-white p-3 sm:p-6 md:p-10 rounded-2xl sm:rounded-[32px] md:rounded-[56px] border border-slate-100 shadow-lg relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-2xl rounded-full" />
-                <div className="flex items-center justify-between mb-3 sm:mb-8">
-                  <div className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-rose-50 text-rose-600 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-sm">
-                    <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-6 h-6" />
                   </div>
-                  <div className="hidden sm:flex items-center gap-1.5 text-rose-600 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
-                    <ArrowDownRight className="w-3.5 h-3.5" /> COSTS
+                  <div className="flex items-center gap-1.5 text-rose-600 text-xs font-bold uppercase tracking-wider">
+                    <ArrowDownRight className="w-4 h-4" /> Costs
                   </div>
                 </div>
-                <p className="text-[7px] sm:text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-widest">Total Out</p>
-                <h3 className="text-[12px] sm:text-2xl md:text-4xl font-black text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.out.toLocaleString()}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Outflow</p>
+                <h3 className="text-3xl font-bold text-slate-900 mt-1 tracking-tight truncate">Tk. {totals.out.toLocaleString()}</h3>
              </div>
 
-             <div className="bg-[#0f172a] p-3 sm:p-6 md:p-10 rounded-2xl sm:rounded-[32px] md:rounded-[56px] border border-white/5 shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 blur-2xl rounded-full" />
-                <div className="flex items-center justify-between mb-3 sm:mb-8">
-                  <div className="w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-white/5 border border-white/10 text-emerald-400 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-sm">
-                    <Wallet className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+             <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="w-12 h-12 bg-white/10 text-emerald-400 rounded-xl flex items-center justify-center">
+                    <Wallet className="w-6 h-6" />
                   </div>
-                  <div className="hidden sm:flex items-center gap-1.5 text-emerald-400 text-[8px] md:text-[10px] font-black uppercase tracking-widest">
-                    <ShieldCheck className="w-3.5 h-3.5" /> SECURE
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                    <ShieldCheck className="w-4 h-4" /> Secure
                   </div>
                 </div>
-                <p className="text-[7px] sm:text-[9px] md:text-[11px] font-black text-white/30 uppercase tracking-widest">Net Balance</p>
-                <h3 className="text-[12px] sm:text-2xl md:text-4xl font-black text-white mt-1 tracking-tight truncate">Tk. {totals.balance.toLocaleString()}</h3>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Net Balance</p>
+                <h3 className="text-3xl font-bold text-white mt-1 tracking-tight truncate">Tk. {totals.balance.toLocaleString()}</h3>
              </div>
         </div>
 

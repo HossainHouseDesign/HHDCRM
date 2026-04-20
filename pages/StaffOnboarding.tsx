@@ -239,205 +239,220 @@ const StaffOnboarding = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-12 pb-32 animate-in slide-in-from-bottom-6">
-      <header className="flex items-center gap-6 mb-12">
-        <button onClick={() => navigate('/team')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft className="w-5 h-5" /></button>
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{isEditing ? 'Update Member' : 'Add New Member'}</h1>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">FIRM ACCOUNT SETUP</p>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50/50 pb-32 animate-in fade-in duration-500 text-slate-900">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <header className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-4">
+             <button onClick={() => navigate('/team')} className="p-2.5 hover:bg-white rounded-xl border border-transparent hover:border-slate-200 transition-all text-slate-400 hover:text-slate-900">
+                <ArrowLeft className="w-5 h-5" />
+             </button>
+             <div>
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{isEditing ? 'Modify Personnel' : 'Initialize Staff Member'}</h1>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Personnel Management Registry</p>
+             </div>
+          </div>
+          <div className={`p-3 rounded-2xl border ${isEditing ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+             {isEditing ? <Edit3 className="w-6 h-6" /> : <UserPlus className="w-6 h-6" />}
+          </div>
+        </header>
 
-      <form onSubmit={handleSubmit} className="space-y-12">
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-2xl p-10 md:p-14 space-y-10 relative overflow-hidden">
-          <h3 className="text-[11px] font-black text-[#064e3b] uppercase tracking-widest flex items-center gap-3"><UserCircle className="w-5 h-5" /> Identification & Access</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-              <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+        <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Identity Section */}
+          <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-6 mb-2">
+               <Contact className="w-5 h-5 text-emerald-500" />
+               <h2 className="text-lg font-bold text-slate-900 tracking-tight">Personnel Identity</h2>
             </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-              <input required type="email" className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Title</label>
-              <input required className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" placeholder="e.g. Senior Architect" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Password</label>
-              <div className="relative">
-                <input required type={showPassword ? 'text' : 'password'} className="w-full h-14 pl-6 pr-24 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-2 text-slate-300 hover:text-slate-600 transition-all">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
-                  <button type="button" onClick={generatePassword} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" title="Create New Password"><Wand2 className="w-4 h-4" /></button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Full Name</label>
+                <div className="relative group">
+                  <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 transition-colors" />
+                  <input
+                    type="text"
+                    className="w-full h-12 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                    placeholder="Enter full name"
+                    value={formData.full_name}
+                    onChange={e => setFormData(p => ({ ...p, full_name: e.target.value }))}
+                  />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[48px] border border-slate-100 shadow-xl p-10 md:p-14 space-y-12">
-          <div className="flex items-center gap-4 border-b border-slate-50 pb-6">
-             <ShieldCheck className="w-6 h-6 text-emerald-500" />
-             <div>
-                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Access Control</h3>
-                <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">SELECT FEATURES THIS MEMBER CAN ACCESS</p>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-             {modules.map((m) => {
-               const modPerms = permissions[m.key] || { view: false, create: false, edit: false, delete: false, see_contact: false };
-               const isAnyEnabled = modPerms.view || modPerms.create || modPerms.edit || modPerms.delete || modPerms.see_contact;
-
-               return (
-                 <div key={m.key} className={`p-8 rounded-[40px] border transition-all space-y-6 ${isAnyEnabled ? 'bg-white border-emerald-500/30 shadow-xl ring-4 ring-emerald-500/5' : 'bg-slate-50/20 border-slate-100'}`}>
-                    <div 
-                      onClick={() => handleMasterToggle(m.key)}
-                      className="flex items-center gap-4 border-b border-slate-50 pb-4 cursor-pointer group/header"
-                    >
-                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isAnyEnabled ? 'bg-[#064e3b] text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover/header:bg-slate-200'}`}>
-                          <m.icon className="w-6 h-6" />
-                       </div>
-                       <div className="text-left flex-1 min-w-0">
-                          <span className={`text-[15px] font-black block leading-tight truncate transition-colors ${isAnyEnabled ? 'text-slate-900' : 'text-slate-400'}`}>{m.label}</span>
-                          <span className={`text-[8px] font-black uppercase tracking-widest ${isAnyEnabled ? 'text-emerald-600' : 'text-slate-300'}`}>{isAnyEnabled ? 'Feature Enabled' : 'Feature Locked'}</span>
-                       </div>
-                       <button 
-                         type="button"
-                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isAnyEnabled ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/header:border-emerald-300'}`}
-                       >
-                          <Check className="w-3.5 h-3.5" />
-                       </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                       {[
-                         { key: 'view', label: 'Only View', icon: Eye },
-                         { key: 'create', label: 'Can Add', icon: UserPlus },
-                         { key: 'edit', label: 'Can Edit', icon: Edit3 },
-                         { key: 'delete', label: 'Can Erase', icon: Trash2 },
-                       ].map(action => (
-                         <button
-                           key={action.key}
-                           type="button"
-                           onClick={() => handleToggleModuleAction(m.key, action.key)}
-                           className={`flex items-center gap-2.5 p-3 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${modPerms[action.key] ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:border-emerald-100 hover:text-emerald-400'}`}
-                         >
-                            <action.icon className="w-3.5 h-3.5" />
-                            {action.label}
-                         </button>
-                       ))}
-                       {m.hasContact && (
-                         <button
-                           type="button"
-                           onClick={() => handleToggleModuleAction(m.key, 'see_contact')}
-                           className={`col-span-2 flex items-center justify-center gap-2.5 p-3 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${modPerms.see_contact ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:border-blue-100 hover:text-blue-400'}`}
-                         >
-                            <Contact className="w-3.5 h-3.5" />
-                            View Client Contacts
-                         </button>
-                       )}
-                    </div>
-                 </div>
-               );
-             })}
-
-             <div className={`p-8 rounded-[40px] border transition-all flex flex-col justify-between ${permissions.settings?.access ? 'bg-white border-amber-500/30 shadow-xl ring-4 ring-amber-500/5' : 'bg-slate-50/20 border-slate-100'}`}>
-                <div 
-                  onClick={toggleSettingsAccess}
-                  className="flex items-center gap-4 border-b border-slate-50 pb-4 cursor-pointer group/settings"
-                >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 group-hover/settings:bg-slate-200'}`}>
-                       <Settings className="w-6 h-6" />
-                    </div>
-                    <div className="text-left flex-1">
-                       <span className={`text-[15px] font-black block leading-tight transition-colors ${permissions.settings?.access ? 'text-slate-900' : 'text-slate-400'}`}>Admin Settings</span>
-                       <span className={`text-[8px] font-black uppercase tracking-widest ${permissions.settings?.access ? 'text-amber-600' : 'text-slate-300'}`}>Management Rights</span>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${permissions.settings?.access ? 'bg-amber-50 border-amber-500 text-white' : 'bg-white border-slate-200 text-transparent group-hover/settings:border-amber-300'}`}>
-                        <Check className="w-3.5 h-3.5" />
-                    </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Official Designation</label>
+                <div className="relative group">
+                  <Wand2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 transition-colors" />
+                  <input
+                    type="text"
+                    className="w-full h-12 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                    placeholder="e.g. Project Manager"
+                    value={formData.designation}
+                    onChange={e => setFormData(p => ({ ...p, designation: e.target.value }))}
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleSettingsAccess}
-                  className={`w-full flex items-center justify-center gap-3 p-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all mt-6 ${permissions.settings?.access ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm' : 'bg-white border-slate-100 text-slate-300 hover:text-amber-500'}`}
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Phone Number</label>
+                <input
+                  type="text"
+                  className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                  placeholder="01XXXXXXXXX"
+                  value={formData.phone}
+                  onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Official Email</label>
+                <input
+                  type="email"
+                  className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                  placeholder="staff@hhd.com"
+                  value={formData.email}
+                  disabled={isEditing}
+                  onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Access Credentials</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 transition-colors" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="w-full h-12 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                    placeholder="Minimum 6 characters"
+                    value={formData.password}
+                    onChange={e => setFormData(p => ({ ...p, password: e.target.value }))}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Platform Role</label>
+                <select
+                  className="w-full h-12 px-5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer"
+                  value={formData.role}
+                  onChange={e => setFormData(p => ({ ...p, role: e.target.value as UserRole }))}
                 >
-                   <Shield className="w-4 h-4" />
-                   {permissions.settings?.access ? 'Access Allowed' : 'Access Restricted'}
-                </button>
-             </div>
-          </div>
+                  <option value="staff">Standard Personnel</option>
+                  <option value="admin">System Administrator</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* Permissions Grid */}
+          <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-6 mb-2">
+               <ShieldCheck className="w-5 h-5 text-blue-500" />
+               <h2 className="text-lg font-bold text-slate-900 tracking-tight">Access Permissions</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {modules.map(module => {
+                const modPerms = permissions[module.key] || { view: false, create: false, edit: false, delete: false, see_contact: false };
+                const isAnyEnabled = modPerms.view || modPerms.create || modPerms.edit || modPerms.delete || modPerms.see_contact;
+
+                return (
+                <div key={module.key} className={`p-5 rounded-2xl border transition-all ${isAnyEnabled ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 opacity-60'}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <module.icon className={`w-4 h-4 ${isAnyEnabled ? 'text-slate-900' : 'text-slate-300'}`} />
+                      <span className="text-sm font-bold text-slate-900">{module.label}</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={isAnyEnabled} onChange={() => handleMasterToggle(module.key)} />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+                  
+                  {isAnyEnabled && (
+                    <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100">
+                      {[ 
+                        { k: 'view', l: 'View' }, { k: 'create', l: 'Add' }, { k: 'edit', l: 'Edit' }, 
+                        { k: 'delete', l: 'Del' }
+                      ].map(p => (
+                        <button
+                          key={p.k}
+                          type="button"
+                          onClick={() => handleToggleModuleAction(module.key, p.k)}
+                          className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center justify-center gap-1.5 border ${modPerms[p.k] ? 'bg-white border-emerald-200 text-emerald-700 shadow-sm' : 'bg-slate-100 border-transparent text-slate-400 opacity-50'}`}
+                        >
+                          {modPerms[p.k] ? <Check className="w-3 h-3" /> : null}
+                          {p.l}
+                        </button>
+                      ))}
+                      {module.hasContact && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleModuleAction(module.key, 'see_contact')}
+                          className={`col-span-2 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center justify-center gap-1.5 border ${modPerms.see_contact ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-slate-100 border-transparent text-slate-400 opacity-50'}`}
+                        >
+                          {modPerms.see_contact ? <Check className="w-3 h-3" /> : null}
+                          View Contacts
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                )})}
+              
+              {/* Settings Access */}
+              <div className={`p-5 rounded-2xl border transition-all ${permissions.settings?.access ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-100 opacity-60'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Settings className={`w-4 h-4 ${permissions.settings?.access ? 'text-emerald-400' : 'text-slate-300'}`} />
+                    <span className={`text-sm font-bold ${permissions.settings?.access ? 'text-white' : 'text-slate-900'}`}>System Settings</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={permissions.settings?.access} onChange={toggleSettingsAccess} />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+                <p className={`text-[10px] font-medium mt-2 leading-relaxed ${permissions.settings?.access ? 'text-white/40' : 'text-slate-400'}`}>Allows modification of global configurations and user roles.</p>
+              </div>
+            </div>
+          </section>
 
           {permissions.finance?.view && (
-            <div className="pt-12 mt-12 border-t border-slate-100 space-y-8 animate-in fade-in slide-in-from-top-4 duration-500">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                      <BookOpen className="w-6 h-6 text-emerald-600" /> Cashbook Access
-                    </h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">SELECT INDIVIDUAL CASHBOOKS AUTHORIZED FOR THIS MEMBER</p>
-                  </div>
-                  <div className="relative w-full md:w-64 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-500" />
-                    <input 
-                      type="text" 
-                      placeholder="Search cashbooks..." 
-                      className="w-full h-12 pl-11 pr-4 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 focus:bg-white outline-none transition-all"
-                      value={cashbookSearch}
-                      onChange={e => setCashbookSearch(e.target.value)}
-                    />
-                  </div>
+             <section className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
+               <div className="flex items-center gap-3 border-b border-slate-100 pb-6 mb-2">
+                  <BookOpen className="w-5 h-5 text-emerald-500" />
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">Fund Permissions</h2>
                </div>
-
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCashbooks.length === 0 ? (
-                    <div className="col-span-full py-10 text-center bg-slate-50 rounded-[32px] border border-dashed border-slate-200">
-                      <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">No matching funds found</p>
-                    </div>
-                  ) : filteredCashbooks.map(cb => {
-                    const isSelected = selectedCashbooks.includes(cb.id);
+               
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableCashbooks.map(cb => {
+                    const active = selectedCashbooks.includes(cb.id);
                     return (
                       <button 
                         key={cb.id} 
                         type="button" 
                         onClick={() => toggleCashbook(cb.id)}
-                        className={`p-6 rounded-[32px] border transition-all text-left flex items-start justify-between group ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white shadow-xl shadow-emerald-900/10 scale-[1.02]' : 'bg-white border-slate-100 text-slate-500 hover:border-emerald-200 hover:bg-emerald-50/10'}`}
+                        className={`p-4 rounded-xl border text-left flex items-center justify-between transition-all ${active ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400 hover:bg-white'}`}
                       >
-                         <div className="space-y-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-500'}`}>
-                               <Banknote className="w-5 h-5" />
-                            </div>
-                            <div>
-                               <p className={`text-sm font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>{cb.name}</p>
-                               <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>{cb.description} Fund</p>
-                            </div>
-                         </div>
-                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-white border-white text-emerald-600' : 'bg-white border-slate-100 text-transparent'}`}>
-                            <Check className="w-4 h-4" />
-                         </div>
+                        <span className="text-xs font-bold truncate pr-4">{cb.name}</span>
+                        {active && <Check className="w-4 h-4 shrink-0" />}
                       </button>
-                    );
+                    )
                   })}
                </div>
-            </div>
+             </section>
           )}
 
-          <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 flex items-start gap-4">
-             <ShieldAlert className="w-6 h-6 text-slate-300 shrink-0" />
-             <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-               Security Notice: Management rights define exactly what this member can see and do. Administrators automatically have full access to all features and cashbooks.
-             </p>
-          </div>
-        </div>
-
-        <button type="submit" disabled={saving} className="w-full py-8 bg-[#064e3b] text-white rounded-[32px] text-[12px] font-black uppercase tracking-[0.3em] shadow-xl flex items-center justify-center gap-4 hover:bg-black transition-all active:scale-95 disabled:opacity-50">
-          {saving ? <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" /> : <ShieldCheck className="w-6 h-6 text-emerald-400" />}
-          Save Member Details
-        </button>
-      </form>
+          <footer className="pt-8">
+             <button
+               type="submit"
+               disabled={saving}
+               className={`w-full h-14 rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${saving ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl'}`}
+             >
+               {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
+               {isEditing ? 'Authorize Personnel Update' : 'Finalize Boarding Process'}
+             </button>
+          </footer>
+        </form>
+      </div>
     </div>
   );
 };

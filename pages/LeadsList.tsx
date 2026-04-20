@@ -142,50 +142,45 @@ const LeadsList = () => {
          z-[50] ensures it's above content but below mobile side-nav/popups.
       */}
       <div className="sticky top-16 lg:top-0 z-[50] bg-[#f8fafc]">
-        {/* Floating White Control Hub */}
-        <div className="bg-white border-b border-slate-100 shadow-2xl shadow-slate-200/40 rounded-b-[40px] px-5 py-6 md:px-10">
-          <div className="max-w-[1600px] mx-auto space-y-6">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black text-[#0f172a] tracking-tight leading-none">Lead Portfolio</h1>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-                   <Home className="w-3.5 h-3.5" /> ARCHITECTURAL DISCOVERY
-                </p>
-              </div>
-              <Link to="/leads/new" className="w-full md:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                <Plus className="w-5 h-5" /> New Lead
-              </Link>
-            </header>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lead Portfolio</h1>
+            <p className="text-slate-500 text-sm font-medium mt-1 uppercase tracking-wider flex items-center gap-2">
+               <Home className="w-4 h-4 text-emerald-500" /> Architectural Discovery
+            </p>
+          </div>
+          <Link to="/leads/new" className="w-full md:w-auto flex items-center justify-center gap-3 px-8 py-3.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-sm hover:bg-slate-800 transition-all">
+            <Plus className="w-4 h-4" /> New Lead
+          </Link>
+        </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {(['All', 'Discovery', 'Follow_Up', 'Quotation', 'Rejected'] as (LeadStatus | 'All')[]).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setActiveStatus(status)}
-                    className={`whitespace-nowrap px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${activeStatus === status ? 'bg-[#0f172a] text-white border-transparent shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
-                  >
-                    {status === 'All' ? 'All' : status.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8 space-y-6">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {(['All', 'Discovery', 'Follow_Up', 'Quotation', 'Rejected'] as (LeadStatus | 'All')[]).map((status) => (
+              <button
+                key={status}
+                onClick={() => setActiveStatus(status)}
+                className={`whitespace-nowrap px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${activeStatus === status ? 'bg-slate-900 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+              >
+                {status === 'All' ? 'All' : status.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div className="md:col-span-8 relative group">
-                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
-                   <input 
-                     type="text" 
-                     placeholder="Search leads..."
-                     className="w-full h-14 pl-14 pr-6 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:bg-white transition-all shadow-inner"
-                     value={search} 
-                     onChange={(e) => setSearch(e.target.value)}
-                   />
-                </div>
-                <div className="md:col-span-4 flex items-center gap-2">
-                  <button onClick={() => setFilterConst(!filterConst)} className={`flex-1 h-14 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all ${filterConst ? 'bg-emerald-600 text-white border-transparent shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}>Construction</button>
-                  <button onClick={() => setFilterInt(!filterInt)} className={`flex-1 h-14 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all ${filterInt ? 'bg-blue-600 text-white border-transparent shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}>Interior</button>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-8 relative group">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-600 transition-colors" />
+               <input 
+                 type="text" 
+                 placeholder="Search by client name or phone..."
+                 className="w-full h-12 pl-12 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:bg-white focus:border-emerald-500 transition-all"
+                 value={search} 
+                 onChange={(e) => setSearch(e.target.value)}
+               />
+            </div>
+            <div className="md:col-span-4 flex items-center gap-2">
+              <button onClick={() => setFilterConst(!filterConst)} className={`flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${filterConst ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>Construction</button>
+              <button onClick={() => setFilterInt(!filterInt)} className={`flex-1 h-12 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${filterInt ? 'bg-blue-600 text-white border-transparent' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}>Interior</button>
             </div>
           </div>
         </div>
@@ -250,16 +245,16 @@ const LeadsList = () => {
             </div>
 
             {/* Desktop View Table */}
-            <div className="hidden lg:block bg-white rounded-[56px] border border-slate-100 shadow-xl overflow-hidden mb-20">
+            <div className="hidden lg:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-20">
               <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left min-w-[1200px] border-separate border-spacing-0">
+                <table className="w-full text-left min-w-[1000px] border-separate border-spacing-0">
                   <thead className="bg-slate-50/50">
-                    <tr className="text-slate-400 text-[10px] uppercase font-black tracking-[0.25em]">
-                      <th className="px-12 py-8 border-b border-slate-100">Client Entity</th>
-                      <th className="px-12 py-8 border-b border-slate-100">Interests</th>
-                      <th className="px-12 py-8 border-b border-slate-100">Staff</th>
-                      <th className="px-12 py-8 border-b border-slate-100">Status</th>
-                      <th className="px-12 py-8 border-b border-slate-100 text-right">View</th>
+                    <tr className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+                      <th className="px-8 py-5 border-b border-slate-100">Client Entity</th>
+                      <th className="px-8 py-5 border-b border-slate-100">Interests</th>
+                      <th className="px-8 py-5 border-b border-slate-100">Assigned Staff</th>
+                      <th className="px-8 py-5 border-b border-slate-100">Process Status</th>
+                      <th className="px-8 py-5 border-b border-slate-100 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -268,37 +263,37 @@ const LeadsList = () => {
                       const statusInfo = statusMap[l.status] || { label: 'Unknown', color: 'bg-slate-50' };
                       return (
                         <tr key={l.id} onClick={() => navigate(`/leads/${l.id}`)} className="hover:bg-slate-50/50 transition-all cursor-pointer group">
-                          <td className="px-12 py-9">
-                             <p className="text-[9px] font-black text-slate-300 uppercase mb-2">#{l.id.slice(0,6).toUpperCase()}</p>
-                             <p className="text-[16px] font-black text-slate-900 group-hover:text-[#064e3b] transition-colors">{l.client_name}</p>
-                             <p className="text-[12px] text-slate-400 font-bold mt-2 flex items-center gap-2"><Phone className="w-4 h-4 text-emerald-500" /> {l.phone}</p>
+                          <td className="px-8 py-6">
+                             <p className="text-[10px] font-bold text-slate-300 uppercase mb-1">#{l.id.slice(0,6).toUpperCase()}</p>
+                             <p className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{l.client_name}</p>
+                             <p className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-emerald-500" /> {l.phone}</p>
                           </td>
-                          <td className="px-12 py-9">
+                          <td className="px-8 py-6">
                              <div className="flex gap-2">
-                                {resolveInterest(l, detectedKeys.construction) && <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase border border-emerald-100/50">Const</div>}
-                                {resolveInterest(l, detectedKeys.interior) && <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[9px] font-black uppercase border border-blue-100/50">Int</div>}
+                                {resolveInterest(l, detectedKeys.construction) && <div className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold uppercase border border-emerald-100">Construction</div>}
+                                {resolveInterest(l, detectedKeys.interior) && <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase border border-blue-100">Interior</div>}
                              </div>
                           </td>
-                          <td className="px-12 py-9">
-                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-slate-50 rounded-[14px] flex items-center justify-center text-slate-400 group-hover:bg-[#064e3b] group-hover:text-white transition-all shadow-sm"><User className="w-5 h-5" /></div>
-                               <p className="text-[13px] font-black text-slate-700">{l.creator?.full_name || 'System'}</p>
+                          <td className="px-8 py-6">
+                             <div className="flex items-center gap-3">
+                               <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all"><User className="w-4 h-4" /></div>
+                               <p className="text-sm font-semibold text-slate-700">{l.creator?.full_name || 'System'}</p>
                              </div>
                           </td>
-                          <td className="px-12 py-9">
+                          <td className="px-8 py-6">
                             <div className="relative">
                               <button 
                                 onClick={(e) => toggleDropdown(e, l.id)}
-                                className={`px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center gap-3 ${statusInfo.color}`}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider border flex items-center gap-2 transition-all ${statusInfo.color}`}
                               >
                                 {statusInfo.label}
-                                <ChevronDown className={`w-4 h-4 opacity-50 ${isDropdownActive ? 'rotate-180' : ''}`} />
+                                <ChevronDown className={`w-3.5 h-3.5 opacity-50 ${isDropdownActive ? 'rotate-180' : ''}`} />
                               </button>
                             </div>
                           </td>
-                          <td className="px-12 py-9 text-right">
-                             <div className="inline-flex p-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm text-slate-300 group-hover:text-[#064e3b] group-hover:shadow-md transition-all">
-                                <Eye className="w-6 h-6" />
+                          <td className="px-8 py-6 text-right">
+                             <div className="inline-flex p-2 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-400 group-hover:text-emerald-600 group-hover:border-emerald-200 transition-all">
+                                <Eye className="w-5 h-5" />
                              </div>
                           </td>
                         </tr>

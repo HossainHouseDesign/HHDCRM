@@ -448,68 +448,78 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Main Actions */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight">Main Dashboard</h1>
-            <p className="text-slate-400 text-xs lg:text-sm font-medium">Business overview and current status.</p>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">System Dashboard</h1>
+            <p className="text-slate-500 text-sm font-medium mt-1">Enterprise Overview & Operations Monitoring</p>
           </div>
-          <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
-            <button onClick={() => navigate('/leads/new')} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-[#064e3b] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
+          <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+            <button 
+              onClick={() => navigate('/leads/new')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+            >
               <PlusCircle className="w-4 h-4" /> New Lead
             </button>
-            <button onClick={() => navigate('/site-visits?schedule=true')} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-black transition-all">
-              <MapPin className="w-4 h-4" /> Schedule Visit
+            <button 
+              onClick={() => fetchDashboardData(true)}
+              className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+            >
+              <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {[
-            { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'bg-emerald-600' },
-            { label: 'Active Projects', val: stats.activeProjects, icon: Layers, color: 'bg-blue-600' },
-            { label: 'Total Clients', val: stats.validatedClients, icon: Users, color: 'bg-indigo-600' },
-            { label: 'Completed Projects', val: stats.completed, icon: CheckCircle2, color: 'bg-slate-900' }
+            { label: 'Total Leads', val: stats.totalLeads, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Active Projects', val: stats.activeProjects, icon: Layers, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Total Clients', val: stats.validatedClients, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+            { label: 'Project Count', val: stats.completed, icon: CheckCircle2, color: 'text-slate-600', bg: 'bg-slate-100' }
           ].map((s, i) => (
-            <div key={i} className="bg-white p-6 lg:p-8 rounded-[32px] lg:rounded-[44px] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-              <div className="flex justify-between items-start mb-6 lg:mb-8">
-                <div className={`w-12 lg:w-14 h-12 lg:h-14 ${s.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                  <s.icon className="w-5 lg:w-6 h-5 lg:h-6 text-white" />
+            <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all group">
+              <div className="flex justify-between items-start mb-6">
+                <div className={`w-12 h-12 ${s.bg} ${s.color} rounded-xl flex items-center justify-center`}>
+                  <s.icon className="w-5 h-5" />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-300" />
+                <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-slate-900 transition-colors" />
               </div>
-              <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
-              <h3 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter mt-1">{s.val}</h3>
+              <p className="text-3xl font-bold text-slate-900 tracking-tight mb-1">{s.val}</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{s.label}</p>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
-          {/* Chart Section */}
-          <div className="xl:col-span-8 bg-white p-6 lg:p-10 rounded-[40px] lg:rounded-[56px] border border-slate-100 shadow-sm space-y-8">
+          {/* Charts Section */}
+          <div className="xl:col-span-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h4 className="text-lg lg:text-xl font-black text-slate-900">Performance Chart</h4>
-                <p className="text-[9px] lg:text-[10px] text-slate-400 font-black uppercase mt-1">Overview of business growth</p>
+                <h4 className="text-lg font-bold text-slate-900 tracking-tight">Performance Metrics</h4>
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-1">Lead & Project Pipeline</p>
               </div>
-              <div className="bg-slate-50 p-1 rounded-2xl flex w-full sm:w-auto">
+              <div className="bg-slate-50 p-1 rounded-xl flex w-full sm:w-auto">
                   {['Weekly', 'Monthly', 'Yearly'].map(v => (
-                      <button key={v} onClick={() => setTimeframe(v as any)} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${timeframe === v ? 'bg-white text-[#064e3b] shadow-sm' : 'text-slate-400'}`}>
+                      <button 
+                        key={v} 
+                        onClick={() => setTimeframe(v as any)} 
+                        className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${timeframe === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
                         {v}
                       </button>
                   ))}
               </div>
             </div>
-            <div className="h-[300px] lg:h-[400px] w-full">
+            <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analyticsData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)', padding: '12px' }} />
-                  <Bar dataKey="Leads" fill="#10b981" radius={[4, 4, 0, 0]} barSize={8} />
-                  <Bar dataKey="Clients" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={8} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 600}} />
+                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }} />
+                  <Bar dataKey="Leads" fill="#60a5fa" radius={[4, 4, 0, 0]} barSize={8} />
+                  <Bar dataKey="Clients" fill="#10b981" radius={[4, 4, 0, 0]} barSize={8} />
                   <Bar dataKey="Projects" fill="#0f172a" radius={[4, 4, 0, 0]} barSize={8} />
                 </BarChart>
               </ResponsiveContainer>
@@ -517,49 +527,66 @@ const Dashboard = () => {
           </div>
 
           {/* Calendar Section */}
-          <div className="xl:col-span-4 bg-white rounded-[40px] lg:rounded-[56px] border border-slate-100 shadow-sm flex flex-col overflow-hidden">
-            <div className="p-8 lg:p-10 border-b border-slate-50 flex justify-between items-center">
+          <div className="xl:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
-                <h4 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight">Project Calendar</h4>
-                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mt-1">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                <h4 className="text-lg font-bold text-slate-900 tracking-tight">Calendar</h4>
+                <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider mt-1">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
               </div>
               <div className="flex gap-1">
-                <button onClick={handlePrevMonth} className="p-2 bg-slate-50 rounded-lg"><ChevronLeft className="w-4 h-4" /></button>
-                <button onClick={handleNextMonth} className="p-2 bg-slate-50 rounded-lg"><ChevronRight className="w-4 h-4" /></button>
+                <button onClick={handlePrevMonth} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"><ChevronLeft className="w-4 h-4" /></button>
+                <button onClick={handleNextMonth} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-all"><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
             
-            <div className="p-6 lg:p-8 grid grid-cols-7 gap-1">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d} className="text-center text-[9px] font-black text-slate-300 uppercase py-2">{d}</div>)}
+            <div className="p-6 grid grid-cols-7 gap-1">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+                <div key={`${d}-${idx}`} className="text-center text-[10px] font-bold text-slate-400 uppercase py-2">{d}</div>
+              ))}
               {calendarDays.map((day, i) => {
-                if (day === null) return <div key={`empty-${i}`} className="h-8 lg:h-10" />;
+                if (day === null) return <div key={`empty-${i}`} className="h-10" />;
                 const dateKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 const isSelected = selectedDate === dateKey;
+                const isToday = day === new Date().getDate() && 
+                                currentDate.getMonth() === new Date().getMonth() && 
+                                currentDate.getFullYear() === new Date().getFullYear();
+
                 return (
                   <button 
-                    key={day} 
+                    key={i} 
                     onClick={() => setSelectedDate(dateKey)}
-                    className={`h-8 lg:h-10 relative flex items-center justify-center text-[11px] font-bold rounded-xl transition-all ${isSelected ? 'bg-[#064e3b] text-white shadow-md' : 'hover:bg-slate-50 text-slate-600'}`}
+                    className={`h-10 relative flex items-center justify-center text-sm font-semibold rounded-xl transition-all ${
+                      isSelected ? 'bg-slate-900 text-white shadow-md' : 
+                      isToday ? 'text-blue-600 bg-blue-50' : 
+                      'hover:bg-slate-50 text-slate-600'
+                    }`}
                   >
                     {day}
-                    {(calendarData[dateKey]?.siteVisits.length || 0) > 0 && <div className="absolute bottom-1 w-1 h-1 bg-blue-500 rounded-full" />}
+                    {(calendarData[dateKey]?.siteVisits.length || 0) > 0 && <div className={`absolute bottom-1.5 w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-500'}`} />}
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex-1 bg-slate-50/50 p-6 lg:p-8 space-y-4 overflow-y-auto max-h-[250px] no-scrollbar">
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto max-h-[300px] no-scrollbar border-t border-slate-100 italic text-[11px] font-medium text-slate-500 leading-relaxed bg-slate-50/10">
                {selectedDayStats.followUps.length === 0 && selectedDayStats.siteVisits.length === 0 ? (
-                 <p className="text-[10px] text-center text-slate-300 font-black uppercase tracking-widest py-8">No tasks for this date</p>
+                 <div className="py-6 text-center">
+                   <Clock className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                   <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">No Events Scheduled</p>
+                 </div>
                ) : (
-                 <div className="space-y-3">
+                 <div className="space-y-2">
                     {selectedDayStats.siteVisits.map(v => (
-                      <div key={v.id} className="p-4 bg-white rounded-2xl border border-slate-100 flex items-center justify-between group cursor-pointer" onClick={() => navigate(`/site-visits/${v.id}`)}>
+                      <div 
+                        key={v.id} 
+                        className="p-4 bg-white rounded-xl border border-slate-100 flex items-center justify-between group cursor-pointer hover:border-slate-300 shadow-sm transition-all" 
+                        onClick={() => navigate(`/site-visits/${v.id}`)}
+                      >
                          <div className="flex items-center gap-3">
                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><MapPin className="w-4 h-4" /></div>
-                           <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]">{v.name}</span>
+                           <span className="text-xs font-bold text-slate-700 truncate max-w-[140px]">{v.name}</span>
                          </div>
-                         <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-all" />
                       </div>
                     ))}
                  </div>
