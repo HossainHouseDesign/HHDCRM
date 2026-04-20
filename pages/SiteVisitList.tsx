@@ -38,6 +38,7 @@ const SiteVisitList = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
   // Scheduling Form State
   const [formData, setFormData] = useState({
@@ -138,6 +139,20 @@ const SiteVisitList = () => {
     setFormData({ project_id: '', lead_id: '', location: '', visit_date: new Date().toISOString().split('T')[0], payment_status: 'Free', notes: '', assigned_team: [] });
     setEntityQuery('');
     navigate('/site-visits', { replace: true });
+  };
+
+  const handleStatusUpdate = async (id: string, newStatus: VisitStatus) => {
+    setIsUpdatingStatus(id);
+    try {
+      const { error } = await supabase.from('site_visits').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      showNotification(`Protocol updated: ${newStatus}`, "success");
+      fetchData();
+    } catch (err: any) {
+      showNotification("Sync Failed.", "error");
+    } finally {
+      setIsUpdatingStatus(null);
+    }
   };
 
   const counts = useMemo(() => {
@@ -312,8 +327,8 @@ const SiteVisitList = () => {
         <div className="grid grid-cols-3 gap-2 md:gap-3 mb-6 md:mb-8">
            {[
              { id: 'Upcoming', label: 'Active', icon: FolderClock, color: 'text-slate-900', bg: 'bg-slate-100', count: counts.Upcoming },
-             { id: 'Done', label: 'Archived', icon: FolderCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', count: counts.Done },
-             { id: 'Hold', label: 'Paused', icon: FolderDown, color: 'text-slate-400', bg: 'bg-slate-50', count: counts.Hold }
+             { id: 'Done', label: 'Complete', icon: FolderCheck, color: 'text-emerald-600', bg: 'bg-emerald-50', count: counts.Done },
+             { id: 'Hold', label: 'Hold', icon: FolderDown, color: 'text-slate-400', bg: 'bg-slate-50', count: counts.Hold }
            ].map((folder) => (
              <button 
                key={folder.id} 
@@ -453,19 +468,36 @@ const SiteVisitList = () => {
                              </span>
                            </td>
                            <td className="px-6 py-3">
-                             <div className="flex items-center gap-1">
+                             <div className="flex flex-col gap-1.5">
                                {v.assignments?.length ? v.assignments.map((a, i) => (
-                                 <div key={i} className="group/avatar relative">
-                                   <div className="w-7 h-7 bg-slate-50 rounded-lg border border-white shadow-none font-black flex items-center justify-center text-[8px] text-slate-200 uppercase group-hover/avatar:text-slate-900 transition-all">{a.profile?.full_name?.charAt(0)}</div>
-                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white rounded-lg text-[8px] font-black uppercase tracking-widest opacity-0 group-hover/avatar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a.profile?.full_name}</div>
+                                 <div key={i} className="flex items-center gap-2 group/member">
+                                   <div className="w-6 h-6 bg-slate-50 rounded border border-slate-100 shadow-none font-black flex items-center justify-center overflow-hidden shrink-0 transition-transform group-hover/member:scale-105">
+                                     {a.profile?.avatar_url ? (
+                                       <img src={a.profile.avatar_url} alt={a.profile.full_name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                     ) : (
+                                       <span className="text-[8px] text-slate-300 uppercase font-black">{a.profile?.full_name?.charAt(0)}</span>
+                                     )}
+                                   </div>
+                                   <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight leading-none truncate max-w-[120px]">{a.profile?.full_name}</span>
                                  </div>
                                )) : <span className="text-[8px] text-slate-200 font-black uppercase tracking-widest">UNASSIGNED</span>}
                              </div>
                            </td>
-                           <td className="px-6 py-3 text-right">
-                             <div className="inline-flex p-1.5 bg-slate-50 text-slate-200 rounded-lg group-hover:text-slate-900 group-hover:bg-white border border-transparent group-hover:border-slate-200 shadow-none transition-all">
-                               <ChevronRight className="w-4 h-4" />
-                             </div>
+                           <td className="px-6 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="relative inline-flex items-center group">
+                                <select 
+                                  value={v.status}
+                                  onChange={(e) => handleStatusUpdate(v.id, e.target.value as VisitStatus)}
+                                  disabled={isUpdatingStatus === v.id}
+                                  className="appearance-none bg-slate-50 border border-transparent hover:border-slate-200 text-slate-900 text-[8px] font-black uppercase tracking-widest rounded-lg px-3 py-1.5 focus:outline-none transition-all cursor-pointer pr-7"
+                                >
+                                  <option value="Upcoming">Active</option>
+                                  <option value="Done">Complete</option>
+                                  <option value="Hold">Hold</option>
+                                </select>
+                                <ChevronDown className="absolute right-2 w-3 h-3 text-slate-400 pointer-events-none" />
+                                {isUpdatingStatus === v.id && <RefreshCw className="absolute -left-5 w-3 h-3 animate-spin text-emerald-500" />}
+                              </div>
                            </td>
                         </tr>
                       ))}
